@@ -1,0 +1,10 @@
+* text=auto
+*.sh text eol=lf
+*.js text eol=lf
+*.snbt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.png binary
+*.zip binary

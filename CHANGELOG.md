@@ -2,6 +2,13 @@
 
 Format per entry: what changed · world risk · what players must do.
 
+## v0.3.1 — 2026-08-15
+
+Progression stance + repo hygiene. World risk: none. Players: nothing.
+
+- **Progression is fully natural again** — the v0.3.0 star recipe removals are reverted to commented/staged. No enforcement anywhere; the "no millions" rule stays social. Verified ids remain documented in `custom_endgame_nerfs.js` if the group ever changes its mind.
+- `.gitattributes` added (LF enforced for scripts/configs, binaries marked) — safe to commit from Windows, deploy on Linux.
+
 ## v0.3.0 — 2026-08-15
 
 Name, access, and the progression ceiling. World risk: none (pre-world). Players: pick your username once and report it for the whitelist.

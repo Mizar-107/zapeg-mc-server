@@ -40,7 +40,7 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 ## Deliberately NOT touched
 
 - No extra performance mods (ModernFix/FerriteCore/Spark ship with the pack; profile before adding anything — README §Troubleshooting).
-- No recipe changes beyond the name-tag QoL recipe (`zapeg_starter.js`) and the two star removals (`custom_endgame_nerfs.js`).
+- No recipe changes beyond the name-tag QoL recipe (`zapeg_starter.js`). Progression is fully natural — endgame hooks exist (`custom_endgame_nerfs.js`) but everything in them is commented out.
 - Mob spawn rates, ore gen, loot tables: stock ATM9 until a playtest says otherwise.
 
 ## Change discipline
