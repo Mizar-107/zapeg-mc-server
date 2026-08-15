@@ -2,6 +2,33 @@
 
 Format per entry: what changed · world risk · what players must do.
 
+## v0.8.0 — 2026-08-15
+
+Content drop 2 + Heraldor. World risk: none (pre-world). Players: jar list **6 → 12** — use `zapeg-extra-mods.zip` (one extract) instead of per-file downloads.
+
+- **Added (client+server)**: Aquamirae 7.1.10 (`8558369`), Born in Chaos 1.7.5 (`7917933`), When Dungeons Arise 2.1.57 (`4798432`), Simply Swords 1.56.0 (`5639538`), Better Combat 1.9.0 + playerAnimator 1.0.2-rc1 (Modrinth pins; cloth-config already in pack)
+- **Added (server-only)**: Incendium 5.3.1 (Modrinth) — nether overhaul by the Terralith authors
+- **Not added, on purpose**: magic mods (ATM9 already ships Eidolon Repraised, Forbidden & Arcanus, Mahou Tsukai, Ars Elemental — saturated); BOMD (no Forge 1.20.1); Epic Fight (compat risk at 440+ mods); From the Fog (conflicts with our own entity's lore)
+- **Heraldor** (`npc/heraldor.py`, `--profile heraldor`): night-biased private whispers + creepy sounds, rare global lines, rarest Discord webhook posts; staged midnight shadow visits (`HERALDOR_EVENTS`, default off; self-despawning vexes, no grief); optional LLM lines. Muhtar now refuses to discuss him.
+- `Build-ClientZip.ps1 -ExtrasOnly` → `zapeg-extra-mods-<date>.zip` for Yol A players
+
+## v0.7.0 — 2026-08-15
+
+Shaders-by-default + embodied Muhtar. World risk: none (pre-world). Players: jar list **5 → 6** (Easy NPC) + one tiny defaults zip.
+
+- **Default visuals**: ATM9 already bundles Oculus/Embeddium + Complementary shaderpacks — `client/defaults/` (options.txt + oculus.properties) turns **Complementary Unbound ON by default**. Yol A: extract `zapeg-client-defaults.zip` into the profile (guide step added; K toggles, MakeUp-UltraFast as fallback). Yol B: `Build-ClientZip.ps1` now bundles shaderpacks + defaults and auto-detects the actual shaderpack filename.
+- **Easy NPC 7.7.7** (`8644040`, client+server): Muhtar's physical body — placed in the town square post-launch, coordinates go into `NPC_POS`; the brain now fires villager sound + particles at the body when he speaks. Feasibility verdict recorded in ROADMAP (bot-as-player = dead end; custom Forge mod = the walking-Muhtar endgame).
+- Guides updated: 6 jars, defaults step, Muhtar intro line.
+
+## v0.6.0 — 2026-08-15
+
+Balance pass, personalization, Muhtar NPC, server IP. World risk: none. Players: nothing (IP now in the guides).
+
+- **Balance review** (`BALANCE.md`): silver triple-duplication (ATO+Thermal+I&F) → 1:1 conversion bridge shipped (`zapeg_balance.js`) + post-boot action: I&F silver ORE gen off, sapphire stays. PNC↔IP dual oil = coexists by design. AC materials self-contained. AC nuke removal staged (commented).
+- **Personal layer live** (`zapeg_welcome.js`, `zapeg_starter.js`): real welcome pools + named first-join gifts — kralxlarge/Emir (Acele Etme Pusulası), Mizar__107/Recep (Admin Sopası), Enes (Jetpack Ruhu — Iron Jetpacks confirmed in pack), Salih (Çakmağı — Ev Yakmak Yasak), Yusuf/Ali/Mert (pasta). Enes/Salih/Yusuf/Ali/Mert keyed by real name until nicks arrive.
+- **Muhtar LLM NPC prototype** (`npc/`, `--profile npc`): log→LLM→tellraw chat-bridge with Turkish persona + player dossier; cooldown/daily-cap guardrails; OpenAI-compatible endpoint via `.env`. (Mineflayer route rejected: vanilla protocol can't pass Forge's modlist handshake on this pack.)
+- **Server IP `81.213.77.41`** baked into both player guides.
+
 ## v0.5.0 — 2026-08-15
 
 Metrics + scaffolds + compat verification. World risk: none. Players: nothing.

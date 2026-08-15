@@ -2,23 +2,43 @@
 // Her girişte oyuncuya özel havuzdan rastgele bir satır herkese duyurulur.
 //
 // !!! ANAHTARLAR MINECRAFT KULLANICI ADI OLMALI (whitelist'tekiyle birebir) !!!
-// Aşağıdaki satırlar YER TUTUCU — grubun iç şakalarıyla değiştirin.
+// kralxlarge (Emir) ve Mizar__107 (Recep) kesin. Enes/Salih/Yusuf/Ali/Mert
+// şimdilik gerçek adla — nick'ler gelince anahtarları değiştir.
 // Deploy: scripts/apply-overrides.sh ; reload: /kubejs reload server_scripts
 
 const WELCOME_LINES = {
-  // 'EnesinKullaniciAdi': [
-  //   'iç şaka 1',
-  //   'iç şaka 2',
-  // ],
-  // 'SalihinKullaniciAdi': [ ... ],
-  // 'EmirinKullaniciAdi': [ ... ],
-  // 'RecebinKullaniciAdi': [ ... ],
+  'kralxlarge': [                       // Emir — grinder, her şeyde birinci olacak
+    'uyumadı, kazdı.',
+    'nether daha açılmadan pusuya yattı.',
+    'enderdragon şimdiden tedirgin.',
+    'ilerleme barı yine ona yetişemiyor.',
+    'boss\'lar toplantıya çağrıldı.',
+  ],
+  'Mizar__107': [                       // Recep — admin / sunucunun sahibi
+    'admin geldi, düzgün oturun.',
+    'yetkiyle giriş yapıldı.',
+    'whitelist\'in efendisi döndü.',
+    'log\'lar okunuyor, haberiniz olsun.',
+  ],
+  'Enes': [                             // jetpack özlemi
+    'jetpack özlemi bugün bitebilir.',
+    'önce jetpack, gerisi detay.',
+    'gökyüzü hazırlıklara başladı.',
+  ],
+  'Salih': [                            // meşhur ev yakma vakaları
+    'evleri kilitleyin, kibritleri saklayın.',
+    'itfaiye teyakkuza geçti.',
+    'yangın sigortanızı yenileyin.',
+    'çakmağı kapıda bıraktığını iddia ediyor.',
+  ],
+  'Yusuf': ['vay, gerçekten geldi!', 'takvime işaretleyin: bugün geldi.'],
+  'Ali':   ['yılın sürprizi.', 'kendisi de şaşırdı ama geldi.'],
+  'Mert':  ['efsaneye göre bazen giriş yaparmış.', 'ekran görüntüsü alın, kanıt lazım.'],
 }
 
 const DEFAULT_LINES = [
   'kapıları kilitleyin.',
   'ejderhalar haberdar edildi.',
-  'madene inmeden dursun bakalım.',
   'bugün de bir şeyler patlayacak.',
   'quest book seni bekliyor.',
 ]

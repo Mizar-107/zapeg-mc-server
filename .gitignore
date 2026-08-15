@@ -4,3 +4,4 @@ backups/
 snapshots/
 
 rclone.conf
+__pycache__/

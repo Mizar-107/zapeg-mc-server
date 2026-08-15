@@ -13,6 +13,14 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + Ice and Fire, Citade
 | Chunky | 1.3.146 | Modrinth (`MODRINTH_PROJECTS`) | No 1.20.1 Forge build exists on CurseForge |
 | Alex's Caves | 2.0.2 (2024-10) | CF file `5848216` | Client+server; shares Citadel dep |
 | Mowzie's Mobs | 1.8.2 (2026-03) | CF file `7815705` | Client+server; GeckoLib already in ATM9 |
+| Easy NPC | 7.7.7 (2026-08) | CF file `8644040` | Client+server; Muhtar's physical body |
+| Aquamirae | 7.1.10 (2026-08) | CF file `8558369` | Client+server; ocean horror + Cornelia boss |
+| Born in Chaos | 1.7.5 (2026-04) | CF file `7917933` | Client+server; night horror mobs ("Heraldor'un orduları") |
+| When Dungeons Arise | 2.1.57 (final 1.20.1) | CF file `4798432` | Client+server; mega-dungeons |
+| Simply Swords | 1.56.0 | CF file `5639538` | Client+server; unique weapons |
+| Better Combat | 1.9.0+1.20.1 | Modrinth pin | Client+server; melee overhaul (needs playerAnimator; cloth-config already in pack) |
+| playerAnimator | 1.0.2-rc1+1.20 | Modrinth pin | Client+server; Better Combat dep |
+| Incendium | 5.3.1 | Modrinth pin | **Server-only**; nether overhaul (Stardust, pairs with pack's Terralith) |
 | BlueMap | 5.3-forge-1.20 | Modrinth (`MODRINTH_PROJECTS`) | Server-only web map on `:8100`. Pinned to 5.3 — 5.12+ needs Java 21, we're on 17 |
 | Discord Integration | 3.0.7.1 (2024-05) | CF file `5332465` | Server-only; token wired post-boot (HOSTING) |
 

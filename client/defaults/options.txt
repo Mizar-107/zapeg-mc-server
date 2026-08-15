@@ -1,0 +1,2 @@
+renderDistance:10
+gamma:1.0

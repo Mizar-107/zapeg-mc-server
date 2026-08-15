@@ -41,6 +41,7 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 |---|---|---|
 | **Ice and Fire griefing** | Dragon griefing → **low/none** (wild dragons must not delete cities); roost spawn rate: leave default for playtest 1 | `scripts/iceandfire-config-check.sh` surfaces the keys → edit → snapshot → restart |
 | **Ice and Fire spawn rates** | Default until first playtest; if the overworld feels like a war zone, halve roost/lair gen | same |
+| **Ice and Fire silver ore gen** | **OFF** — pack silver (AllTheOres/Thermal) is the single source; conversion bridge shipped in `zapeg_balance.js` (see BALANCE.md #1). Sapphire gen stays on | same script surfaces the key |
 | **Apotheosis** | Defaults for playtest 1 (ATM already tunes it); revisit boss-spawn frequency only if surface bosses annoy | `data/config/apotheosis/` |
 | **Surface/mob density** | I&F + Mowzie's + Cataclysm + Apotheosis all add spawns — compatible, but combined surface pressure is a playtest question. If the overworld feels like a war zone, halve I&F roost gen and Mowzie's spawn rates first | their configs under `data/config/` |
 | **Endgame ceiling** | Level 1 (social) — active. Level 3 KubeJS hooks staged, dormant | brief §5 |

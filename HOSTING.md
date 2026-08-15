@@ -36,6 +36,10 @@ scripts/apply-overrides.sh && docker compose restart mc
 
 **Offsite backups** (optional but recommended): drop an `rclone.conf` next to the compose file (gitignored), set `RCLONE_DEST` in `.env` (e.g. `b2:zapeg-backups/world`), then `docker compose --profile offsite up -d`.
 
+**Muhtar NPC** (optional, needs an LLM key in `.env`): once the town exists, an OP places the body with Easy NPC (spawn egg in creative → skin/name "Muhtar", position him in the town square, set to stay put), writes the coordinates into `.env` as `NPC_POS="x y z"`, then `docker compose --profile npc up -d --build`. Players talk to him by saying "muhtar" in chat; the body plays sound/particles when he answers.
+
+**Heraldor** (optional, zero cost by default): `docker compose --profile heraldor up -d --build`. Rare whispers to random players (night-biased), rarer global lines, rarest Discord posts (set `HERALDOR_WEBHOOK` in `.env` — channel settings → integrations → webhook). `HERALDOR_EVENTS=true` additionally enables very rare midnight "shadow" visits (3 named vexes, self-despawn in 30s, no grief). Do NOT explain Heraldor to the players.
+
 ## Verify the 4 extra mods loaded (once, after first boot)
 
 ```bash

@@ -5,8 +5,10 @@
 # (GeckoLib, Mowzie's dep, already ships in ATM9).
 #
 # CLIENT+SERVER (players need these exact builds too — see docs/PLAYER-SETUP-TR.md):
-#   ice-and-fire-dragons, citadel, immersive-petroleum, alexs-caves, mowzies-mobs
-# SERVER-ONLY (players skip): dcintegration (+ chunky & bluemap via MODRINTH_PROJECTS)
+#   ice-and-fire-dragons, citadel, immersive-petroleum, alexs-caves, mowzies-mobs,
+#   easy-npc, aquamirae, born-in-chaos, when-dungeons-arise, simply-swords
+#   (+ better-combat & playeranimator via MODRINTH_PROJECTS — also client-side)
+# SERVER-ONLY (players skip): dcintegration (+ chunky, bluemap, incendium via MODRINTH_PROJECTS)
 
 # --- content: client + server ------------------------------------------------
 
@@ -26,6 +28,23 @@ alexs-caves:5848216
 
 # Mowzie's Mobs 1.8.2 for 1.20.1 (2026-03-26) — boss-grade creatures (v0.4.0 drop)
 mowzies-mobs:7815705
+
+# Easy NPC bundle 7.7.7 (2026-08-14) — Muhtar'ın fiziksel bedeni (skin, poz, follow)
+easy-npc:8644040
+
+# --- v0.8.0 content drop (all client+server) ----------------------------------
+
+# Aquamirae 7.1.10 (2026-08-02) — ship-graveyard ocean horror + Captain Cornelia
+aquamirae:8558369
+
+# Born in Chaos 1.7.5 (2026-04-12) — horror night mobs; lore: Heraldor'un orduları
+born-in-chaos:7917933
+
+# When Dungeons Arise 2.1.57 (2023-10-14, final 1.20.1) — massive dungeons
+when-dungeons-arise:4798432
+
+# Simply Swords 1.56.0 (2024-08-18) — ~50 unique weapons; pairs with Better Combat
+simply-swords:5639538
 
 # --- server-only ---------------------------------------------------------------
 
