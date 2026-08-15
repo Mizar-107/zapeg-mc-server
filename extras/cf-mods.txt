@@ -1,0 +1,16 @@
+# Extra CurseForge content on top of ATM9 — exact file pins (verified 2026-08-15).
+# Format: slug:fileID
+# Docs: https://docker-minecraft-server.readthedocs.io/en/latest/mods-and-plugins/curseforge-files/
+# NOTE: dependencies are NOT auto-resolved here — that's why Citadel is listed explicitly.
+# Clients must run these same builds (plus Chunky is server-side, clients don't need it).
+
+# Ice and Fire 2.1.13-1.20.1-beta-5 — latest official 1.20.1 build (2024-08-15)
+ice-and-fire-dragons:5633453
+
+# Citadel 2.6.3-1.20.1 (2026-01-17) — I&F dependency; beta-5 fixed 2.6.x compat.
+# If boot fails with a "requires Citadel between X and Y" range error,
+# fall back to 2.6.1: citadel:6002521
+citadel:7476570
+
+# Immersive Petroleum 1.20.1-4.3.1-36b (2026-07-24) — IE oil addon, Forge build
+immersive-petroleum:8499079
