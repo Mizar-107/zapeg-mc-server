@@ -1,0 +1,42 @@
+# TUNING — server behavior decisions
+
+My defaults below are encoded in the repo (compose env / `scripts/apply-gamerules.sh` / post-boot config steps). Items marked **[vote]** deserve a group decision — veto before go-live, everything is changeable later without world damage.
+
+## Gamerules (applied via `scripts/apply-gamerules.sh` after real-world creation)
+
+| Rule | Default | Why | |
+|---|---|---|---|
+| `keepInventory` | **false** | Pack ships **Corail Tombstone** — death drops go into a grave you walk back to. Real stakes, zero item-loss rage. | **[vote]** |
+| `playersSleepingPercentage` | **10** | One sleeper skips the night for up to 8 online. No "herkes yatağa" çığlıkları. | |
+| `doInsomnia` | **false** | No phantoms. Nobody has ever voted for phantoms. | |
+| `mobGriefing` | **true** | Creeper holes are content; FTB Chunks claims already block explosions on claimed land — claim your base (M). | **[vote]** |
+| `doFireTick` | **true** | Fire spreads (dragons!). Claimed chunks are protected; build with stone near roost country. | |
+| `pvp` (server.properties) | **true** | Friendly duels; whitelist-only server, griefing isn't a threat model. | **[vote]** |
+
+## Already set in `docker-compose.yml`
+
+| Setting | Value | Note |
+|---|---|---|
+| `DIFFICULTY` | normal | **[vote]** — hard makes Cataclysm/dragons nastier; normal fits "efor gerektirmesin" |
+| `VIEW_DISTANCE` / `SIMULATION_DISTANCE` | 7 / 6 | Server sanity (brief §6); clients can render further locally |
+| `SPAWN_PROTECTION` | 0 | Spawn is buildable; claims are the protection layer |
+| whitelist | enforced | Usernames via `.env` or rcon |
+
+## Post-first-boot config passes (need the mod's config files to exist)
+
+| Target | Decision | How |
+|---|---|---|
+| **Ice and Fire griefing** | Dragon griefing → **low/none** (wild dragons must not delete cities); roost spawn rate: leave default for playtest 1 | `scripts/iceandfire-config-check.sh` surfaces the keys → edit → snapshot → restart |
+| **Ice and Fire spawn rates** | Default until first playtest; if the overworld feels like a war zone, halve roost/lair gen | same |
+| **Apotheosis** | Defaults for playtest 1 (ATM already tunes it); revisit boss-spawn frequency only if surface bosses annoy | `data/config/apotheosis/` |
+| **Endgame ceiling** | Level 1 (social) — active. Level 3 KubeJS hooks staged, dormant | brief §5 |
+
+## Deliberately NOT touched
+
+- No extra performance mods (ModernFix/FerriteCore/Spark ship with the pack; profile before adding anything — README §Troubleshooting).
+- No recipe changes beyond the name-tag QoL recipe (KubeJS `seri_starter.js`).
+- Mob spawn rates, ore gen, loot tables: stock ATM9 until a playtest says otherwise.
+
+## Change discipline
+
+Gamerule/config flips are world-safe (UPDATING.md matrix, row 3) — but still: snapshot, change, note it in CHANGELOG so nobody wonders why phantoms vanished.

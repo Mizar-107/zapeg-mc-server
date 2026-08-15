@@ -22,6 +22,12 @@ docker compose logs -f mc     # first boot: ~1.1 GB download + Forge install, 5�
 
 Ready when the log shows `Done (…)! For help, type "help"`. The backup sidecar starts automatically once `mc` is healthy.
 
+Then apply the repo's custom layer (quest chapter, starter-kit script, server icon) and restart:
+
+```bash
+scripts/apply-overrides.sh && docker compose restart mc
+```
+
 ## Verify the 4 extra mods loaded (once, after first boot)
 
 ```bash
@@ -40,7 +46,8 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
    rm -rf data/world
    docker compose start mc
    ```
-3. Pregen the real world (run overnight; heavy CPU is expected):
+3. On the real world, apply the agreed gamerules (once): `scripts/apply-gamerules.sh` (values: [TUNING.md](TUNING.md))
+4. Pregen the real world (run overnight; heavy CPU is expected):
    ```bash
    scripts/pregen.sh 6000
    ```

@@ -38,7 +38,7 @@ services:
       MAX_TICK_TIME: "-1"                  # disable watchdog; modded servers have long ticks
       DIFFICULTY: normal
       SPAWN_PROTECTION: "0"
-      MOTD: "Seri ATM9+ | private"
+      MOTD: "§3Seri §bATM9§f+ §8| §7ejderhalar gerçek"
       ENFORCE_SECURE_PROFILE: "false"      # avoids chat-signing kicks on modded
 
       # ---- access control ---------------------------------------------------

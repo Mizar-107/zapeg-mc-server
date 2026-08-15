@@ -78,7 +78,9 @@ overrides/             mirrors data/ — kubejs endgame hooks live here
 scripts/               snapshot.sh · pregen.sh · apply-overrides.sh · iceandfire-config-check.sh
 HOSTING.md             day-0 guide for the operator
 UPDATING.md            change-safety matrix + release ritual
+TUNING.md              gamerule/config decisions (defaults + group votes)
 CHANGELOG.md           per-release notes (doubles as player announcements)
 docs/                  project brief · PLAYER-SETUP-TR (oyuncu kurulumu)
+client/                optional client branding (PackMenu logo) — cosmetic
 data/ backups/ snapshots/   runtime state (gitignored)
 ```

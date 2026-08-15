@@ -1,0 +1,256 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "seri_baslangic"
+	group: ""
+	icon: "minecraft:nether_star"
+	id: "0CEBDD5ED90BF2AC"
+	order_index: 0
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Kendi paketimiz: &bATM9&r + ejderhalar (&3Ice and Fire&r) + petrol (&3Immersive Petroleum&r)."
+				""
+				"Bu quest book bir &erehber&r, zorunluluk değil — hiçbir şey kilitli değil. Aşağıdaki yollardan birini seç ya da hepsine bulaş. Her yol, ATM9'un kendi chapter'larına açılır (soldaki listeye bak)."
+				""
+				"İlk girişte başlangıç kiti otomatik verildi (ekmek, meşale, warp stone). Sunucu her gece yedekleniyor, rahat ol."
+				""
+				"&7Tek kural: birbirinizin şehirlerini yakmayın. Onu zaten ejderhalar yapacak.&r"
+			]
+			icon: "minecraft:nether_star"
+			id: "E3BD6E35F91448B4"
+			rewards: [
+				{
+					id: "A85A17994B9A1B77"
+					item: "sophisticatedbackpacks:backpack"
+					type: "item"
+				}
+				{
+					id: "44BB4D6400018007"
+					type: "xp"
+					xp: 25
+				}
+			]
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Herkese göre bir yol var"
+			tasks: [{
+				id: "42FCD9CE56EAB362"
+				title: "Seri'ye Hoş Geldin"
+				type: "checkmark"
+			}]
+			title: "&aSeri'ye Hoş Geldin"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["E3BD6E35F91448B4"]
+			description: [
+				"Otomasyon ve makineler senin işinse başlangıç noktası &6Create&r: dönen miller, vinçler, mekanik presler. Görsel, tatmin edici, elektrik gerektirmez."
+				""
+				"Sonrası: &3Mekanism&r (fabrika + fisyon/füzyon), &3Immersive Engineering&r (endüstriyel multiblock'lar + artık &6petrol&r kuyuları), &3Thermal&r, &3Powah&r."
+				""
+				"İlgili chapter'lar: &eCreate&r, &eMekanism&r, &eImmersive Engineering&r."
+			]
+			icon: "create:cogwheel"
+			id: "5061F687C93750E0"
+			rewards: [{
+				id: "4E203A60AC584C6C"
+				item: {
+					Count: 16
+					id: "minecraft:iron_ingot"
+				}
+				type: "item"
+			}]
+			subtitle: "Create → Mekanism → sonsuzluk"
+			tasks: [{
+				id: "622EE803CEEB2DD6"
+				title: "Teknoloji Yolu"
+				type: "checkmark"
+			}]
+			title: "&6Teknoloji Yolu"
+			x: -3.0d
+			y: -1.5d
+		}
+		{
+			dependencies: ["E3BD6E35F91448B4"]
+			description: [
+				"Büyüye giriş için &5Ars Nouveau&r: kendi büyülerini kendin tasarlıyorsun (kazıcı büyü, ışınlanma, ne istersen)."
+				""
+				"Sonrası: &3Botania&r (çiçek teknolojisi), &3Occultism&r (ritüeller ve cinler), &3Blood Magic&r (adı üstünde)."
+				""
+				"İlgili chapter'lar: &eArs Nouveau&r, &eBotania&r, &eOccultism&r."
+			]
+			icon: "minecraft:enchanting_table"
+			id: "E81A3ADBB5F701B7"
+			rewards: [{
+				id: "3405729CCE4538A7"
+				item: {
+					Count: 8
+					id: "minecraft:amethyst_shard"
+				}
+				type: "item"
+			}]
+			subtitle: "Kendi büyünü kendin yaz"
+			tasks: [{
+				id: "9ADC70D84AC65478"
+				title: "Büyü Yolu"
+				type: "checkmark"
+			}]
+			title: "&5Büyü Yolu"
+			x: -3.0d
+			y: 1.5d
+		}
+		{
+			dependencies: ["E3BD6E35F91448B4"]
+			description: [
+				"Şehir kurmak isteyenlere: &3MineColonies&r ile gerçek vatandaşları olan, büyüyen bir kasaba yönetiyorsun — inşaatçılar, çiftçiler, muhafızlar."
+				""
+				"Dekor için &3Macaw's&r (kapılar, çitler, çatılar) ve &3Supplementaries&r. Şehrin altyapısını &6Create&r ile otomatikleştir."
+				""
+				"İlgili chapter: &eMineColonies&r."
+			]
+			icon: "minecraft:bricks"
+			id: "69B229ED4B037D62"
+			rewards: [{
+				id: "74F8307A9E69D995"
+				item: {
+					Count: 32
+					id: "minecraft:bricks"
+				}
+				type: "item"
+			}]
+			subtitle: "Vatandaşları olan gerçek bir kasaba"
+			tasks: [{
+				id: "AF8E7862041DE12C"
+				title: "Şehir Kurucu"
+				type: "checkmark"
+			}]
+			title: "&eŞehir Kurucu"
+			x: -1.5d
+			y: 3.0d
+		}
+		{
+			dependencies: ["E3BD6E35F91448B4"]
+			description: [
+				"&3Ad Astra&r: roket yap, Ay'a git; sonra Mars, Venüs, uzay istasyonları. Oksijen ve yakıt yönetimi gerçek — hazırlıksız gidenin cesedi yörüngede kalır."
+				""
+				"Uzay pahalı iş: önce Teknoloji Yolu'ndan biraz altyapı kur. &6Immersive Petroleum&r'un petrolü roket yakıtına akar."
+				""
+				"İlgili chapter: &eAd Astra&r."
+			]
+			icon: "minecraft:firework_rocket"
+			id: "D5E7D3BA9C25ECCD"
+			rewards: [{
+				id: "8221635AD843A055"
+				item: {
+					Count: 32
+					id: "minecraft:coal"
+				}
+				type: "item"
+			}]
+			subtitle: "Önce yakıt, sonra yörünge"
+			tasks: [{
+				id: "DDFBB6C45DD5E98B"
+				title: "Uzay Programı"
+				type: "checkmark"
+			}]
+			title: "&bUzay Programı"
+			x: 1.5d
+			y: 3.0d
+		}
+		{
+			dependencies: ["E3BD6E35F91448B4"]
+			description: [
+				"&3Ice and Fire&r bu paketin bizim eklediğimiz parçası: overworld'de gerçek ejderha yuvaları var — buz ve ateş ejderhaları, mağaraları, hazineleri."
+				""
+				"Ejderha avlayabilir, yumurtasını çalıp &6kendi ejderhanı büyütüp binebilirsin&r. Isim takmak için name tag artık craft edilebilir (JEI'de tarife bak — bizim özel tarifimiz)."
+				""
+				"Ayrıca: sirenler, kikloplar, ölüm solucanları... Uzak diyarlara dikkatli git."
+			]
+			icon: "minecraft:dragon_head"
+			id: "E6AD87C0417C62B7"
+			rewards: [{
+				id: "50B9BCCF2CCC48E2"
+				item: "minecraft:name_tag"
+				type: "item"
+			}]
+			subtitle: "Yuvalar gerçek, hazine gerçek, alevler de"
+			tasks: [{
+				id: "6145EFCD1DBEA350"
+				title: "Ejderha Avcısı"
+				type: "checkmark"
+			}]
+			title: "&cEjderha Avcısı"
+			x: 3.0d
+			y: 1.5d
+		}
+		{
+			dependencies: ["E3BD6E35F91448B4"]
+			description: [
+				"Boss kesmek için sırayla: &3The Aether&r (cennet boyutu, üç zindan boss'u), &3L_Ender's Cataclysm&r (bu paketin en iyi boss fight'ları — ATM ekibi özel dengelemiş), &3Apotheosis&r boss'ları her yerde."
+				""
+				"Ejderhalar da sayılır (yan komşu quest). En sonda: Draconic Evolution'ın Chaos Guardian'ı — ama oraya varan zaten bu rehbere ihtiyaç duymuyordur."
+				""
+				"İlgili chapter'lar: &eThe Aether&r, &eCataclysm&r, &eApotheosis&r."
+			]
+			icon: "minecraft:wither_skeleton_skull"
+			id: "821E9FAD62271BBF"
+			rewards: [{
+				id: "537991288FC3F51A"
+				item: {
+					Count: 4
+					id: "minecraft:golden_apple"
+				}
+				type: "item"
+			}]
+			subtitle: "Aether → Cataclysm → kaos"
+			tasks: [{
+				id: "46E2095F2357426F"
+				title: "Boss Rush"
+				type: "checkmark"
+			}]
+			title: "&4Boss Rush"
+			x: 3.0d
+			y: -1.5d
+		}
+		{
+			dependencies: ["E3BD6E35F91448B4"]
+			description: [
+				"Pratik bilgiler, yol seçmeden önce:"
+				""
+				"&e1.&r &3JEI&r her şeyin ansiklopedisi — bir şeyin tarifi için üstüne gel, &6R&r; nerede kullanılıyor, &6U&r."
+				"&e2.&r Haritadan (&6M&r) chunk claim'le — &3FTB Chunks&r, claim'li alanda patlama/yağma yok."
+				"&e3.&r Kitindeki &3warp stone&r ile eve dön; &3waystone&r bulup aktive et, ışınlanma ağı kur."
+				"&e4.&r Ölünce eşyalar &3Tombstone&r mezarında birikir — panik yok, mezarına dön yeter."
+				"&e5.&r Sırt çantası (hoş geldin ödülü) envanterinin iki katı — hep üstünde taşı."
+			]
+			icon: "minecraft:red_bed"
+			id: "8129D7094B2D7000"
+			rewards: [
+				{
+					id: "710953C0DEDCAA02"
+					item: "waystones:waystone"
+					type: "item"
+				}
+				{
+					id: "8D6B202B914972C9"
+					type: "xp"
+					xp: 10
+				}
+			]
+			subtitle: "5 maddede hayatta kalma"
+			tasks: [{
+				id: "8CA72E3EF31E3419"
+				title: "İlk Gece Rehberi"
+				type: "checkmark"
+			}]
+			title: "&fİlk Gece Rehberi"
+			x: 0.0d
+			y: -2.5d
+		}
+	]
+	title: "&aSeri — Yol Haritası"
+}
