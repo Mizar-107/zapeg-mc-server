@@ -2,11 +2,21 @@
 
 Format per entry: what changed · world risk · what players must do.
 
+## v0.3.0 — 2026-08-15
+
+Name, access, and the progression ceiling. World risk: none (pre-world). Players: pick your username once and report it for the whitelist.
+
+- **Server is named ZapeG** — all "Seri" branding replaced (quest chapter, kit message, MOTD, logo, icon; recipe id now `zapeg:name_tag`, kit stage `zapeg_starter_kit`)
+- **`ONLINE_MODE=false`** — every launcher can join, no Mojang auth. Whitelist stays the gate; username = identity (see HOSTING "Access model"). Locked before go-live.
+- **Progression ceiling ACTIVE**: ATM Star (`allthetweaks:atm_star`) and Gregstar (`allthetweaks:greg_star`) recipes removed via KubeJS — verified against ATM9's own scripts. Everything below them untouched; star quest chapters remain as lore. Draconic chaos tier staged, pending playtest.
+- **Player guide rewritten** (`docs/PLAYER-SETUP-TR.md` + styled `docs/zapeg-kurulum.html`): premium (CurseForge App) and offline-launcher paths
+- Easter eggs for the four players: parked, design later (KubeJS per-player hooks make this trivial)
+
 ## v0.2.0 — 2026-08-15
 
 Identity + tuning layer. World risk: none (all server-side data/config). Players: nothing required.
 
-- **Seri quest chapter** (`overrides/config/ftbquests/...`): Turkish "Yol Haritası" — welcome hub + 6 player-path quests + first-night survival guide, non-gating, links into ATM9's chapters; rewards incl. welcome backpack
+- **Custom quest chapter** (`overrides/config/ftbquests/...`): Turkish "Yol Haritası" — welcome hub + 6 player-path quests + first-night survival guide, non-gating, links into ATM9's chapters; rewards incl. welcome backpack (renamed to ZapeG in v0.3.0)
 - **Starter kit + custom recipe** (KubeJS, server-side): first-join kit (bread/torch/warp stone) + welcome message; name tag now craftable (paper+string+iron — dragon naming)
 - **Branding**: custom server icon (auto via overrides), colored Turkish MOTD; optional client PackMenu logo under `client/` (cosmetic, manual install)
 - **Tuning defaults** (TUNING.md + `scripts/apply-gamerules.sh`): keepInventory false (Tombstone ships in pack), sleep% 10, no phantoms, mobGriefing on; group-vote items flagged

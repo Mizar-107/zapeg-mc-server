@@ -13,6 +13,12 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 | `doFireTick` | **true** | Fire spreads (dragons!). Claimed chunks are protected; build with stone near roost country. | |
 | `pvp` (server.properties) | **true** | Friendly duels; whitelist-only server, griefing isn't a threat model. | **[vote]** |
 
+## Access model (locked pre-world)
+
+| Setting | Value | Why / trade-off |
+|---|---|---|
+| `ONLINE_MODE` | **false** | Friends on mixed launchers (not everyone has a Microsoft account) must all join. Risk: usernames are spoofable offline → mitigated by enforced whitelist + IP shared only in the group. **Locked before go-live**: flipping it later regenerates every player UUID (inventories/claims orphaned). |
+
 ## Already set in `docker-compose.yml`
 
 | Setting | Value | Note |
@@ -34,7 +40,7 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 ## Deliberately NOT touched
 
 - No extra performance mods (ModernFix/FerriteCore/Spark ship with the pack; profile before adding anything — README §Troubleshooting).
-- No recipe changes beyond the name-tag QoL recipe (KubeJS `seri_starter.js`).
+- No recipe changes beyond the name-tag QoL recipe (`zapeg_starter.js`) and the two star removals (`custom_endgame_nerfs.js`).
 - Mob spawn rates, ore gen, loot tables: stock ATM9 until a playtest says otherwise.
 
 ## Change discipline

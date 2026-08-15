@@ -1,7 +1,7 @@
 {
 	default_hide_dependency_lines: false
 	default_quest_shape: ""
-	filename: "seri_baslangic"
+	filename: "zapeg_baslangic"
 	group: ""
 	icon: "minecraft:nether_star"
 	id: "0CEBDD5ED90BF2AC"
@@ -38,10 +38,10 @@
 			subtitle: "Herkese göre bir yol var"
 			tasks: [{
 				id: "42FCD9CE56EAB362"
-				title: "Seri'ye Hoş Geldin"
+				title: "ZapeG'e Hoş Geldin"
 				type: "checkmark"
 			}]
-			title: "&aSeri'ye Hoş Geldin"
+			title: "&aZapeG'e Hoş Geldin"
 			x: 0.0d
 			y: 0.0d
 		}
@@ -252,5 +252,5 @@
 			y: -2.5d
 		}
 	]
-	title: "&aSeri — Yol Haritası"
+	title: "&aZapeG — Yol Haritası"
 }

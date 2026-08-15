@@ -1,6 +1,6 @@
 # HOSTING — day-0 guide for the server operator
 
-You're hosting a private modded Minecraft server for 4–8 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 4 pinned extra mods**. Everything is declarative — the container downloads the pack and mods itself from the pins in this repo. You never handle jars manually. Full reference: [README.md](README.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
+You're hosting **ZapeG** — a private modded Minecraft server for 4–8 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 4 pinned extra mods**. Everything is declarative — the container downloads the pack and mods itself from the pins in this repo. You never handle jars manually. Full reference: [README.md](README.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
 
 ## Requirements
 
@@ -35,6 +35,15 @@ ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|chunky'   # expe
 ```
 
 If boot fails with **"Mod IceandFire requires Citadel between …"** → in `extras/cf-mods.txt` swap the citadel line to `citadel:6002521`, then `docker compose up -d mc`. Tell Ertu.
+
+## Access model — offline-mode, read once
+
+`ONLINE_MODE=false` is **deliberate**: players join from any launcher, no Mojang auth. Consequences:
+
+- The **whitelist is the only gate** — keep it enforced, and don't post the IP anywhere public.
+- Player identity = username (offline UUID is derived from it). A player who changes their name is a *new* player: fresh inventory, lost claims. Tell players to pick a name once.
+- Usernames on the whitelist must match exactly.
+- Do **not** flip online-mode later without coordinating with Ertu — switching modes mid-world changes every UUID and orphans inventories/claims.
 
 ## World protocol (agreed in the brief — please follow)
 

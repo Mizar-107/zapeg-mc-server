@@ -1,4 +1,4 @@
-# Seri ATM9+ — server
+# ZapeG — ATM9+ server
 
 Self-hosted server for the custom pack: **ATM9 1.1.1 base + Ice and Fire, Citadel, Immersive Petroleum (+ Chunky server-side)**. Fully declarative — the container resolves the pack and every extra mod from pins at start; no manual jar handling. This README is the full reference; start with [HOSTING.md](HOSTING.md) if you're the operator. Decisions: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md) · change playbook: [UPDATING.md](UPDATING.md) · player install: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.md).
 

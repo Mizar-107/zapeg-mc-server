@@ -38,8 +38,11 @@ services:
       MAX_TICK_TIME: "-1"                  # disable watchdog; modded servers have long ticks
       DIFFICULTY: normal
       SPAWN_PROTECTION: "0"
-      MOTD: "§3Seri §bATM9§f+ §8| §7ejderhalar gerçek"
+      MOTD: "§3ZapeG §f| §bATM9§f+ §8— §7ejderhalar gerçek"
       ENFORCE_SECURE_PROFILE: "false"      # avoids chat-signing kicks on modded
+      ONLINE_MODE: "false"                 # accept ALL launchers (no Mojang auth).
+                                           # Security = enforced whitelist + unshared IP;
+                                           # names are spoofable in offline mode — see TUNING.md
 
       # ---- access control ---------------------------------------------------
       ENABLE_WHITELIST: "true"

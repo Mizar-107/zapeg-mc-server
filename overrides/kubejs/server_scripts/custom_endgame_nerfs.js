@@ -1,21 +1,23 @@
-// Endgame policy hooks — brief §5 ("no millions" rule).
-// Policy level 1 (social rule) is the default => everything below stays commented.
-// Escalate deliberately, one recipe at a time.
+// Endgame policy — brief §5 ("no millions" rule), ACTIVE since v0.3.0.
+// Decision: the pack must play out vanilla-ish; the million-scale chases are cut
+// at the source by making the two "stars" uncraftable. Everything below them
+// (Mekanism, Create, ATM ores, all mods' normal progression) is untouched.
 //
-// Deploy:      scripts/apply-overrides.sh   (rsyncs this into data/kubejs/)
-// Live reload: /kubejs reload server_scripts   (in-game, OP)
-// Verify ids:  hold item, run /kubejs hand
+// Ids verified against ATM9 1.1.x's own kubejs scripts:
+//   ATM Star  = allthetweaks:atm_star   (crafting chain lives in modpack/atm_star.js)
+//   Gregstar  = allthetweaks:greg_star  (starforge chain, mods/gtceu/starforge_recipes.js)
 //
-// Unique filename => never clobbered by ATM9 pack updates.
+// Deploy: scripts/apply-overrides.sh ; live reload: /kubejs reload server_scripts
+// Quest chapters for the stars stay visible in the book — they're lore now, not goals.
 
 ServerEvents.recipes(event => {
-  // --- Level 3 examples (uncomment to enact) ------------------------------
-  // ATM Star (AllTheTweaks) — verify id with /kubejs hand before trusting it:
-  // event.remove({ output: 'allthetweaks:atm_star' })
+  // --- ACTIVE: the ceiling -------------------------------------------------
+  event.remove({ output: 'allthetweaks:atm_star' })   // ATM Star uncraftable
+  event.remove({ output: 'allthetweaks:greg_star' })  // Gregstar uncraftable
 
-  // Draconic Evolution chaos tier:
+  // --- STAGED (uncomment only after a playtest says so) --------------------
+  // Draconic Evolution chaos tier (billion-RF scaling). Brief §5 level 4 says
+  // DE can be removed entirely; leaving its mid-game gear alone for now.
   // event.remove({ output: 'draconicevolution:chaos_shard' })
-
-  // Near-nuclear: all Draconic Evolution recipes (mod stays installed, becomes loot-only):
   // event.remove({ mod: 'draconicevolution' })
 })

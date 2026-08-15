@@ -1,6 +1,6 @@
 # Opsiyonel: başlık ekranı logosu (client, kozmetik)
 
-Sunucu için gerekli DEĞİL — sadece oyunun açılış ekranında stok ATM9 yazısı yerine **SERİ / ATM9+** logosu görünsün istersen:
+Sunucu için gerekli DEĞİL — sadece oyunun açılış ekranında stok ATM9 yazısı yerine **ZAPEG / ATM9+** logosu görünsün istersen:
 
 1. CurseForge App → profil → **⋮ → Open Folder**
 2. Bu repodaki `client/packmenu/` klasörünün içeriğini, instance'taki `packmenu/` klasörünün üstüne kopyala (`resources/assets/packmenu/textures/gui/logo.png` dosyasının üzerine yazacak).
