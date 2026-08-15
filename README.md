@@ -11,6 +11,10 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + Ice and Fire, Citade
 | Citadel | 2.6.3-1.20.1 (2026-01) | CF file `7476570` | I&F dep. Fallback if version-range error: 2.6.1 = `6002521` |
 | Immersive Petroleum | 4.3.1-36b (2026-07) | CF file `8499079` | Forge build, actively maintained |
 | Chunky | 1.3.146 | Modrinth (`MODRINTH_PROJECTS`) | No 1.20.1 Forge build exists on CurseForge |
+| Alex's Caves | 2.0.2 (2024-10) | CF file `5848216` | Client+server; shares Citadel dep |
+| Mowzie's Mobs | 1.8.2 (2026-03) | CF file `7815705` | Client+server; GeckoLib already in ATM9 |
+| BlueMap | 5.3-forge-1.20 | Modrinth (`MODRINTH_PROJECTS`) | Server-only web map on `:8100`. Pinned to 5.3 — 5.12+ needs Java 21, we're on 17 |
+| Discord Integration | 3.0.7.1 (2024-05) | CF file `5332465` | Server-only; token wired post-boot (HOSTING) |
 
 Confirmed **already in ATM9 1.1.x** (435-mod list from the pack repo): Twilight Forest 4.3.2508 (dropped from our manual adds), Spark, FerriteCore, ModernFix, Embeddium/Oculus. Confirmed **not in pack**: the four above, Alex's Caves, Mowzie's Mobs.
 
@@ -63,7 +67,7 @@ Interim (day 1): install ATM9 1.1.1 via CurseForge app, drop the 3 jars into the
 
 ## Troubleshooting
 
-- **"Mod IceandFire requires Citadel between X and Y"** → swap the Citadel line in `extras/cf-mods.txt` to `citadel:6002521` (2.6.1), recreate.
+- **"requires Citadel between X and Y" at boot** (from Ice and Fire OR Alex's Caves) → swap the Citadel line in `extras/cf-mods.txt` to `citadel:6002521` (2.6.1 — satisfies both I&F beta-5 and AC 2.0.2), recreate. Note: the infamous I&F↔AC Citadel deadlock ([Citadel #215](https://github.com/AlexModGuy/Citadel/issues/215)) applies to I&F *beta-4*; beta-5 was released to fix exactly that.
 - **CurseForge download throttling/failures** → set your own `CF_API_KEY` in `.env` (console.curseforge.com).
 - **OOM / long GC pauses** → `MEMORY` stays ≤ 12G (more is worse on this pack); check host isn't overcommitted.
 - **Slow ticks on exploration** → pregen wider (`scripts/pregen.sh 8000`); Spark is already in the pack: `/spark profiler start` before adding any "performance" mods.
@@ -74,10 +78,13 @@ Interim (day 1): install ATM9 1.1.1 via CurseForge app, drop the 3 jars into the
 ```
 docker-compose.yml     mc (itzg AUTO_CURSEFORGE, pinned) + backup sidecar
 extras/cf-mods.txt     the 3 extra CurseForge mods, pinned by file ID
-overrides/             mirrors data/ — kubejs endgame hooks live here
-scripts/               snapshot.sh · pregen.sh · apply-overrides.sh · iceandfire-config-check.sh
+overrides/             mirrors data/ — quest chapters, kubejs scripts, server icon
+scripts/               snapshot.sh · pregen.sh · apply-overrides.sh · apply-gamerules.sh · iceandfire-config-check.sh
+metrics/               opt-in Grafana/Prometheus stack (--profile metrics) — see metrics/README.md
+tools/                 Build-ClientZip.ps1 (Ertu-side: builds the Yol B instance zip)
 HOSTING.md             day-0 guide for the operator
 UPDATING.md            change-safety matrix + release ritual
+ROADMAP.md             phased plan (launch → lore era → LLM NPCs)
 TUNING.md              gamerule/config decisions (defaults + group votes)
 CHANGELOG.md           per-release notes (doubles as player announcements)
 docs/                  project brief · PLAYER-SETUP-TR (oyuncu kurulumu)

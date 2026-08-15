@@ -2,6 +2,29 @@
 
 Format per entry: what changed · world risk · what players must do.
 
+## v0.5.0 — 2026-08-15
+
+Metrics + scaffolds + compat verification. World risk: none. Players: nothing.
+
+- **Metrics stack** (`--profile metrics`): dirien/minecraft-exporter (RCON + world stats, forge mode) → Prometheus (180d retention) → Grafana `:3000` (anonymous read-only), pre-provisioned "ZapeG — Sunucu" dashboard: online now/history, playtime hours, deaths, blocks mined, distance per player. TPS panel = one documented manual step (metric name varies by exporter version — `metrics/README.md`).
+- **Per-player welcome lines** (`zapeg_welcome.js`): mechanism live with placeholder pools for the four players + default pool; keys must be exact Minecraft usernames.
+- **tools/Build-ClientZip.ps1**: builds the Yol B (offline players) instance zip from Ertu's CurseForge profile — mods/config/kubejs only, no personal files.
+- **Compat verification recorded**: IE `10.2.0-183` is the only 1.20.1 IE build and is exactly what ATM9 ships → IP 4.3.1-36b targets it by construction. The known I&F↔Alex's Caves Citadel deadlock (Citadel #215) applies to I&F beta-4 only; our beta-5 pin post-dates and fixes it. Citadel 2.6.1 fallback satisfies both mods if a range gate ever trips. Mowzie's 1.8.2's GeckoLib need is covered by the pack's 4.8.2.
+- `.env.example`: `GRAFANA_PASSWORD`, `RCLONE_DEST`, `WORLD_SEED` documented.
+
+## v0.4.0 — 2026-08-15
+
+The presence-layer + pre-world content drop. World risk: none (pre-world — that's the point). Players: client jar list grows **3 → 5**.
+
+- **Content (client+server): Alex's Caves 2.0.2** (`5848216`) + **Mowzie's Mobs 1.8.2** (`7815705`) — added now while there's no world and no installed clients to re-sync
+- **BlueMap 5.3** (server-only, Modrinth pin — 5.12+ needs Java 21): live 3D web map on `:8100`, wire-up in HOSTING
+- **Discord Integration 3.0.7.1** (`5332465`, server-only): chat/join/death bridge; bot token configured post-boot, never committed
+- **"Kilometre Taşları" quest chapter**: 10 group milestones with named trophy-item rewards (Ender Dragon one auto-completes via advancement)
+- **Stats scoreboards** (KubeJS): total deaths + deaths-to-dragons with chat broadcast — feeds the yearly ZapeG Ödülleri
+- **Offsite backups**: opt-in rclone sidecar (`--profile offsite`, rclone.conf gitignored)
+- **Seed flow**: `WORLD_SEED` env + audition protocol in HOSTING (Terralith+BoP make vanilla seed lists useless)
+- **ROADMAP.md**: launch → lore era (needs group in-jokes) → Grafana → LLM NPC prototype (Mineflayer route)
+
 ## v0.3.1 — 2026-08-15
 
 Progression stance + repo hygiene. World risk: none. Players: nothing.

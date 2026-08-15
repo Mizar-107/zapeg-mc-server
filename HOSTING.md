@@ -22,11 +22,19 @@ docker compose logs -f mc     # first boot: ~1.1 GB download + Forge install, 5�
 
 Ready when the log shows `Done (…)! For help, type "help"`. The backup sidecar starts automatically once `mc` is healthy.
 
-Then apply the repo's custom layer (quest chapter, starter-kit script, server icon) and restart:
+Then apply the repo's custom layer (quest chapters, kubejs scripts, server icon) and restart:
 
 ```bash
 scripts/apply-overrides.sh && docker compose restart mc
 ```
+
+## One-time service wiring (after first boot)
+
+**BlueMap** (live web map on `:8100`): edit `data/config/bluemap/core.conf` → `accept-download: true`, then restart. Map renders as chunks generate (pregen fills it fast). Put it behind your reverse proxy / VPN — don't expose 8100 raw.
+
+**Discord bridge**: create a bot at discord.com/developers (enable *Message Content* intent), invite it to the group server with send/read perms, then put `botToken` and the channel ID into `data/config/Discord-Integration.toml` and restart. Token lives ONLY on the server (`data/` is gitignored) — never in the repo.
+
+**Offsite backups** (optional but recommended): drop an `rclone.conf` next to the compose file (gitignored), set `RCLONE_DEST` in `.env` (e.g. `b2:zapeg-backups/world`), then `docker compose --profile offsite up -d`.
 
 ## Verify the 4 extra mods loaded (once, after first boot)
 
@@ -48,15 +56,16 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
 ## World protocol (agreed in the brief — please follow)
 
 1. **First world is a throwaway** for verification: join once (ask Ertu), confirm dragon roosts exist (`/locate structure` tab-completes `iceandfire:` entries) and Immersive Petroleum loaded.
-2. Reset for the real world:
+2. **Seed audition** (pack uses Terralith + Biomes O' Plenty — vanilla seed lists don't apply, so we pick empirically): with `WORLD_SEED` empty, each fresh world is a random candidate. Check spawn on foot + BlueMap, screenshot for the group, then `docker compose stop mc && rm -rf data/world && docker compose start mc` for the next candidate. 2–3 rounds; when the group picks, note the seed (shown in BlueMap / `/seed`) and set `WORLD_SEED` in `.env`.
+3. Reset for the real world:
    ```bash
    docker compose stop mc
    scripts/snapshot.sh pre-real-world
    rm -rf data/world
    docker compose start mc
    ```
-3. On the real world, apply the agreed gamerules (once): `scripts/apply-gamerules.sh` (values: [TUNING.md](TUNING.md))
-4. Pregen the real world (run overnight; heavy CPU is expected):
+4. On the real world, apply the agreed gamerules (once): `scripts/apply-gamerules.sh` (values: [TUNING.md](TUNING.md))
+5. Pregen the real world (run overnight; heavy CPU is expected):
    ```bash
    scripts/pregen.sh 6000
    ```

@@ -1,6 +1,6 @@
 # ZapeG — Oyuncu Kurulumu
 
-Kendi paketimiz: **All the Mods 9 v1.1.1** + 3 ek mod. Sunucu **offline-mode** — Microsoft hesabı şart değil, her launcher girer. İki kural: herkesin mod seti birebir aynı olacak, ve **kullanıcı adını BİR KEZ seçeceksin** (whitelist + envanterin o ada bağlı; sonradan değiştirirsen sıfırdan başlarsın). Adını Ertu'ya bildir.
+Kendi paketimiz: **All the Mods 9 v1.1.1** + 5 ek mod. Sunucu **offline-mode** — Microsoft hesabı şart değil, her launcher girer. İki kural: herkesin mod seti birebir aynı olacak, ve **kullanıcı adını BİR KEZ seçeceksin** (whitelist + envanterin o ada bağlı; sonradan değiştirirsen sıfırdan başlarsın). Adını Ertu'ya bildir.
 
 > Şık HTML sürümü: `zapeg-kurulum.html` — telefonda da rahat okunur.
 
@@ -8,13 +8,15 @@ Kendi paketimiz: **All the Mods 9 v1.1.1** + 3 ek mod. Sunucu **offline-mode** �
 
 1. [CurseForge App](https://www.curseforge.com/download/app) indir, kur.
 2. **Minecraft → Browse Modpacks → "All the Mods 9"** → Install → sürüm **1.1.1** olduğunu doğrula (profil → ⋮ → Version).
-3. Ek modlar — profil → **⋮ → Open Folder** → `mods` klasörüne şu üçünü at:
+3. Ek modlar — profil → **⋮ → Open Folder** → `mods` klasörüne şu beşini at:
 
    | Mod | Dosya | Link |
    |---|---|---|
    | Ice and Fire | `iceandfire-2.1.13-1.20.1-beta-5.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/ice-and-fire-dragons/files/5633453) |
    | Citadel | `citadel-2.6.3-1.20.1.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/citadel/files/7476570) |
    | Immersive Petroleum | `ImmersivePetroleum-1.20.1-4.3.1-36b.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/immersive-petroleum/files/8499079) |
+   | Alex's Caves | `alexscaves-2.0.2.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/alexs-caves/files/5848216) |
+   | Mowzie's Mobs | `mowziesmobs-1.8.2.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/mowzies-mobs/files/7815705) |
 
 4. RAM: Settings → Game Specific → Minecraft → **10–12 GB** (16 GB makinede 8–10).
 5. Play → Multiplayer → Add Server → IP Ertu'dan.

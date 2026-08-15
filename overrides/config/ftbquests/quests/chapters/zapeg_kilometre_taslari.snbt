@@ -1,0 +1,375 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: "hexagon"
+	filename: "zapeg_kilometre_taslari"
+	group: ""
+	icon: "minecraft:beacon"
+	id: "8E33CA264762AA18"
+	order_index: 1
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Grup hedefleri: biri başarınca hepimizin hanesine yazılır. Çoğu onur sistemiyle işaretlenir — başaran tıklar, ödül kupası ganimet odasına gider."
+				""
+				"&7İpucu: herkes tek FTB Teams partisindeyse ilerleme ortak akar — TUNING.md'ye bak.&r"
+			]
+			icon: "minecraft:bell"
+			id: "843AD30B6CF7061D"
+			rewards: [
+				{
+					id: "38999A5A40132C79"
+					item: {
+						Count: 1
+						id: "minecraft:bell"
+						tag: {
+							display: {
+								Lore: ['{"text":"Kasaba meydanına asılır","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Çanı","color":"aqua","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "AE10F70771335958"
+					type: "xp"
+					xp: 50
+				}
+			]
+			subtitle: "Spawn kasabası kuruldu: waystone meydanı + ortak depo + herkese arsa"
+			tasks: [{
+				id: "32E1DC6BB2D341C9"
+				title: "ZapeG Kasabası"
+				type: "checkmark"
+			}]
+			title: "&bZapeG Kasabası"
+			x: -6.0d
+			y: -1.5d
+		}
+		{
+			description: ["En az 3 bölge waystone ile spawn meydanına bağlandı — ışınlanma ağı canlı."]
+			icon: "waystones:waystone"
+			id: "D0FDCE0243F50358"
+			rewards: [
+				{
+					id: "28EA6210E10BCBCA"
+					item: "waystones:waystone"
+					type: "item"
+				}
+				{
+					id: "B17562ABDE70F3FE"
+					type: "xp"
+					xp: 50
+				}
+			]
+			subtitle: "3+ waystone bağlı"
+			tasks: [{
+				id: "5ACF092BB3044DD3"
+				title: "Işınlanma Ağı"
+				type: "checkmark"
+			}]
+			title: "&bIşınlanma Ağı"
+			x: -3.0d
+			y: -1.5d
+		}
+		{
+			description: [
+				"Birimiz bir ejderhayı evcilleştirip semere oturdu. Yumurta çalmak, büyütmek, isim takmak — hepsi dahil."
+				""
+				"&7(Name tag tarifimiz JEI'de.)&r"
+			]
+			icon: "minecraft:dragon_head"
+			id: "EB8574773D945505"
+			rewards: [
+				{
+					id: "3EC81D389DA925CE"
+					item: {
+						Count: 1
+						id: "minecraft:dragon_head"
+						tag: {
+							display: {
+								Lore: ['{"text":"İlk binicinin ganimetidir","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Kupası — İlk Binici","color":"red","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "3FBDE033BBB96C17"
+					type: "xp"
+					xp: 100
+				}
+			]
+			subtitle: "Ice and Fire: yumurtadan semere"
+			tasks: [{
+				id: "C86F5A9CA10749C7"
+				title: "İlk Evcil Ejderha"
+				type: "checkmark"
+			}]
+			title: "&cİlk Evcil Ejderha"
+			x: 0.0d
+			y: -1.5d
+		}
+		{
+			description: ["Ad Astra roketi kalktı, ay yüzeyine sağ inildi ve — önemli kısım — geri dönüldü."]
+			icon: "minecraft:firework_rocket"
+			id: "620074861623E2CB"
+			rewards: [
+				{
+					id: "C13EA55CFAC8D9B9"
+					item: {
+						Count: 1
+						id: "minecraft:gold_block"
+						tag: {
+							display: {
+								Lore: ['{"text":"Ay programının ilk madalyası","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Uzay Madalyası","color":"gold","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "655FD218350E5BF7"
+					type: "xp"
+					xp: 100
+				}
+			]
+			subtitle: "Gidiş VE dönüş sayılır"
+			tasks: [{
+				id: "E39F217E73843A49"
+				title: "Ay'a İniş"
+				type: "checkmark"
+			}]
+			title: "&6Ay'a İniş"
+			x: 3.0d
+			y: -1.5d
+		}
+		{
+			description: ["Mekanism fisyon reaktörü kritik oldu ve kasaba hâlâ yerinde duruyor. Waste yönetimi dahil — sızıntı olursa bu quest geri alınır :)"]
+			icon: "minecraft:blaze_powder"
+			id: "43E03F0AC326A33B"
+			rewards: [
+				{
+					id: "FA8F812C6603C5D2"
+					item: {
+						Count: 1
+						id: "minecraft:blaze_rod"
+						tag: {
+							display: {
+								Lore: ['{"text":"Kontrollü zincirleme tepkime anısına","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Kupası — Reaktör Şefi","color":"yellow","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "E0DC2FF27FE3C7F5"
+					type: "xp"
+					xp: 100
+				}
+			]
+			subtitle: "Sızıntısız, kasabasız kalmadan"
+			tasks: [{
+				id: "A020A1076698863D"
+				title: "Reaktör Kritik"
+				type: "checkmark"
+			}]
+			title: "&eReaktör Kritik"
+			x: 6.0d
+			y: -1.5d
+		}
+		{
+			description: ["L_Ender's Cataclysm'in ilk büyük boss'u grupça düşürüldü. Hangisi olduğu önemli değil — ilk kan bizden."]
+			icon: "minecraft:wither_skeleton_skull"
+			id: "F37D7538B644AE06"
+			rewards: [
+				{
+					id: "8F3261DE9C222EA5"
+					item: {
+						Count: 1
+						id: "minecraft:netherite_scrap"
+						tag: {
+							display: {
+								Lore: ['{"text":"İlk Cataclysm zaferi","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Kupası — İlk Kan","color":"dark_red","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "A9F34A16E88918E5"
+					type: "xp"
+					xp: 100
+				}
+			]
+			subtitle: "Grup halinde gidin — şaka değiller"
+			tasks: [{
+				id: "0FDC3E3C48594883"
+				title: "Cataclysm: İlk Boss"
+				type: "checkmark"
+			}]
+			title: "&4Cataclysm: İlk Boss"
+			x: -6.0d
+			y: 1.5d
+		}
+		{
+			description: ["Üç kafa, bir öfke: Wither çağrıldı ve gömüldü."]
+			icon: "minecraft:nether_star"
+			id: "CFB32965C992B831"
+			rewards: [
+				{
+					id: "352213D752A9F6CD"
+					item: {
+						Count: 1
+						id: "minecraft:coal_block"
+						tag: {
+							display: {
+								Lore: ['{"text":"Withersız bir dünya için","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Kupası — Karanlık Bitti","color":"dark_gray","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "1491CE5C1EDB33E5"
+					type: "xp"
+					xp: 100
+				}
+			]
+			subtitle: "Beacon yolu açıldı"
+			tasks: [{
+				id: "18C6DC9B44DFC49F"
+				title: "Wither Düştü"
+				type: "checkmark"
+			}]
+			title: "&8Wither Düştü"
+			x: -3.0d
+			y: 1.5d
+		}
+		{
+			description: [
+				"End'e gidildi, Ender Dragon düştü."
+				""
+				"&7Bu quest otomatik: ejderhayı öldürenin advancement'ı tetikler.&r"
+			]
+			icon: "minecraft:end_crystal"
+			id: "3F1BDFEA41D73741"
+			rewards: [
+				{
+					id: "D410BBC38CF13714"
+					item: {
+						Count: 1
+						id: "minecraft:dragon_breath"
+						tag: {
+							display: {
+								Lore: ['{"text":"End fatihinin hatırası","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Kupası — End Fatihi","color":"light_purple","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "4768B22B1E2A651D"
+					type: "xp"
+					xp: 100
+				}
+			]
+			subtitle: "Otomatik sayılır"
+			tasks: [{
+				advancement: "minecraft:end/kill_dragon"
+				criterion: ""
+				id: "731B72AA4D4B18BA"
+				title: "Ender Dragon Düştü"
+				type: "advancement"
+			}]
+			title: "&dEnder Dragon Düştü"
+			x: 0.0d
+			y: 1.5d
+		}
+		{
+			description: ["MineColonies kasabası 10 vatandaşa ulaştı — inşaatçısı, çiftçisi, muhafızı olan gerçek bir koloni."]
+			icon: "minecraft:emerald"
+			id: "38A53554A3B89F08"
+			rewards: [
+				{
+					id: "3643CFC1F638D31A"
+					item: {
+						Count: 1
+						id: "minecraft:emerald_block"
+						tag: {
+							display: {
+								Lore: ['{"text":"On can, bir kasaba","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Kupası — Vali","color":"green","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "A34DF2CECBBE025F"
+					type: "xp"
+					xp: 100
+				}
+			]
+			subtitle: "MineColonies: 10 vatandaş"
+			tasks: [{
+				id: "EF90D40A19C1D872"
+				title: "Vali"
+				type: "checkmark"
+			}]
+			title: "&aVali"
+			x: 3.0d
+			y: 1.5d
+		}
+		{
+			description: [
+				"Draconic Evolution'ın Chaos Guardian'ı. Paketin gerçek son boss'u — buraya kadar gelen olursa artık rehber falan gerekmiyor."
+				""
+				"&7Baskı yok. Yıllar sürebilir. Belki de hiç olmaz. Olursa efsane olur.&r"
+			]
+			icon: "minecraft:end_crystal"
+			id: "CF96D7D50C5B16F1"
+			rewards: [
+				{
+					id: "8E33CA264762AA19"
+					item: {
+						Count: 1
+						id: "minecraft:nether_star"
+						tag: {
+							display: {
+								Lore: ['{"text":"ZapeG tarihinin en büyük zaferi","color":"gray","italic":true}']
+								Name: '{"text":"ZapeG Efsanesi — Kaos Kırıcı","color":"dark_purple","italic":false}'
+							}
+						}
+					}
+					type: "item"
+				}
+				{
+					id: "ABF10F6FD55C248B"
+					type: "xp"
+					xp: 500
+				}
+			]
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Belki bir gün"
+			tasks: [{
+				id: "8E33CA264762AA20"
+				title: "Kaos Kırıcı"
+				type: "checkmark"
+			}]
+			title: "&5Kaos Kırıcı"
+			x: 6.0d
+			y: 1.5d
+		}
+	]
+	title: "&bZapeG — Kilometre Taşları"
+}

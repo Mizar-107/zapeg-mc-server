@@ -1,16 +1,35 @@
 # Extra CurseForge content on top of ATM9 — exact file pins (verified 2026-08-15).
 # Format: slug:fileID
 # Docs: https://docker-minecraft-server.readthedocs.io/en/latest/mods-and-plugins/curseforge-files/
-# NOTE: dependencies are NOT auto-resolved here — that's why Citadel is listed explicitly.
-# Clients must run these same builds (plus Chunky is server-side, clients don't need it).
+# NOTE: dependencies are NOT auto-resolved here — Citadel is listed explicitly
+# (GeckoLib, Mowzie's dep, already ships in ATM9).
+#
+# CLIENT+SERVER (players need these exact builds too — see docs/PLAYER-SETUP-TR.md):
+#   ice-and-fire-dragons, citadel, immersive-petroleum, alexs-caves, mowzies-mobs
+# SERVER-ONLY (players skip): dcintegration (+ chunky & bluemap via MODRINTH_PROJECTS)
+
+# --- content: client + server ------------------------------------------------
 
 # Ice and Fire 2.1.13-1.20.1-beta-5 — latest official 1.20.1 build (2024-08-15)
 ice-and-fire-dragons:5633453
 
-# Citadel 2.6.3-1.20.1 (2026-01-17) — I&F dependency; beta-5 fixed 2.6.x compat.
+# Citadel 2.6.3-1.20.1 (2026-01-17) — dep of Ice and Fire AND Alex's Caves.
 # If boot fails with a "requires Citadel between X and Y" range error,
 # fall back to 2.6.1: citadel:6002521
 citadel:7476570
 
 # Immersive Petroleum 1.20.1-4.3.1-36b (2026-07-24) — IE oil addon, Forge build
 immersive-petroleum:8499079
+
+# Alex's Caves 2.0.2 (2024-10-26) — 5 cave biomes with own bosses (v0.4.0 drop)
+alexs-caves:5848216
+
+# Mowzie's Mobs 1.8.2 for 1.20.1 (2026-03-26) — boss-grade creatures (v0.4.0 drop)
+mowzies-mobs:7815705
+
+# --- server-only ---------------------------------------------------------------
+
+# Discord Integration 3.0.7.1 (2024-05-10) — chat/join/death bridge to Discord.
+# Configure bot token in data/config/Discord-Integration.toml AFTER first boot
+# (never in the repo) — see HOSTING.md §Discord.
+dcintegration:5332465

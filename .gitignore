@@ -2,3 +2,5 @@
 data/
 backups/
 snapshots/
+
+rclone.conf
