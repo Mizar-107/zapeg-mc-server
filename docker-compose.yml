@@ -7,6 +7,10 @@ services:
     stdin_open: true
     tty: true
     restart: unless-stopped
+    # Core 6/7 (logical CPUs 12-15) are suspected unstable (WHEA parity errors +
+    # Prime95 rounding-error hardware failure). Keep the JVM off them until
+    # confirmed via CoreCycler / RMA'd — matches the native affinity test.
+    cpuset: "0-11,16-31"
     ports:
       - "25565:25565"
       - "8100:8100"                        # BlueMap web UI (reverse-proxy/VPN it; don't expose raw)
