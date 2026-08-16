@@ -2,6 +2,8 @@
 data/
 backups/
 snapshots/
+secrets/
+dist/
 
 rclone.conf
 __pycache__/

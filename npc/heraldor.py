@@ -57,7 +57,7 @@ GLOBALS_ = [
     "O kule benimdi.",
     "Kaybettiğiniz her eşya bana geliyor.",
     "Kaç kişi olduğunuzu saydım. Bir fazla çıktık.",
-    "Muhtar beni hatırlar. Sorun ona.",
+    "Beni hatırlayanlar artık uyumuyor.",
     "Işıklarınız güzelmiş. Şimdilik.",
     "Uyuyunca daha sessiz oluyorsunuz.",
 ]

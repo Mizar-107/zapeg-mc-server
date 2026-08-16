@@ -1,6 +1,6 @@
 # HOSTING — day-0 guide for the server operator
 
-You're hosting **ZapeG** — a private modded Minecraft server for 4–10 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 19 additions** (15 client+server, 4 server-only). The container downloads the pack and additions from this repo's declarations. Players never install jars one-by-one; Ertu generates one client patch. Full reference: [README.md](README.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
+You're hosting **ZapeG** — a private modded Minecraft server for 4–10 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 21 additions** (17 client+server, 4 server-only). The container resolves the external pins and installs the reviewed ZapeG Citizens jar from this repo. Players never install jars one-by-one; Ertu generates one client patch. Full reference: [README.md](README.md). Citizens launch setup: [docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
 
 ## Requirements
 
@@ -35,7 +35,7 @@ backup service plus `docker compose exec mc rcon-cli` discover it automatically.
 Port `25575` is only on the Docker network and is not published. Keep RCON enabled:
 live backups use it to flush/pause saves, while Heraldor uses it for player/time
 queries, messages, sounds and shadow events. A truly RCON-free setup would require
-cold backups with Minecraft stopped and would disable Heraldor/Muhtar/metrics.
+cold backups with Minecraft stopped and would disable Heraldor/metrics.
 
 Forward the tracked `.env.example` file, not a filled secret file. The host copies it to `.env` and replaces values locally. Recommended launch handoff (including optional Heraldor settings):
 
@@ -67,11 +67,13 @@ remove any persisted OP entry with host-local `rcon-cli deop Mizar__107`.
 
 Profile-only values:
 
+- `CITIZENS_BRAIN_URL` + `CITIZENS_BRAIN_TOKEN` → shared Citizens controller;
+  keep the Ollama key only in `secrets/citizens_ollama_api_key.txt` and follow
+  [the dedicated setup guide](docs/CITIZENS-HOST-SETUP.md)
 - `RCON_PASSWORD` + `GRAFANA_PASSWORD` → `metrics`; generate a shell-safe RCON
   value with `openssl rand -hex 32`, set both before first enabling the profile,
   then recreate `mc` with the metrics profile so server/exporter share the RCON value
 - `RCLONE_DEST` plus local `rclone.conf` → `offsite`
-- `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, `NPC_POS` → optional `npc` prototype
 - `HERALDOR_WEBHOOK`, `HERALDOR_EVENTS`, `HERALDOR_LLM` and advanced `HERALDOR_CHECK_INTERVAL` / `HERALDOR_P_*` knobs → optional `heraldor`
 
 The default stack does **not** call an LLM. Normal Minecraft↔Discord bridging is also not configured through `.env`; it uses the generated mod config described below.
@@ -87,6 +89,11 @@ docker compose logs -f mc     # first boot: ~1.1 GB download + Forge install, 5�
 ```
 
 Ready when the log shows `Done (…)! For help, type "help"`. The backup sidecar starts automatically once `mc` is healthy.
+
+For the intended launch with player-owned LLM citizens, do the one-time secret
+setup and use the `citizens` profile instead of stopping here:
+[docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). One shared Ollama
+key serves every citizen; players never receive it and never run a sidecar.
 
 Then apply the repo's custom layer (quest chapters, kubejs scripts, server icon) and restart:
 
@@ -126,28 +133,25 @@ The bridge does **not** accept an existing webhook URL: bot token + channel ID a
 
 **Offsite backups** (optional but recommended): drop an `rclone.conf` next to the compose file (gitignored), set `RCLONE_DEST` in `.env` (e.g. `b2:zapeg-backups/world`), then `docker compose --profile offsite up -d`.
 
-**LLM matrix**: launch does not need an LLM. Muhtar's optional `npc` profile
-uses it only to generate a two-sentence reply when chat contains `muhtar`; it does
-not control gameplay. Heraldor with `HERALDOR_LLM=false` uses built-in lines and
-still handles all timing, targeting, sounds and events; enabling it only generates
-fresh spooky one-liners. The group has parked both LLM uses for launch, so leave the
-`npc` profile off and `HERALDOR_LLM=false`. Ollama remains a later OpenAI-compatible
-option, but its Docker networking/model setup is intentionally out of day-0 scope.
+**ZapeG Citizens** (intended launch profile): Numen and ZapeG Citizens are already
+loaded as normal client+server Forge mods. The host additionally runs one private
+`citizen-brain` container with the shared Ollama key; it is not installed by
+players. Follow [the Citizens host guide](docs/CITIZENS-HOST-SETUP.md) exactly,
+including its acceptance test, before distributing the pack. The old chat-only
+prototype has been removed.
 
-**Muhtar NPC prototype** (optional; not part of the default stack): only after
-`mc` has completed its first boot, an OP places the body with Easy NPC, writes
-`NPC_POS="x y z"` into `.env`, then runs `docker compose --profile npc up -d --build`.
-The post-boot order matters because the sidecar mounts the generated RCON secret
-as one read-only file. Leave this profile off if the LLM prototype is not wanted.
+Heraldor with `HERALDOR_LLM=false` uses built-in lines and still handles all
+timing, targeting, sounds and events; enabling it only generates fresh spooky
+one-liners. Its optional `LLM_*` settings are independent of Citizens.
 
 **Heraldor** (optional, LLM-free by default): enable it only after `mc` has
 completed its first boot, then run `docker compose --profile heraldor up -d --build`.
 Embedded lines work with `HERALDOR_LLM=false`; `LLM_*` is ignored. Only if Discord posts are wanted, create a **separate Heraldor-only webhook**, put its new URL directly in host `.env` as `HERALDOR_WEBHOOK`, and never commit/share it. Blank means no Discord posts. The deliberately rare defaults are exposed as `HERALDOR_CHECK_INTERVAL` and `HERALDOR_P_*`; test before changing them, especially the player-independent Discord roll. `HERALDOR_EVENTS=true` additionally enables staged midnight shadow visits. Do NOT explain Heraldor to the players.
 
-## Verify all 19 additions loaded (once, after first boot)
+## Verify all 21 additions loaded (once, after first boot)
 
 ```bash
-ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|alexscaves|mowziesmobs|easy_npc|aquamirae|fragmentum|born_in_chaos|simplyswords|valkyrienskies|eureka|bettercombat|chunky|bluemap|incendium|dcintegration'   # expect 19
+ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|alexscaves|mowziesmobs|easy_npc|aquamirae|fragmentum|born_in_chaos|simplyswords|valkyrienskies|eureka|numen|zapeg-citizens|bettercombat|chunky|bluemap|incendium|dcintegration'   # expect 21
 test -f data/mods/DungeonsArise-1.20.x-2.1.58-release.jar && test -f data/mods/player-animation-lib-forge-1.0.2-rc1+1.20.jar   # ATM9 base, not additions
 ```
 
@@ -210,5 +214,5 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
 ## Don'ts
 
 - Don't exceed `MEMORY: 12G` — GC degrades above that on this pack.
-- Don't update the ATM9 version or any mod yourself — that's coordinated with client updates. Players need the same 15 client+server additions; Chunky, BlueMap, Incendium and Discord Integration stay server-only.
+- Don't update the ATM9 version or any mod yourself — that's coordinated with client updates. Players need the same 17 client+server additions; Chunky, BlueMap, Incendium and Discord Integration stay server-only.
 - Don't delete `snapshots/` or `backups/` to free space without checking with Ertu.

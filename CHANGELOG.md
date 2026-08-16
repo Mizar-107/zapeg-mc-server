@@ -2,12 +2,28 @@
 
 Format per entry: what changed · world risk · what players must do.
 
-## Unreleased — target v0.8.1
+## Unreleased — target v0.9.0
+
+Player-owned LLM citizens. World risk: low but behaviorally powerful; first
+movement/mining tests belong in a disposable unclaimed area. Players: install the
+new 17-jar ZapeG patch before joining (Numen + ZapeG Citizens were added).
+
+- Added Numen AI 0.1.1 (CurseForge file `8551640`) and the reviewed ZapeG Citizens 0.2.0 Forge jar to both the server and client inventory locks.
+- Added `/citizen spawn <name> <onlinePlayer>`, assignment-aware chat routing, allowlisted Numen task execution, per-citizen/per-actor memory, stop/remove safety and bounded whole-turn timeouts.
+- Added one private `citizen-brain` Compose service. A single host-owned Ollama key serves every citizen; players never run the service or receive the key.
+- Added `docs/CITIZENS-HOST-SETUP.md` with secret creation, pinned brain build, startup, health checks, acceptance test, rollback and troubleshooting commands.
+- The shared brain has no published host port, receives no Minecraft data/RCON/Docker socket, runs read-only without Linux capabilities and keeps SQLite state in its own named volume.
+- The custom Citizens release jar is tracked in `overrides/mods/` and locked by SHA-256; the brain image builds from the public `zapeg-citizens` tag `v0.2.0`.
+- Removed the obsolete single-character log-tail chat prototype and its persona. Easy NPC remains for lore/quest characters; Heraldor remains an independent optional service.
+- Manual additions are now 21 total: 17 client+server and 4 server-only. The generated player patch contains exactly 17 reviewed additions.
+- Initial production scope is online player-owned workers. True server-owned lore citizens remain a follow-up lifecycle phase; ordinary enemies/bosses continue to use deterministic mob AI.
+
+## v0.8.1 — 2026-08-16
 
 Novice-proof client onboarding + operator clarity + pre-launch personalization. World risk: none (pre-world; KubeJS/access settings included). Players: licensed users now install ATM9 1.1.1 and extract **one** ZapeG patch into the profile root.
 
 - `Build-ClientZip.ps1 -PatchOnly` produces `ZapeG-Kurulum-Yamasi-ATM9-1.1.1-<date>.zip` with all 15 client additions, the shader setting, PackMenu branding, an in-zip Turkish quick guide and SHA-256 manifest; it preserves personal `options.txt` settings.
-- Builder parses current and legacy CurseForge metadata layouts for ATM9/Forge plus the fourteen CurseForge addition file IDs, requires all 15 exact filenames, and requires reviewed SHA-256 locks for both patch and offline payload builds. Legacy `-ExtrasOnly` remains an alias.
+- Builder parses current and legacy CurseForge metadata layouts for ATM9/Forge, checks addition file IDs when the app records them, requires all 15 exact filenames, and always requires reviewed SHA-256 locks for both patch and offline payload builds. Legacy `-ExtrasOnly` remains an alias.
 - Server and clients now use Forge 47.4.10 over ATM9's 47.4.0 manifest pin; the three pulled Easy NPC/Aquamirae dependencies are included in the generated patch. Offline output is an isolated Forge 47.4.10 **game-directory payload**, not a launcher/Forge installer.
 - Player Markdown/HTML guides use the one-zip path; the fifteen-jar table is technical fallback only and stale “3 jar” troubleshooting text is gone.
 - `.env.example` and HOSTING now make the boundary explicit: default `mc + backup` uses no LLM; Muhtar is an optional LLM profile; Heraldor is LLM-free by default; normal Discord uses a bot config while Heraldor optionally uses a separate webhook. Heraldor timing/probability knobs are now actually passed through Compose.

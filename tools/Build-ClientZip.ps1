@@ -35,6 +35,9 @@ $forgeVersion = '47.4.10'
 # Her ek moddan TAM BİR, TAM SÜRÜM jar bulunmalı. Dosya adları
 # extras/cf-mods.txt, docker-compose.yml ve oyuncu rehberindeki pinlerle
 # senkron kalır. Yalnız önek kontrolü eski bir jar'ı yanlışlıkla kabul eder.
+# ZapeG Citizens bize ait bir build'dir; CurseForge profili gibi gösterilmez.
+# Repo içindeki overrides/mods kopyası ayrı doğrulanır ve aynı SHA kilitlerine
+# dahil edilir.
 $extraMods = @(
     [pscustomobject]@{ Name = 'Ice and Fire';        Prefix = 'iceandfire';           FileName = 'iceandfire-2.1.13-1.20.1-beta-5.jar';               FileId = '5633453'; Pin = 'CurseForge file 5633453' },
     [pscustomobject]@{ Name = 'Citadel';             Prefix = 'citadel';              FileName = 'citadel-2.6.3-1.20.1.jar';                          FileId = '7476570'; Pin = 'CurseForge file 7476570' },
@@ -50,7 +53,18 @@ $extraMods = @(
     [pscustomobject]@{ Name = 'Simply Swords';       Prefix = 'simplyswords';          FileName = 'simplyswords-forge-1.56.0-1.20.1.jar';              FileId = '5639538'; Pin = 'CurseForge file 5639538' },
     [pscustomobject]@{ Name = 'Valkyrien Skies';     Prefix = 'valkyrienskies';        FileName = 'valkyrienskies-120-2.4.11.jar';                     FileId = '7906689'; Pin = 'CurseForge file 7906689' },
     [pscustomobject]@{ Name = 'Eureka';              Prefix = 'eureka';                FileName = 'eureka-1201-1.6.3.jar';                             FileId = '7979379'; Pin = 'CurseForge file 7979379' },
+    [pscustomobject]@{ Name = 'Numen AI';            Prefix = 'numen-forge';           FileName = 'numen-forge-1.20.1-0.1.1-all.jar';                 FileId = '8551640'; Pin = 'CurseForge file 8551640' },
     [pscustomobject]@{ Name = 'Better Combat';       Prefix = 'bettercombat';          FileName = 'bettercombat-forge-1.9.0+1.20.1.jar';               FileId = $null;     Pin = 'Modrinth 1.9.0+1.20.1-forge' }
+)
+
+$ownedMods = @(
+    [pscustomobject]@{
+        Name = 'ZapeG Citizens'
+        Prefix = 'zapeg-citizens-forge-1.20.1-'
+        FileName = 'zapeg-citizens-forge-1.20.1-0.2.0.jar'
+        RelativePath = 'overrides\mods\zapeg-citizens-forge-1.20.1-0.2.0.jar'
+        Pin = 'ZapeG owned release 0.2.0 (not CurseForge)'
+    }
 )
 
 function Assert-SourceProfile {
@@ -143,9 +157,15 @@ function Get-ValidatedExtraJars {
                 $InstanceMetadata.installedAddons |
                     Where-Object { [string]$_.installedFile.id -eq $mod.FileId }
             )
-            if ($metadataMatches.Count -ne 1) {
-                $problems += "KAYNAK PIN DOĞRULANAMADI: $($mod.Name) -> CurseForge file $($mod.FileId) profil metadatasında tam bir kez bulunmalı"
+            if ($metadataMatches.Count -gt 1) {
+                $problems += "ÇİFT CURSEFORGE METADATA KAYDI: $($mod.Name) -> file $($mod.FileId)"
                 continue
+            }
+            if ($metadataMatches.Count -eq 0) {
+                # Manually copied additions are not always registered in
+                # minecraftinstance.json. Exact filename selection happens here;
+                # the reviewed SHA-256 inventory lock is authoritative below.
+                Write-Warning "$($mod.Name) için CurseForge metadata kaydı yok; incelenmiş SHA-256 kilidiyle doğrulanacak."
             }
         }
         $selected += $matches[0]
@@ -160,6 +180,66 @@ function Get-ValidatedExtraJars {
     }
 
     return $selected
+}
+
+function Get-ValidatedOwnedJars {
+    $repoRoot = Split-Path $PSScriptRoot -Parent
+    $selected = @()
+    $problems = @()
+
+    foreach ($mod in $ownedMods) {
+        $expectedPath = Join-Path $repoRoot $mod.RelativePath
+        $ownedDir = Split-Path $expectedPath -Parent
+        $matches = if (Test-Path -LiteralPath $ownedDir -PathType Container) {
+            @(Get-ChildItem -LiteralPath $ownedDir -Filter "$($mod.Prefix)*.jar" -File)
+        } else {
+            @()
+        }
+
+        if ($matches.Count -eq 0) {
+            $problems += "EKSİK SAHİPLİ MOD: $($mod.Name) -> $expectedPath"
+            continue
+        }
+        if ($matches.Count -gt 1) {
+            $names = ($matches.Name | Sort-Object) -join ', '
+            $problems += "ÇİFT SAHİPLİ MOD: $($mod.Name) -> $names"
+            continue
+        }
+        if ($matches[0].Name -cne $mod.FileName -or
+            [IO.Path]::GetFullPath($matches[0].FullName) -cne [IO.Path]::GetFullPath($expectedPath)) {
+            $problems += "YANLIŞ SAHİPLİ MOD SÜRÜMÜ: $($matches[0].Name); beklenen $($mod.FileName)"
+            continue
+        }
+        $selected += $matches[0]
+    }
+
+    if ($problems.Count -gt 0) {
+        throw "Repo içindeki sahipli ZapeG mod seti doğrulanamadı:`n - $($problems -join "`n - ")"
+    }
+    if ($selected.Count -ne $ownedMods.Count) {
+        throw "İç hata: $($ownedMods.Count) yerine $($selected.Count) sahipli mod seçildi."
+    }
+
+    return $selected
+}
+
+function Get-OfflineInventoryJars {
+    param(
+        [string]$ModsDir,
+        [System.IO.FileInfo[]]$OwnedJars
+    )
+
+    $profileJars = @(Get-ChildItem -LiteralPath $ModsDir -Filter '*.jar' -File)
+    foreach ($mod in $ownedMods) {
+        $profileCopies = @($profileJars | Where-Object { $_.Name -like "$($mod.Prefix)*.jar" })
+        $stale = @($profileCopies | Where-Object { $_.Name -cne $mod.FileName })
+        if ($stale.Count -gt 0) {
+            throw "Kaynak profilde eski/yanlış sahipli mod var: $(($stale.Name | Sort-Object) -join ', '). Önce silin; repo kopyası tek kaynak olmalı."
+        }
+        $profileJars = @($profileJars | Where-Object { $_.Name -cne $mod.FileName })
+    }
+
+    return @($profileJars) + @($OwnedJars)
 }
 
 function Get-ModInventoryLines {
@@ -339,6 +419,9 @@ function Write-BuildManifest {
     foreach ($mod in $extraMods) {
         $lines += "- $($mod.FileName) [$($mod.Pin)]"
     }
+    foreach ($mod in $ownedMods) {
+        $lines += "- $($mod.FileName) [$($mod.Pin)]"
+    }
     $lines += ''
     $lines += 'Packaged jar SHA-256:'
     $modsDir = Join-Path $Staging 'mods'
@@ -355,6 +438,7 @@ $profileState = Assert-SourceProfile -Path $ProfileDir
 $profileVerified = [bool]$profileState.Verified
 $modsDir = Join-Path $ProfileDir 'mods'
 $validatedExtras = @(Get-ValidatedExtraJars -ModsDir $modsDir -InstanceMetadata $profileState.Metadata)
+$validatedOwned = @(Get-ValidatedOwnedJars)
 $mode = if ($PatchOnly) { 'patch' } else { 'offline' }
 
 if (-not $InventoryLockFile) {
@@ -362,9 +446,9 @@ if (-not $InventoryLockFile) {
     $InventoryLockFile = Join-Path $PSScriptRoot $lockName
 }
 $inventoryJars = if ($PatchOnly) {
-    @($validatedExtras)
+    @($validatedExtras) + @($validatedOwned)
 } else {
-    @(Get-ChildItem -LiteralPath $modsDir -Filter '*.jar' -File)
+    @(Get-OfflineInventoryJars -ModsDir $modsDir -OwnedJars $validatedOwned)
 }
 
 if ($WriteInventoryLock) {
@@ -406,7 +490,10 @@ try {
         foreach ($jar in $validatedExtras) {
             Copy-Item -LiteralPath $jar.FullName -Destination $modsOut
         }
-        Write-Host "  + $($extraMods.Count)/$($extraMods.Count) ek mod tam sürüm pinleriyle doğrulandı"
+        foreach ($jar in $validatedOwned) {
+            Copy-Item -LiteralPath $jar.FullName -Destination $modsOut
+        }
+        Write-Host "  + $($extraMods.Count) dış kaynak + $($ownedMods.Count) sahipli ek mod tam sürüm/SHA pinleriyle doğrulandı"
     } else {
         $include = @('mods', 'config', 'kubejs', 'defaultconfigs', 'packmenu', 'scripts', 'shaderpacks')
         $required = @('mods', 'config', 'kubejs', 'defaultconfigs')
@@ -424,6 +511,14 @@ try {
                 Write-Host "  + $d"
             }
         }
+
+        # The repo-owned build is authoritative even if the maintainer's source
+        # profile already contains the same exact filename.
+        $modsOut = Join-Path $staging 'mods'
+        foreach ($jar in $validatedOwned) {
+            Copy-Item -LiteralPath $jar.FullName -Destination $modsOut -Force
+        }
+        Write-Host "  + $($ownedMods.Count) sahipli ZapeG mod"
     }
 
     Add-ZapeGClientLayer -Staging $staging -Mode $mode

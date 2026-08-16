@@ -48,7 +48,7 @@ Adımlar:
 9. CurseForge ayarlarından Minecraft RAM'ini ayarla: 16 GB RAM'li bilgisayarda **8–10 GB**, 32 GB ve üzerindeyse **10–12 GB**.
 10. Oyunu aç → **Multiplayer → Add Server** → adres: `81.213.77.41`.
 
-Kurulum yaması 15 gerekli ek modu, ZapeG logosunu ve shader ayarını birlikte getirir. Shader varsayılan olarak açıktır; oyun içinde **K** ile kapatabilirsin.
+Kurulum yaması 17 gerekli ek modu (Numen ve ZapeG Citizens dahil), ZapeG logosunu ve shader ayarını birlikte getirir. Oyuncuların ayrıca bir LLM anahtarı veya ayrı uygulama kurması gerekmez. Shader varsayılan olarak açıktır; oyun içinde **K** ile kapatabilirsin.
 
 ## Yol B — Lisansın yoksa
 
@@ -63,6 +63,26 @@ Ertu sana `ZapeG-Offline-ATM9-1.1.1-YYYYMMDD.zip` dosyasını verecek. Bu dosya 
 7. RAM'i **8–10 GB** yap, oyunu aç ve `81.213.77.41` adresine bağlan.
 
 Launcher'da izole profil/oyun klasörü oluşturma seçeneğini bulamıyorsan rastgele klasöre kurma; ekran görüntüsüyle Ertu'ya sor.
+
+## ZapeG Citizens kullanımı
+
+Bir OP sana bir vatandaş atadıktan sonra normal Minecraft sohbetine adını `@` ile
+yazarak görev verirsin:
+
+```text
+@Atlas git demir topla
+```
+
+Bu komut genel sohbette yayınlanmaz; yalnız sana atanmış vatandaşı kontrol
+edebilirsin. Devam eden görevi hemen durdurmak için:
+
+```text
+@Atlas stop
+```
+
+İlk kazma, savaş veya eşya taşıma denemelerini evlerin yanında değil, boş ve
+claim'siz bir test alanında yap. Oyuncu tarafında Ollama anahtarı veya ayrı bir
+uygulama gerekmez.
 
 ## Sorun giderme
 
