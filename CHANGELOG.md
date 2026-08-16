@@ -6,16 +6,18 @@ Format per entry: what changed · world risk · what players must do.
 
 Player-owned LLM citizens. World risk: low but behaviorally powerful; first
 movement/mining tests belong in a disposable unclaimed area. Players: install the
-new 17-jar ZapeG patch before joining (Numen + ZapeG Citizens were added).
+new 18-jar ZapeG patch before joining (Numen + ZapeG Citizens and the required
+CC:Tweaked replacement were added).
 
-- Added Numen AI 0.1.1 (CurseForge file `8551640`) and the reviewed ZapeG Citizens 0.2.0 Forge jar to both the server and client inventory locks.
-- Added `/citizen spawn <name> <onlinePlayer>`, assignment-aware chat routing, allowlisted Numen task execution, per-citizen/per-actor memory, stop/remove safety and bounded whole-turn timeouts.
+- Added Numen AI 0.1.1 (CurseForge file `8551640`) and the reviewed ZapeG Citizens 0.2.1 Forge jar to both the server and client inventory locks.
+- Replaced ATM9's CC:Tweaked 1.113.1 with the required 1.116.1 on server, patch and offline payload; builders and rollout guides remove older CC/Citizens copies and verify a single exact jar for each mod ID.
+- Added `/citizen spawn <name> <onlinePlayer>`, assignment-aware chat routing, all 32 server-executable Numen tools, per-citizen/per-actor memory, stop/remove safety and bounded whole-turn timeouts. Citizens can use Numen's movement, mining, building, crafting, storage, item-transfer, interaction and combat capabilities; only its two client-only tools remain unavailable to the server controller.
 - Added one private `citizen-brain` Compose service. A single host-owned Ollama key serves every citizen; players never run the service or receive the key.
 - Added `docs/CITIZENS-HOST-SETUP.md` with secret creation, pinned brain build, startup, health checks, acceptance test, rollback and troubleshooting commands.
 - The shared brain has no published host port, receives no Minecraft data/RCON/Docker socket, runs read-only without Linux capabilities and keeps SQLite state in its own named volume.
-- The custom Citizens release jar is tracked in `overrides/mods/` and locked by SHA-256; the brain image builds from the public `zapeg-citizens` tag `v0.2.0`.
+- The custom Citizens release jar is tracked in `overrides/mods/` and locked by SHA-256; the brain image builds from the public `zapeg-citizens` tag `v0.2.1`.
 - Removed the obsolete single-character log-tail chat prototype and its persona. Easy NPC remains for lore/quest characters; Heraldor remains an independent optional service.
-- Manual additions are now 21 total: 17 client+server and 4 server-only. The generated player patch contains exactly 17 reviewed additions.
+- Manual additions are now 22 total: 18 client+server and 4 server-only. The generated player patch contains exactly 18 reviewed additions.
 - Initial production scope is online player-owned workers. True server-owned lore citizens remain a follow-up lifecycle phase; ordinary enemies/bosses continue to use deterministic mob AI.
 
 ## v0.8.1 — 2026-08-16

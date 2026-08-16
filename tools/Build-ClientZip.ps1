@@ -31,6 +31,11 @@ $ErrorActionPreference = 'Stop'
 $packVersion = '1.1.1'
 $packFileId = '7097953'
 $forgeVersion = '47.4.10'
+$ccTweakedReplacement = [pscustomobject]@{
+    Name = 'CC: Tweaked'
+    Pattern = 'cc-tweaked-1.20.1-forge-*.jar'
+    FileName = 'cc-tweaked-1.20.1-forge-1.116.1.jar'
+}
 
 # Her ek moddan TAM BİR, TAM SÜRÜM jar bulunmalı. Dosya adları
 # extras/cf-mods.txt, docker-compose.yml ve oyuncu rehberindeki pinlerle
@@ -55,16 +60,16 @@ $extraMods = @(
     [pscustomobject]@{ Name = 'Eureka';              Prefix = 'eureka';                FileName = 'eureka-1201-1.6.3.jar';                             FileId = '7979379'; Pin = 'CurseForge file 7979379' },
     [pscustomobject]@{ Name = 'Numen AI';            Prefix = 'numen-forge';           FileName = 'numen-forge-1.20.1-0.1.1-all.jar';                 FileId = '8551640'; Pin = 'CurseForge file 8551640' },
     [pscustomobject]@{ Name = 'Better Combat';       Prefix = 'bettercombat';          FileName = 'bettercombat-forge-1.9.0+1.20.1.jar';               FileId = $null;     Pin = 'Modrinth 1.9.0+1.20.1-forge' },
-    [pscustomobject]@{ Name = 'CC: Tweaked (1.116.1 re-pin)'; Prefix = 'cc-tweaked-1.20.1-forge-1.116'; FileName = 'cc-tweaked-1.20.1-forge-1.116.1.jar'; FileId = $null; Pin = 'Modrinth 1.116.1 — ATM9 base pack CurseForge resolution does not reliably give every player this version (mod stopped publishing new files to CurseForge); re-pinned so Numen/AdvancedPeripherals integration does not throw a missing-dependency error' }
+    [pscustomobject]@{ Name = 'CC: Tweaked (1.116.1 re-pin)'; Prefix = 'cc-tweaked-1.20.1-forge-1.116'; FileName = $ccTweakedReplacement.FileName; FileId = $null; Pin = 'Modrinth 1.116.1 — ATM9 base pack CurseForge resolution does not reliably give every player this version (mod stopped publishing new files to CurseForge); re-pinned so Numen/AdvancedPeripherals integration does not throw a missing-dependency error' }
 )
 
 $ownedMods = @(
     [pscustomobject]@{
         Name = 'ZapeG Citizens'
         Prefix = 'zapeg-citizens-forge-1.20.1-'
-        FileName = 'zapeg-citizens-forge-1.20.1-0.2.0.jar'
-        RelativePath = 'overrides\mods\zapeg-citizens-forge-1.20.1-0.2.0.jar'
-        Pin = 'ZapeG owned release 0.2.0 (not CurseForge)'
+        FileName = 'zapeg-citizens-forge-1.20.1-0.2.1.jar'
+        RelativePath = 'overrides\mods\zapeg-citizens-forge-1.20.1-0.2.1.jar'
+        Pin = 'ZapeG owned release 0.2.1 (not CurseForge)'
     }
 )
 
@@ -224,23 +229,107 @@ function Get-ValidatedOwnedJars {
     return $selected
 }
 
+function Assert-SingleCcTweakedJar {
+    param(
+        [object[]]$Jars,
+        [string]$Context
+    )
+
+    $matches = @($Jars | Where-Object { $_.Name -like $ccTweakedReplacement.Pattern })
+    if ($matches.Count -ne 1 -or $matches[0].Name -cne $ccTweakedReplacement.FileName) {
+        $found = if ($matches.Count -eq 0) {
+            '(yok)'
+        } else {
+            ($matches.Name | Sort-Object) -join ', '
+        }
+        throw "CC:Tweaked değiştirme doğrulaması başarısız ($Context): yalnız $($ccTweakedReplacement.FileName) bulunmalı; bulunan: $found"
+    }
+}
+
+function Set-ExactCcTweakedJar {
+    param(
+        [string]$ModsDir,
+        [System.IO.FileInfo]$SourceJar
+    )
+
+    if (-not $SourceJar -or $SourceJar.Name -cne $ccTweakedReplacement.FileName) {
+        throw "CC:Tweaked değiştirme kaynağı yanlış; beklenen $($ccTweakedReplacement.FileName)."
+    }
+
+    @(Get-ChildItem -LiteralPath $ModsDir -Filter $ccTweakedReplacement.Pattern -File) |
+        ForEach-Object { [IO.File]::Delete($_.FullName) }
+    Copy-Item -LiteralPath $SourceJar.FullName -Destination (Join-Path $ModsDir $ccTweakedReplacement.FileName)
+
+    $result = @(Get-ChildItem -LiteralPath $ModsDir -Filter $ccTweakedReplacement.Pattern -File)
+    Assert-SingleCcTweakedJar -Jars $result -Context 'offline staging mods klasörü'
+}
+
+function Assert-SingleOwnedModJars {
+    param(
+        [object[]]$Jars,
+        [string]$Context
+    )
+
+    foreach ($mod in $ownedMods) {
+        $matches = @($Jars | Where-Object { $_.Name -like "$($mod.Prefix)*.jar" })
+        if ($matches.Count -ne 1 -or $matches[0].Name -cne $mod.FileName) {
+            $found = if ($matches.Count -eq 0) {
+                '(yok)'
+            } else {
+                ($matches.Name | Sort-Object) -join ', '
+            }
+            throw "Sahipli mod doğrulaması başarısız ($Context): yalnız $($mod.FileName) bulunmalı; bulunan: $found"
+        }
+    }
+}
+
+function Set-ExactOwnedModJars {
+    param(
+        [string]$ModsDir,
+        [System.IO.FileInfo[]]$SourceJars
+    )
+
+    foreach ($mod in $ownedMods) {
+        @(Get-ChildItem -LiteralPath $ModsDir -Filter "$($mod.Prefix)*.jar" -File) |
+            ForEach-Object { [IO.File]::Delete($_.FullName) }
+        $source = @($SourceJars | Where-Object { $_.Name -ceq $mod.FileName })
+        if ($source.Count -ne 1) {
+            throw "Sahipli mod değiştirme kaynağı yanlış; beklenen $($mod.FileName)."
+        }
+        Copy-Item -LiteralPath $source[0].FullName -Destination (Join-Path $ModsDir $mod.FileName)
+    }
+
+    $result = @(Get-ChildItem -LiteralPath $ModsDir -Filter '*.jar' -File)
+    Assert-SingleOwnedModJars -Jars $result -Context 'offline staging mods klasörü'
+}
+
 function Get-OfflineInventoryJars {
     param(
         [string]$ModsDir,
-        [System.IO.FileInfo[]]$OwnedJars
+        [System.IO.FileInfo[]]$OwnedJars,
+        [System.IO.FileInfo]$CcTweakedJar
     )
 
     $profileJars = @(Get-ChildItem -LiteralPath $ModsDir -Filter '*.jar' -File)
     foreach ($mod in $ownedMods) {
-        $profileCopies = @($profileJars | Where-Object { $_.Name -like "$($mod.Prefix)*.jar" })
-        $stale = @($profileCopies | Where-Object { $_.Name -cne $mod.FileName })
-        if ($stale.Count -gt 0) {
-            throw "Kaynak profilde eski/yanlış sahipli mod var: $(($stale.Name | Sort-Object) -join ', '). Önce silin; repo kopyası tek kaynak olmalı."
-        }
-        $profileJars = @($profileJars | Where-Object { $_.Name -cne $mod.FileName })
+        # Repo-owned releases replace the entire filename family. A maintainer
+        # profile may still contain the previous release after testing it; never
+        # copy that stale jar into an offline payload beside the reviewed build.
+        $profileJars = @($profileJars | Where-Object { $_.Name -notlike "$($mod.Prefix)*.jar" })
     }
 
-    return @($profileJars) + @($OwnedJars)
+    # ATM9 1.1.1 contributes CC:Tweaked 1.113.1 while ZapeG re-pins 1.116.1.
+    # Treat the whole filename family as a replacement set: discard every base
+    # copy, then add exactly the already validated pin. This same invariant is
+    # checked again in staging and in the completed archive below.
+    $profileJars = @(
+        $profileJars |
+            Where-Object { $_.Name -notlike $ccTweakedReplacement.Pattern }
+    )
+    $inventory = @($profileJars) + @($CcTweakedJar) + @($OwnedJars)
+    Assert-SingleCcTweakedJar -Jars $inventory -Context 'offline envanteri'
+    Assert-SingleOwnedModJars -Jars $inventory -Context 'offline envanteri'
+    return $inventory
 }
 
 function Get-ModInventoryLines {
@@ -375,13 +464,14 @@ function Add-ZapeGClientLayer {
         @(
             'ZapeG KURULUM YAMASI — ATM9 1.1.1',
             '',
-            '1. CurseForge App içinde All the Mods 9 sürüm 1.1.1 kurulu olsun.',
-            '2. Profile Options / Profil Seçenekleri içinde modloader sürümünü Forge 47.4.10 yap.',
-            '3. Profil menüsünde ... > Open Folder / Klasörü Aç seçeneğine bas.',
-            '4. Minecraft ve CurseForge kapalıyken bu zip içeriğini O KLASÖRÜN KÖKÜNE çıkar.',
-            '5. ZapeG dosyaları için üzerine yazma sorulursa onayla. Kişisel options.txt ayarların bu yamada yoktur ve korunur.',
-            '6. Sonuçta mods\iceandfire-...jar doğrudan görünmeli.',
-            '7. Oyunu başlat. Kullanıcı adını değiştirme; envanter, claim ve kişisel lore o ada bağlıdır.',
+             '1. CurseForge App içinde All the Mods 9 sürüm 1.1.1 kurulu olsun.',
+             '2. Profile Options / Profil Seçenekleri içinde modloader sürümünü Forge 47.4.10 yap.',
+             '3. Profil menüsünde ... > Open Folder / Klasörü Aç seçeneğine bas.',
+             '4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile zapeg-citizens-forge-1.20.1-0.2.0.jar silinmiş olmalı.',
+             '5. Bu zip içeriğini O KLASÖRÜN KÖKÜNE çıkar.',
+             '6. ZapeG dosyaları için üzerine yazma sorulursa onayla. Kişisel options.txt ayarların bu yamada yoktur ve korunur.',
+             '7. Sonuçta mods içinde yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.2.1.jar bulunmalı; mods\iceandfire-...jar da doğrudan görünmeli.',
+             '8. Oyunu başlat. Kullanıcı adını değiştirme; envanter, claim ve kişisel lore o ada bağlıdır.',
             '',
             'Zip içinde yeniden bir ZapeG klasörü oluşturma. mods klasörü profil kökünde olmalı.'
         )
@@ -389,13 +479,14 @@ function Add-ZapeGClientLayer {
         @(
             'ZapeG OFFLINE OYUN-DİZİNİ PAKETİ — ATM9 1.1.1 / Forge 47.4.10',
             '',
-            'BU ZIP BİR LAUNCHER VEYA FORGE KURUCUSU DEĞİLDİR.',
-            '1. Launcher içinde Minecraft 1.20.1 + Forge 47.4.10 kullanan İZOLE bir profil oluştur.',
-            '2. Launcher sorarsa Java 17 seç. Profili bir kez açıp kapat.',
-            '3. Minecraft ve launcher kapalıyken bu zip içeriğini o profilin OYUN KLASÖRÜNE çıkar.',
-            '4. Sonuçta mods\iceandfire-...jar doğrudan görünmeli; iç içe ZapeG klasörü olmamalı.',
-            '5. Sabit bir kullanıcı adı seç. Sonradan değiştirme; envanter ve claim kimliğin bu addır.'
-        )
+             'BU ZIP BİR LAUNCHER VEYA FORGE KURUCUSU DEĞİLDİR.',
+             '1. Launcher içinde Minecraft 1.20.1 + Forge 47.4.10 kullanan İZOLE bir profil oluştur.',
+             '2. Launcher sorarsa Java 17 seç. Profili bir kez açıp kapat.',
+             '3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile zapeg-citizens-forge-1.20.1-0.2.0.jar silinmiş olmalı.',
+             '4. Bu zip içeriğini o profilin OYUN KLASÖRÜNE çıkar.',
+             '5. Sonuçta mods içinde yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.2.1.jar bulunmalı; mods\iceandfire-...jar da doğrudan görünmeli ve iç içe ZapeG klasörü olmamalı.',
+             '6. Sabit bir kullanıcı adı seç. Sonradan değiştirme; envanter ve claim kimliğin bu addır.'
+         )
     }
     $installLines | Set-Content -LiteralPath (Join-Path $Staging 'INSTALL-TR.txt') -Encoding UTF8
 }
@@ -440,6 +531,14 @@ $profileVerified = [bool]$profileState.Verified
 $modsDir = Join-Path $ProfileDir 'mods'
 $validatedExtras = @(Get-ValidatedExtraJars -ModsDir $modsDir -InstanceMetadata $profileState.Metadata)
 $validatedOwned = @(Get-ValidatedOwnedJars)
+$validatedCcTweaked = @(
+    $validatedExtras |
+        Where-Object { $_.Name -ceq $ccTweakedReplacement.FileName }
+)
+if ($validatedCcTweaked.Count -ne 1) {
+    throw "Doğrulanmış ek modlarda tam bir CC:Tweaked pini bulunmalı: $($ccTweakedReplacement.FileName)"
+}
+$validatedCcTweaked = $validatedCcTweaked[0]
 $mode = if ($PatchOnly) { 'patch' } else { 'offline' }
 
 if (-not $InventoryLockFile) {
@@ -449,8 +548,10 @@ if (-not $InventoryLockFile) {
 $inventoryJars = if ($PatchOnly) {
     @($validatedExtras) + @($validatedOwned)
 } else {
-    @(Get-OfflineInventoryJars -ModsDir $modsDir -OwnedJars $validatedOwned)
+    @(Get-OfflineInventoryJars -ModsDir $modsDir -OwnedJars $validatedOwned -CcTweakedJar $validatedCcTweaked)
 }
+Assert-SingleCcTweakedJar -Jars $inventoryJars -Context "$mode kilit envanteri"
+Assert-SingleOwnedModJars -Jars $inventoryJars -Context "$mode kilit envanteri"
 
 if ($WriteInventoryLock) {
     if (-not $profileVerified) {
@@ -516,12 +617,16 @@ try {
         # The repo-owned build is authoritative even if the maintainer's source
         # profile already contains the same exact filename.
         $modsOut = Join-Path $staging 'mods'
-        foreach ($jar in $validatedOwned) {
-            Copy-Item -LiteralPath $jar.FullName -Destination $modsOut -Force
-        }
+        Set-ExactOwnedModJars -ModsDir $modsOut -SourceJars $validatedOwned
+        Set-ExactCcTweakedJar -ModsDir $modsOut -SourceJar $validatedCcTweaked
         Write-Host "  + $($ownedMods.Count) sahipli ZapeG mod"
+        Write-Host "  + CC:Tweaked taban sürümü $($ccTweakedReplacement.FileName) ile değiştirildi"
     }
 
+    $stagedCcTweaked = @(Get-ChildItem -LiteralPath (Join-Path $staging 'mods') -Filter $ccTweakedReplacement.Pattern -File)
+    Assert-SingleCcTweakedJar -Jars $stagedCcTweaked -Context "$mode staging mods klasörü"
+    $stagedJars = @(Get-ChildItem -LiteralPath (Join-Path $staging 'mods') -Filter '*.jar' -File)
+    Assert-SingleOwnedModJars -Jars $stagedJars -Context "$mode staging mods klasörü"
     Add-ZapeGClientLayer -Staging $staging -Mode $mode
     Write-BuildManifest -Staging $staging -Mode $mode -ProfileVerified $profileVerified
 
@@ -533,6 +638,12 @@ try {
         if ($archive.Entries.Count -eq 0) {
             throw 'Oluşturulan zip boş; mevcut paket korunuyor.'
         }
+        $archivedCcTweaked = @(
+            $archive.Entries |
+                Where-Object { $_.Name -like $ccTweakedReplacement.Pattern }
+        )
+        Assert-SingleCcTweakedJar -Jars $archivedCcTweaked -Context "$mode zip arşivi"
+        Assert-SingleOwnedModJars -Jars $archive.Entries -Context "$mode zip arşivi"
     }
     finally {
         $archive.Dispose()

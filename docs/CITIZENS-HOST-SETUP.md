@@ -14,14 +14,20 @@ service is unchanged.
 ## Before starting
 
 Run these commands from the checked-out `zapeg-server` directory on the Linux
-host. Confirm the release jar and the two required client/server mods are present:
+host. Confirm the three pinned client/server components are present:
 
 ```bash
 git pull --ff-only
-test -f overrides/mods/zapeg-citizens-forge-1.20.1-0.2.0.jar
+test -f overrides/mods/zapeg-citizens-forge-1.20.1-0.2.1.jar
+test -f overrides/mods/cc-tweaked-1.20.1-forge-1.116.1.jar
 printf '%s  %s\n' \
-  'ECC6DF3CE3A765D30C53B15E64DA1C29AA79B03BC337FE9CC2C5313BC86B1AFB' \
-  'overrides/mods/zapeg-citizens-forge-1.20.1-0.2.0.jar' | sha256sum -c -
+  '00DCFB4820CCD8B1F85B091668C274A4CD335087B68088AECB7D5609CAFB9801' \
+  'overrides/mods/zapeg-citizens-forge-1.20.1-0.2.1.jar' | sha256sum -c -
+printf '%s  %s\n' \
+  'FFFA7EAC48606DBC9F8E88DDF6C09EF218F0004B42F165F5476B700788806C9E' \
+  'overrides/mods/cc-tweaked-1.20.1-forge-1.116.1.jar' | sha256sum -c -
+grep -F 'CF_EXCLUDE_MODS: "cc-tweaked"' docker-compose.yml
+grep -F 'CF_FORCE_SYNCHRONIZE: "true"' docker-compose.yml
 grep -i numen extras/cf-mods.txt
 ```
 
@@ -74,13 +80,18 @@ the brain container. Port 8787 is not published to the host or internet.
 
 ## Build and start
 
-The build is pinned to the public `zapeg-citizens` tag `v0.2.0`, specifically its
+The build is pinned to the public `zapeg-citizens` tag `v0.2.1`, specifically its
 `brain/` directory. This starts/recreates Minecraft, its backup service, and the
 opt-in brain:
 
 ```bash
 docker compose --profile citizens config --quiet
 docker compose --profile citizens build --pull citizen-brain
+docker compose stop mc
+rm -f -- data/mods/cc-tweaked-1.20.1-forge-1.113.1.jar
+rm -f -- data/mods/zapeg-citizens-forge-1.20.1-0.2.0.jar
+test ! -e data/mods/cc-tweaked-1.20.1-forge-1.113.1.jar
+test ! -e data/mods/zapeg-citizens-forge-1.20.1-0.2.0.jar
 docker compose --profile citizens up -d mc backup citizen-brain
 docker compose --profile citizens ps
 ```
@@ -88,6 +99,11 @@ docker compose --profile citizens ps
 The first command prints nothing when the Compose model is valid. The Minecraft
 container copies the tracked jar from `overrides/mods/` through its dedicated
 `MODS` source; do not manually copy a different Citizens jar into `data/mods/`.
+The narrowly exact `rm` commands remove only ATM9's retired CC:Tweaked 1.113.1
+and the previous Citizens 0.2.0 jar from the persistent server directory before
+recreation. Do not replace them with wildcard deletion. `CF_EXCLUDE_MODS` plus
+`CF_FORCE_SYNCHRONIZE` prevents AUTO_CURSEFORGE from restoring the base CC copy,
+while `/citizens-mods` installs the pinned CC 1.116.1 and Citizens 0.2.1 jars.
 
 ## Verify before inviting players
 
@@ -98,12 +114,19 @@ docker compose --profile citizens ps
 docker compose --profile citizens logs --tail=100 citizen-brain
 docker compose exec -T mc rcon-cli "citizen brain-status"
 docker compose exec -T mc rcon-cli "citizen list"
+find data/mods -maxdepth 1 -type f -name 'cc-tweaked-1.20.1-forge-*.jar' -print
+test "$(find data/mods -maxdepth 1 -type f -name 'cc-tweaked-1.20.1-forge-*.jar' -print | wc -l)" -eq 1
+test -f data/mods/cc-tweaked-1.20.1-forge-1.116.1.jar
+find data/mods -maxdepth 1 -type f -name 'zapeg-citizens-forge-*.jar' -print
+test "$(find data/mods -maxdepth 1 -type f -name 'zapeg-citizens-forge-*.jar' -print | wc -l)" -eq 1
+test -f data/mods/zapeg-citizens-forge-1.20.1-0.2.1.jar
 ```
 
 The status command must say `Shared brain: configured`, not `disabled`. The brain
 logs must not contain configuration, authentication, or provider errors. Container
 health proves the private service is running; the Ollama key is exercised on the
-first real citizen turn.
+first real citizen turn. The CC:Tweaked and Citizens checks must each show exactly
+one pinned jar (1.116.1 and 0.2.1 respectively); stop here if an older copy remains.
 
 For the acceptance test, have one player join, then an OP runs:
 

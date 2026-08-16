@@ -1,6 +1,6 @@
 # HOSTING — day-0 guide for the server operator
 
-You're hosting **ZapeG** — a private modded Minecraft server for 4–10 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 21 additions** (17 client+server, 4 server-only). The container resolves the external pins and installs the reviewed ZapeG Citizens jar from this repo. Players never install jars one-by-one; Ertu generates one client patch. Full reference: [README.md](README.md). Citizens launch setup: [docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
+You're hosting **ZapeG** — a private modded Minecraft server for 4–10 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 22 additions** (18 client+server, 4 server-only). The container resolves the external pins and installs the reviewed ZapeG Citizens jar from this repo. Players never install jars one-by-one; Ertu generates one client patch. Full reference: [README.md](README.md). Citizens launch setup: [docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
 
 ## Requirements
 
@@ -148,10 +148,10 @@ one-liners. Its optional `LLM_*` settings are independent of Citizens.
 completed its first boot, then run `docker compose --profile heraldor up -d --build`.
 Embedded lines work with `HERALDOR_LLM=false`; `LLM_*` is ignored. Only if Discord posts are wanted, create a **separate Heraldor-only webhook**, put its new URL directly in host `.env` as `HERALDOR_WEBHOOK`, and never commit/share it. Blank means no Discord posts. The deliberately rare defaults are exposed as `HERALDOR_CHECK_INTERVAL` and `HERALDOR_P_*`; test before changing them, especially the player-independent Discord roll. `HERALDOR_EVENTS=true` additionally enables staged midnight shadow visits. Do NOT explain Heraldor to the players.
 
-## Verify all 21 additions loaded (once, after first boot)
+## Verify all 22 additions loaded (once, after first boot)
 
 ```bash
-ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|alexscaves|mowziesmobs|easy_npc|aquamirae|fragmentum|born_in_chaos|simplyswords|valkyrienskies|eureka|numen|zapeg-citizens|bettercombat|chunky|bluemap|incendium|dcintegration'   # expect 21
+ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|alexscaves|mowziesmobs|easy_npc|aquamirae|fragmentum|born_in_chaos|simplyswords|valkyrienskies|eureka|numen|cc-tweaked|zapeg-citizens|bettercombat|chunky|bluemap|incendium|dcintegration'   # expect 22
 test -f data/mods/DungeonsArise-1.20.x-2.1.58-release.jar && test -f data/mods/player-animation-lib-forge-1.0.2-rc1+1.20.jar   # ATM9 base, not additions
 ```
 
@@ -214,5 +214,5 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
 ## Don'ts
 
 - Don't exceed `MEMORY: 12G` — GC degrades above that on this pack.
-- Don't update the ATM9 version or any mod yourself — that's coordinated with client updates. Players need the same 17 client+server additions; Chunky, BlueMap, Incendium and Discord Integration stay server-only.
+- Don't update the ATM9 version or any mod yourself — that's coordinated with client updates. Players need the same 18 client+server additions; Chunky, BlueMap, Incendium and Discord Integration stay server-only.
 - Don't delete `snapshots/` or `backups/` to free space without checking with Ertu.
