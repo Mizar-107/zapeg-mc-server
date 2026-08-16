@@ -1,9 +1,9 @@
 // ZapeG kişisel karşılama mesajları — SERVER-SIDE ONLY.
 // Her girişte oyuncuya özel havuzdan rastgele bir satır herkese duyurulur.
 //
-// !!! ANAHTARLAR MINECRAFT KULLANICI ADI OLMALI (whitelist'tekiyle birebir) !!!
-// kralxlarge (Emir) ve Mizar__107 (Recep) kesin. Enes/Salih/Yusuf/Ali/Mert
-// şimdilik gerçek adla — nick'ler gelince anahtarları değiştir.
+// !!! ANAHTARLAR MINECRAFT KULLANICI ADI OLMALI (oyuna girilen adla birebir) !!!
+// kralxlarge (Emir), Mizar__107 (Recep), eminomi12 ve MubarekAbi kesin.
+// Enes/Salih/Yusuf/Ali/Mert şimdilik gerçek adla — nick'ler gelince değiştir.
 // Deploy: scripts/apply-overrides.sh ; reload: /kubejs reload server_scripts
 
 const WELCOME_LINES = {
@@ -17,8 +17,20 @@ const WELCOME_LINES = {
   'Mizar__107': [                       // Recep — admin / sunucunun sahibi
     'admin geldi, düzgün oturun.',
     'yetkiyle giriş yapıldı.',
-    'whitelist\'in efendisi döndü.',
+    'sunucunun efendisi döndü.',
     'log\'lar okunuyor, haberiniz olsun.',
+  ],
+  'eminomi12': [                       // builder; köy speedrun'u + hayvan ordusu
+    'usta geldi, şantiye yeniden açıldı.',
+    'yarım kalan hardcore speedrun sessizce onu bekliyor.',
+    'speedrun yine köy arama simülasyonuna döndü.',
+    'köy çanları ve evcil hayvanlar tetikte.',
+  ],
+  'MubarekAbi': [                      // arabalar; Salih'in yaktığı eski ev
+    'garaj hazır, araba modu hâlâ yok.',
+    'minecart\'ı araba saymayı hâlâ reddediyor.',
+    'bu ev için yangın sigortası yaptırdı.',
+    'Salih\'e çakmak teslim formu imzalatıldı.',
   ],
   'Enes': [                             // jetpack özlemi
     'jetpack özlemi bugün bitebilir.',

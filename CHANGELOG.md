@@ -2,6 +2,26 @@
 
 Format per entry: what changed · world risk · what players must do.
 
+## Unreleased — target v0.8.1
+
+Novice-proof client onboarding + operator clarity + pre-launch personalization. World risk: none (pre-world; KubeJS/access settings included). Players: licensed users now install ATM9 1.1.1 and extract **one** ZapeG patch into the profile root.
+
+- `Build-ClientZip.ps1 -PatchOnly` produces `ZapeG-Kurulum-Yamasi-ATM9-1.1.1-<date>.zip` with all 17 client additions, the shader setting, PackMenu branding, an in-zip Turkish quick guide and SHA-256 manifest; it preserves personal `options.txt` settings.
+- Builder parses the source CurseForge metadata for ATM9/Forge plus the fifteen CurseForge addition file IDs, requires all 17 exact filenames, and requires reviewed SHA-256 locks for both patch and offline payload builds. Legacy `-ExtrasOnly` remains an alias.
+- Server and clients now use Forge 47.4.10 over ATM9's 47.4.0 manifest pin; the three pulled Easy NPC/Aquamirae dependencies are included in the generated patch. Offline output is an isolated Forge 47.4.10 **game-directory payload**, not a launcher/Forge installer.
+- Player Markdown/HTML guides use the one-zip path; the seventeen-jar table is technical fallback only and stale “3 jar” troubleshooting text is gone.
+- `.env.example` and HOSTING now make the boundary explicit: default `mc + backup` uses no LLM; Muhtar is an optional LLM profile; Heraldor is LLM-free by default; normal Discord uses a bot config while Heraldor optionally uses a separate webhook. Heraldor timing/probability knobs are now actually passed through Compose.
+- Conservative physics-ship phase 1 added: Valkyrien Skies 2.4.11 + Eureka 1.6.3. Trackwork stays behind a smoke test; Create: Interactive and Clockwork are deliberately omitted on ATM9's Create 6.0.6.
+- Incendium's formerly floating Modrinth project reference is now pinned to 5.3.1.
+- README/HOSTING mod counts and default-stack start command corrected: 21 additions total, and `docker compose up -d` starts both `mc` and `backup`.
+- Heraldor's default probabilities were reduced to match the locked rare-ARG intent; its Discord roll remains independent of player presence.
+- Heraldor shadow summons now encode the JSON custom name as a valid SNBT string even though the Turkish name contains an apostrophe.
+- v0.8 overlap audit is recorded in `BALANCE.md`; no recipe/economy changes were required.
+- Added exact-name personalization for `eminomi12` and `MubarekAbi`: per-login joke pools, named first-join gifts (`Hayvanat Bahçesi Ruhsatı` / `Araba Modu Gelene Kadar`) and Muhtar dossiers. Roster and server slots now reflect 10 players.
+- Offline access is fail-safe by default: whitelist stays on, permanent `OPS` stays empty, and host-local RCON is required. `ENABLE_WHITELIST=false` is available only for hosts that network-gate `25565`.
+- Corrected the Discord bridge docs: DCI requires a bot token + channel ID and can create its own optional webhook; it cannot consume a supplied raw webhook URL. Heraldor's raw webhook remains separate.
+- Replaced the pulled host-specific CPU pin with optional `MC_CPUSET`; blank safely uses all CPUs on a new host.
+
 ## v0.8.0 — 2026-08-15
 
 Content drop 2 + Heraldor. World risk: none (pre-world). Players: jar list **6 → 12** — use `zapeg-extra-mods.zip` (one extract) instead of per-file downloads.

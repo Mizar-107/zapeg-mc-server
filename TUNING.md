@@ -7,17 +7,19 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 | Rule | Default | Why | |
 |---|---|---|---|
 | `keepInventory` | **false** | Pack ships **Corail Tombstone** — death drops go into a grave you walk back to. Real stakes, zero item-loss rage. | **[vote]** |
-| `playersSleepingPercentage` | **10** | One sleeper skips the night for up to 8 online. No "herkes yatağa" çığlıkları. | |
+| `playersSleepingPercentage` | **10** | One sleeper skips the night for up to 10 online. No "herkes yatağa" çığlıkları. | |
 | `doInsomnia` | **false** | No phantoms. Nobody has ever voted for phantoms. | |
 | `mobGriefing` | **true** | Creeper holes are content; FTB Chunks claims already block explosions on claimed land — claim your base (M). | **[vote]** |
 | `doFireTick` | **true** | Fire spreads (dragons!). Claimed chunks are protected; build with stone near roost country. | |
-| `pvp` (server.properties) | **true** | Friendly duels; whitelist-only server, griefing isn't a threat model. | **[vote]** |
+| `pvp` (server.properties) | **true** | Friendly duels; this is a private friend group, griefing isn't the intended threat model. | **[vote]** |
 
 ## Access model (locked pre-world)
 
 | Setting | Value | Why / trade-off |
 |---|---|---|
-| `ONLINE_MODE` | **false** | Friends on mixed launchers (not everyone has a Microsoft account) must all join. Risk: usernames are spoofable offline → mitigated by enforced whitelist + IP shared only in the group. **Locked before go-live**: flipping it later regenerates every player UUID (inventories/claims orphaned). |
+| `ONLINE_MODE` | **false** | Friends on mixed launchers (not everyone has a Microsoft account) must all join. Risk: usernames are spoofable; whitelist limits allowed names but does not authenticate their owners. Use a firewall allowlist/VPN when possible. **Locked before go-live**: flipping it later regenerates every player UUID (inventories/claims orphaned). |
+| `ENABLE_WHITELIST` | **true** | Safe default whenever `25565` is internet-reachable. Set false only behind a real network-level gate. |
+| `OPS` | **empty** | A permanent offline-mode OP name can be copied by an attacker. Grant OP from host-local RCON only when needed, then deop. |
 
 ## World & team decisions
 
