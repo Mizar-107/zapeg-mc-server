@@ -1,4 +1,4 @@
-# Build-ClientZip.ps1 — ZapeG oyuncu paketi üretici
+﻿# Build-ClientZip.ps1 — ZapeG oyuncu paketi üretici
 #
 # Lisanslı oyuncular için önerilen çıktı:
 #   .\Build-ClientZip.ps1 -PatchOnly -WriteInventoryLock  # bir kez; incele
@@ -47,7 +47,6 @@ $extraMods = @(
     [pscustomobject]@{ Name = 'Aquamirae';           Prefix = 'aquamirae';             FileName = 'aquamirae-forge-1.20.1-7.1.10.jar';                 FileId = '8558369'; Pin = 'CurseForge file 8558369' },
     [pscustomobject]@{ Name = 'Fragmentum';           Prefix = 'fragmentum';            FileName = 'fragmentum-forge-1.20.1-1.5.2.jar';                 FileId = '8506891'; Pin = 'CurseForge file 8506891' },
     [pscustomobject]@{ Name = 'Born in Chaos';       Prefix = 'born_in_chaos';         FileName = 'born_in_chaos_[Forge]1.20.1_1.7.5.jar';             FileId = '7917933'; Pin = 'CurseForge file 7917933' },
-    [pscustomobject]@{ Name = 'When Dungeons Arise'; Prefix = 'DungeonsArise';         FileName = 'DungeonsArise-1.20.1-2.1.57-release.jar';           FileId = '4798432'; Pin = 'CurseForge file 4798432' },
     [pscustomobject]@{ Name = 'Simply Swords';       Prefix = 'simplyswords';          FileName = 'simplyswords-forge-1.56.0-1.20.1.jar';              FileId = '5639538'; Pin = 'CurseForge file 5639538' },
     [pscustomobject]@{ Name = 'Valkyrien Skies';     Prefix = 'valkyrienskies';        FileName = 'valkyrienskies-120-2.4.11.jar';                     FileId = '7906689'; Pin = 'CurseForge file 7906689' },
     [pscustomobject]@{ Name = 'Eureka';              Prefix = 'eureka';                FileName = 'eureka-1201-1.6.3.jar';                             FileId = '7979379'; Pin = 'CurseForge file 7979379' },
@@ -84,7 +83,7 @@ function Assert-SourceProfile {
         throw "CurseForge profil bilgisi geçerli JSON değil: $instanceFile"
     }
 
-    $actualFileId = [string]$instance.installedModpack.fileID
+    $actualFileId = [string]$instance.installedModpack.installedFile.id
     $actualMinecraft = [string]$instance.baseModLoader.minecraftVersion
     $loaderValues = @(
         [string]$instance.baseModLoader.forgeVersion,

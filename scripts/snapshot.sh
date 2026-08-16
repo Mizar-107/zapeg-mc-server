@@ -74,7 +74,7 @@ if [ -n "$running" ]; then
 fi
 
 tar --exclude='data/cache' --exclude='data/logs' --exclude='data/libraries' \
-    --exclude='data/versions' -czf "$partial" data
+    --exclude='data/versions' --exclude='data/bluemap' -czf "$partial" data
 mv -- "$partial" "$out"
 
 resume_saves
