@@ -33,10 +33,10 @@ USE_LLM = os.environ.get("HERALDOR_LLM", "false").lower() == "true"
 CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "300"))  # saniye
 
 # Olasılıklar: her CHECK_INTERVAL'da zar atılır (gündüz değerleri)
-P_WHISPER = float(os.environ.get("P_WHISPER", "0.06"))
-P_GLOBAL = float(os.environ.get("P_GLOBAL", "0.015"))
-P_DISCORD = float(os.environ.get("P_DISCORD", "0.008"))
-P_SHADOWS = float(os.environ.get("P_SHADOWS", "0.004"))
+P_WHISPER = float(os.environ.get("P_WHISPER", "0.002"))
+P_GLOBAL = float(os.environ.get("P_GLOBAL", "0.0005"))
+P_DISCORD = float(os.environ.get("P_DISCORD", "0.0003"))
+P_SHADOWS = float(os.environ.get("P_SHADOWS", "0.0002"))
 
 WHISPERS = [
     "arkana bakma.",
@@ -54,7 +54,7 @@ WHISPERS = [
 GLOBALS_ = [
     "O kule benimdi.",
     "Kaybettiğiniz her eşya bana geliyor.",
-    "Sekiz kişisiniz. Ben dokuzuncuyum.",
+    "Kaç kişi olduğunuzu saydım. Bir fazla çıktık.",
     "Muhtar beni hatırlar. Sorun ona.",
     "Işıklarınız güzelmiş. Şimdilik.",
     "Uyuyunca daha sessiz oluyorsunuz.",
@@ -62,7 +62,7 @@ GLOBALS_ = [
 
 DISCORDS = [
     "sunucu hiç kapanmıyor sanıyorsunuz. ben hiç uyumuyorum.",
-    "dokuzuncu oyuncu whitelist istemez.",
+    "birinizin gölgesi kendisinden önce geldi.",
     "bu kanalı da görüyorum.",
     "biriniz bu gece geç saate kadar oynayacak. biliyorum.",
     "🕯",
@@ -182,10 +182,11 @@ def discord_msg() -> None:
 def shadows(player: str) -> None:
     """Gece yarısı 30 sn'lik vex tacizi — kendiliğinden yok olur, grief yok."""
     name = json.dumps({"text": "Heraldor'un Gölgesi", "color": "dark_gray"}, ensure_ascii=False)
+    name_snbt = json.dumps(name, ensure_ascii=False)
     for _ in range(3):
         rcon(
             f"execute at {player} run summon minecraft:vex ~ ~1 ~ "
-            f'{{CustomName:\'{name}\',LifeTicks:600,Silent:1b}}'
+            f"{{CustomName:{name_snbt},LifeTicks:600,Silent:1b}}"
         )
     rcon(f"execute at {player} run playsound minecraft:entity.vex.charge hostile {player} ~ ~ ~ 1 0.6")
     payload = json.dumps(

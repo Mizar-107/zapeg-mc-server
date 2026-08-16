@@ -1,4 +1,4 @@
-# Extra CurseForge content on top of ATM9 — exact file pins (verified 2026-08-15).
+# Extra CurseForge content on top of ATM9 — exact file pins (verified 2026-08-16).
 # Format: slug:fileID
 # Docs: https://docker-minecraft-server.readthedocs.io/en/latest/mods-and-plugins/curseforge-files/
 # NOTE: dependencies are NOT auto-resolved here — Citadel is listed explicitly
@@ -6,7 +6,8 @@
 #
 # CLIENT+SERVER (players need these exact builds too — see docs/PLAYER-SETUP-TR.md):
 #   ice-and-fire-dragons, citadel, immersive-petroleum, alexs-caves, mowzies-mobs,
-#   easy-npc, aquamirae, born-in-chaos, when-dungeons-arise, simply-swords
+#   easy-npc bundle + core + config-ui, aquamirae + fragmentum, born-in-chaos,
+#   when-dungeons-arise, simply-swords, valkyrien-skies, eureka-ships
 #   (+ better-combat & playeranimator via MODRINTH_PROJECTS — also client-side)
 # SERVER-ONLY (players skip): dcintegration (+ chunky, bluemap, incendium via MODRINTH_PROJECTS)
 
@@ -52,6 +53,15 @@ when-dungeons-arise:4798432
 
 # Simply Swords 1.56.0 (2024-08-18) — ~50 unique weapons; pairs with Better Combat
 simply-swords:5639538
+
+# --- v0.8.1 physics ships (conservative phase 1; all client+server) -----------
+
+# Valkyrien Skies 2.4.11 — physics engine; supports Forge >=47.2 and Create >=6.0.6
+valkyrien-skies:7906689
+
+# Eureka 1.6.3 — stable helm/ship-building addon for VS >=2.4.10
+# Kotlin for Forge is required but already ships in the ATM9 1.1.1 manifest.
+eureka-ships:7979379
 
 # --- server-only ---------------------------------------------------------------
 

@@ -7,10 +7,9 @@ services:
     stdin_open: true
     tty: true
     restart: unless-stopped
-    # Core 6/7 (logical CPUs 12-15) are suspected unstable (WHEA parity errors +
-    # Prime95 rounding-error hardware failure). Keep the JVM off them until
-    # confirmed via CoreCycler / RMA'd — matches the native affinity test.
-    cpuset: "0-11,16-31"
+    # Optional host-specific CPU affinity. Blank = all host CPUs; never copy a
+    # cpuset from another machine without checking its logical CPU topology.
+    cpuset: "${MC_CPUSET:-}"
     ports:
       - "25565:25565"
       - "8100:8100"                        # BlueMap web UI (reverse-proxy/VPN it; don't expose raw)
@@ -37,14 +36,14 @@ services:
       # Modrinth pins. Server-only: chunky (1.20.1 Forge is Modrinth-only), bluemap
       # (5.3 = last Java-17 build), incendium (nether overhaul, Stardust).
       # Client+server (players install too): better-combat + playeranimator.
-      MODRINTH_PROJECTS: "chunky:1.3.146,bluemap:5.3-forge-1.20,incendium,better-combat:1.9.0+1.20.1-forge,playeranimator:1.0.2-rc1+1.20-forge"
+      MODRINTH_PROJECTS: "chunky:1.3.146,bluemap:5.3-forge-1.20,incendium:5.3.1,better-combat:1.9.0+1.20.1-forge,playeranimator:1.0.2-rc1+1.20-forge"
 
       # ---- resources (brief §6) --------------------------------------------
       MEMORY: 12G                          # ATM guidance 8–12G; do NOT exceed ~12G (GC degrades)
       USE_AIKAR_FLAGS: "true"
 
       # ---- server.properties -----------------------------------------------
-      MAX_PLAYERS: "8"
+      MAX_PLAYERS: "10"
       VIEW_DISTANCE: "7"
       SIMULATION_DISTANCE: "6"
       ALLOW_FLIGHT: "true"                 # modded movement (jetpacks etc.) — avoids flight kicks
@@ -55,14 +54,14 @@ services:
       MOTD: "§3ZapeG §f| §bATM9§f+ §8— §7ejderhalar gerçek"
       ENFORCE_SECURE_PROFILE: "false"      # avoids chat-signing kicks on modded
       ONLINE_MODE: "false"                 # accept ALL launchers (no Mojang auth).
-                                           # Security = enforced whitelist + unshared IP;
-                                           # names are spoofable in offline mode — see TUNING.md
+                                           # Names, including OP names, are spoofable;
+                                           # use whitelist plus a firewall/VPN — see TUNING.md
 
       # ---- access control ---------------------------------------------------
-      ENABLE_WHITELIST: "true"
-      ENFORCE_WHITELIST: "true"
+      ENABLE_WHITELIST: "${ENABLE_WHITELIST:-true}"
+      ENFORCE_WHITELIST: "${ENABLE_WHITELIST:-true}"
       WHITELIST: ${WHITELIST:-}            # comma-separated usernames, set in .env
-      OPS: ${OPS:-}
+      OPS: ${OPS:-}                         # keep blank in offline-mode; use host-local rcon-cli
 
       # ---- rcon (backup sidecar + scripts) ----------------------------------
       RCON_PASSWORD: ${RCON_PASSWORD:?set RCON_PASSWORD in .env}
@@ -182,6 +181,11 @@ services:
       HERALDOR_WEBHOOK: ${HERALDOR_WEBHOOK:-}
       HERALDOR_EVENTS: ${HERALDOR_EVENTS:-false}
       HERALDOR_LLM: ${HERALDOR_LLM:-false}
+      CHECK_INTERVAL: ${HERALDOR_CHECK_INTERVAL:-300}
+      P_WHISPER: ${HERALDOR_P_WHISPER:-0.002}
+      P_GLOBAL: ${HERALDOR_P_GLOBAL:-0.0005}
+      P_DISCORD: ${HERALDOR_P_DISCORD:-0.0003}
+      P_SHADOWS: ${HERALDOR_P_SHADOWS:-0.0002}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}

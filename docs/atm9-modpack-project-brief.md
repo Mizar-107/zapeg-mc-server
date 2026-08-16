@@ -6,7 +6,7 @@
 
 ## 1. Goal & Audience
 
-- Private multiplayer server, **4–8 players**, self-hosted by the owner (a DevOps engineer — hardware is NOT a bottleneck, Docker/automation welcome).
+- Private multiplayer server, **4–10 players** (the roster grew from the original eight), self-hosted by the owner (a DevOps engineer — hardware is NOT a bottleneck, Docker/automation welcome).
 - Pack should be **broad and long-lasting**: technology, magic, boss fights, exploration, space, decoration/city-building — "a path to follow for every type of player."
 - A **quest book as a loose guide** is desired (not gating, just direction).
 

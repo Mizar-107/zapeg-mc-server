@@ -1,50 +1,90 @@
 # ZapeG — Oyuncu Kurulumu
 
-Kendi paketimiz: **All the Mods 9 v1.1.1** + 12 ek mod. Sunucu **offline-mode** — Microsoft hesabı şart değil, her launcher girer. İki kural: herkesin mod seti birebir aynı olacak, ve **kullanıcı adını BİR KEZ seçeceksin** (whitelist + envanterin o ada bağlı; sonradan değiştirirsen sıfırdan başlarsın). Adını Ertu'ya bildir.
+ZapeG, **All the Mods 9 sürüm 1.1.1** üzerine hazırlanmıştır. Modları tek tek indirmen gerekmiyor.
 
-> Şık HTML sürümü: `zapeg-kurulum.html` — telefonda da rahat okunur.
+> Telefonda daha rahat okunan görsel sürüm: `zapeg-kurulum.html`
 
-## Yol A — Minecraft lisansın varsa (CurseForge App, ~10 dk)
+## Lisanslıysan en kısa yol
 
-1. [CurseForge App](https://www.curseforge.com/download/app) indir, kur.
-2. **Minecraft → Browse Modpacks → "All the Mods 9"** → Install → sürüm **1.1.1** olduğunu doğrula (profil → ⋮ → Version).
-3. Ek modlar — profil → **⋮ → Open Folder** → `mods` klasörüne tablodakileri at. (Kolay yol: Ertu'nun paylaştığı `zapeg-extra-mods.zip`'i `mods` klasörüne aç — tablo yedek/referans.)
+1. CurseForge'dan **ATM9 1.1.1** kur.
+2. **Profile Options** içinden modloader sürümünü **Forge 47.4.10** yap.
+3. Ertu'nun gönderdiği **tek ZapeG Kurulum Yaması zip'ini** profil klasörüne aç.
+4. Kullanıcı adını Ertu'ya bildir ve sunucuya gir.
 
-   | Mod | Dosya | Link |
-   |---|---|---|
-   | Ice and Fire | `iceandfire-2.1.13-1.20.1-beta-5.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/ice-and-fire-dragons/files/5633453) |
-   | Citadel | `citadel-2.6.3-1.20.1.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/citadel/files/7476570) |
-   | Immersive Petroleum | `ImmersivePetroleum-1.20.1-4.3.1-36b.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/immersive-petroleum/files/8499079) |
-   | Alex's Caves | `alexscaves-2.0.2.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/alexs-caves/files/5848216) |
-   | Mowzie's Mobs | `mowziesmobs-1.8.2.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/mowzies-mobs/files/7815705) |
-   | Easy NPC | `easy_npc_bundle-forge-1.20.1-7.7.7.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/easy-npc/files/8644040) |
-   | Aquamirae | `aquamirae-forge-1.20.1-7.1.10.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/aquamirae/files/8558369) |
-   | Born in Chaos | `born_in_chaos_[Forge]1.20.1_1.7.5.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/born-in-chaos/files/7917933) |
-   | When Dungeons Arise | `DungeonsArise-1.20.1-2.1.57-release.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/when-dungeons-arise/files/4798432) |
-   | Simply Swords | `simplyswords-forge-1.56.0-1.20.1.jar` | [indir](https://www.curseforge.com/minecraft/mc-mods/simply-swords/files/5639538) |
-   | Better Combat | `bettercombat-forge-1.9.0+1.20.1.jar` | [indir](https://modrinth.com/mod/better-combat/version/1.9.0%2B1.20.1-forge) |
-   | playerAnimator | `player-animation-lib-forge-1.0.2-rc1+1.20.jar` | [indir](https://modrinth.com/mod/playeranimator/version/1.0.2-rc1%2B1.20-forge) |
+> Önemli: Sunucu offline-mode çalışır. Kullanıcı adın whitelist, envanter ve claim kimliğindir. Bir ad seçtikten sonra değiştirme.
 
-4. **Görsel ön-ayar (shaders açık başlasın):** `zapeg-client-defaults.zip`'i profil klasörüne aç, üzerine yaz. (Shader aç/kapa: **K**; kasarsa Shader Packs → MakeUp-UltraFast.)
-5. RAM: Settings → Game Specific → Minecraft → **10–12 GB** (16 GB makinede 8–10).
-6. Play → Multiplayer → Add Server → IP: `81.213.77.41` (değişirse duyurulur).
+## Yol A — Minecraft lisansın varsa (önerilen)
 
-## Yol B — Lisans yoksa (offline launcher)
+Gerekenler:
 
-1. Offline hesap destekleyen bir launcher kur (ör. **SKlauncher**). Kullanıcı adını gir — Ertu'ya bildirdiğinle birebir aynı.
-2. **ZapeG instance zip'ini** Ertu'dan al (ilk premium kurulumdan üretilecek, Drive linki grupta) → launcher'ın oyun klasörüne aç (`mods`, `config`, `kubejs`, `defaultconfigs`... hepsi gelecek).
-3. Launcher'da sürüm: **Forge 1.20.1** (47.4.0). RAM: **8–10 GB**.
-4. Başlat → Multiplayer → IP: `81.213.77.41` (değişirse duyurulur).
+- CurseForge App
+- `ZapeG-Kurulum-Yamasi-ATM9-1.1.1-YYYYMMDD.zip` — Ertu paylaşacak
+- Whitelist'e yazılacak sabit kullanıcı adın
 
-Not: Zip, premium kurulumdaki profil klasörünün kopyası — mod seti otomatik birebir aynı olur.
+Adımlar:
+
+1. [CurseForge App](https://www.curseforge.com/download/app) uygulamasını kur.
+2. **Minecraft → Browse Modpacks → All the Mods 9 → Install** yolunu izle.
+3. Profil sayfasında **⋮ → Change Version** ile sürümün **1.1.1** olduğunu doğrula.
+4. **⋮ → Profile Options → Modloader Version** yolundan **Forge 47.4.10** seçip **Done** de. [CurseForge'un görsel anlatımı](https://support.curseforge.com/support/solutions/articles/9000230030-changing-the-modloader-version-of-a-modpack-or-custom-profile)
+5. Aynı menüden **⋮ → Open Folder** seçeneğine bas. Açılan klasör senin profil kökün.
+6. Minecraft'ı ve CurseForge'ı tamamen kapat.
+7. ZapeG kurulum zip'inin **içindekileri**, az önce açılan profil klasörüne çıkar. ZapeG dosyaları için üzerine yazma sorulursa onayla; yama kişisel `options.txt` dosyanı içermez, tuş/ses/dil ayarlarını sıfırlamaz.
+8. Doğru kurulumda şu yapı görünür:
+
+   ```text
+   All the Mods 9\
+   ├─ mods\
+   │  ├─ iceandfire-....jar
+   │  └─ ...diğer ZapeG modları
+   ├─ config\
+   ├─ packmenu\
+   ├─ INSTALL-TR.txt
+   └─ ZAPEG-BUILD.txt
+   ```
+
+   `All the Mods 9\ZapeG-Kurulum-Yamasi-...\mods` şeklinde iç içe klasör oluştuysa yanlış yere çıkardın. Zip'in içindeki `mods` klasörü doğrudan profil kökünde olmalı.
+
+9. CurseForge ayarlarından Minecraft RAM'ini ayarla: 16 GB RAM'li bilgisayarda **8–10 GB**, 32 GB ve üzerindeyse **10–12 GB**.
+10. Oyunu aç → **Multiplayer → Add Server** → adres: `81.213.77.41`.
+
+Kurulum yaması 17 gerekli ek modu, ZapeG logosunu ve shader ayarını birlikte getirir. Shader varsayılan olarak açıktır; oyun içinde **K** ile kapatabilirsin.
+
+## Yol B — Lisansın yoksa
+
+Ertu sana `ZapeG-Offline-ATM9-1.1.1-YYYYMMDD.zip` dosyasını verecek. Bu dosya bir launcher veya Forge kurucusu değildir; hazır oyun-dizini içeriğidir.
+
+1. Kullandığın launcher'da **Minecraft 1.20.1 + Forge 47.4.10** kullanan yeni ve izole bir profil oluştur. Launcher Java sürümü sorarsa **Java 17** seç.
+2. Kullanıcı adını bir kez seç. Ertu'ya whitelist için aynen bildir; sonra değiştirme.
+3. Profili bir kez açıp ana menüye gel, sonra oyunu ve launcher'ı kapat.
+4. Launcher'dan o profilin **oyun klasörünü** aç. Global `.minecraft` veya başka bir modpack klasörü kullanma.
+5. Offline zip'inin içindekileri bu oyun klasörüne çıkar; üzerine yazmayı onayla.
+6. `mods\iceandfire-....jar` dosyasının doğrudan profil altında olduğunu kontrol et. Arada ikinci bir ZapeG klasörü olmamalı.
+7. RAM'i **8–10 GB** yap, oyunu aç ve `81.213.77.41` adresine bağlan.
+
+Launcher'da izole profil/oyun klasörü oluşturma seçeneğini bulamıyorsan rastgele klasöre kurma; ekran görüntüsüyle Ertu'ya sor.
 
 ## Sorun giderme
 
-- **Girişte atıyor / mod uyuşmazlığı** → pack 1.1.1 mi + 3 jar doğru sürüm mü? (Yol B'de: zip güncel mi?)
-- **"Not whitelisted"** → adını Ertu'ya bildirdin mi, birebir aynı mı yazdın?
-- **Açılışta crash** → RAM ayarı; olmadı crash log'u gruba at.
-- **Kasma** → render distance 8; shader kapat.
+### “Mod uyuşmazlığı” veya girişte mod listesi hatası
+
+- ATM9 sürümünün **1.1.1** olduğunu kontrol et.
+- Modloader sürümünün **Forge 47.4.10** olduğunu kontrol et.
+- Profil kökünde `ZAPEG-BUILD.txt` var mı kontrol et.
+- `mods` içinde ZapeG modlarından birinin iki farklı sürümü varsa eski jar'ı kaldır.
+- Yama zip'ini yanlışlıkla iç içe klasöre açmadığından emin ol.
+
+### “Not whitelisted”
+
+Oyundaki kullanıcı adın Ertu'ya bildirdiğin adla harf harf aynı olmalı.
+
+### Oyun açılırken çöküyor veya çok kasıyor
+
+- Önce ayrılan RAM'i kontrol et.
+- Shader'ı **K** ile kapat.
+- Render distance değerini 8'e indir.
+- Devam ederse `crash-reports` klasöründeki en yeni dosyayı gruba gönder.
 
 ## Güncellemeler
 
-Pack güncellenince duyurulur. Çoğunlukla bir şey yapman gerekmez (sunucu tarafı). "Jar değişti" denirse: eski jar'ı sil, yenisini at. Yol B'dekilere güncel zip verilir.
+Yeni bir ZapeG yaması paylaşılmadıkça hiçbir şeyi elle güncelleme. Yeni yama duyurulursa Minecraft kapalıyken talimattaki gibi profil köküne uygula. Mod sürümü değişen güncellemelerde Ertu eski jar'ın kaldırılması gerekip gerekmediğini ayrıca söyleyecek.
