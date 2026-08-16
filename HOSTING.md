@@ -4,11 +4,14 @@ You're hosting **ZapeG** — a private modded Minecraft server for 4–10 player
 
 ## Requirements
 
-- Linux host, Docker Engine 24+ with the compose plugin (`docker compose version` works)
+- Linux host, Docker Engine 24+ and **Docker Compose v2.17+** (`docker compose version`)
 - **16 GB+ RAM free** for this stack (12 GB heap + JVM/OS overhead) — 32 GB host ideal
 - 4+ decent cores (worldgen/pregen is CPU-hungry), SSD strongly recommended
 - CPU affinity is portable by default: `MC_CPUSET=` means all host CPUs. Set a range only after checking this machine's logical CPU topology and hardware health.
-- ~40 GB disk (pack ~10 GB installed, world grows, 14 days of backups)
+- **150 GB free recommended** for a 6000-radius pregen, BlueMap tiles and 14 daily
+  archives. Measure after pregen; world/map size varies and 40 GB is not enough headroom.
+- `git`, `rsync` and standard Linux tools (`tar`, `sed`, `curl`); `rsync` is required
+  by `scripts/apply-overrides.sh`
 - **TCP 25565** open/forwarded to the host; give Ertu the public IP (or set up DDNS)
 
 ## What `.env` actually needs
@@ -17,28 +20,31 @@ For the default `mc + backup` stack:
 
 | Variable | Status | Purpose |
 |---|---|---|
-| `RCON_PASSWORD` | **required** | Server scripts and backup sidecar |
-| `ENABLE_WHITELIST` | safe default `true` | Set `false` only when port 25565 is network-gated by VPN/firewall allowlist |
-| `WHITELIST` | required when enabled | Comma-separated fixed usernames; may instead be populated later with rcon |
-| `OPS` | optional; keep blank | Permanent OP names are spoofable in offline-mode; use host-local rcon and deop afterward |
+| `RCON_PASSWORD` | optional; normally unset | Minecraft generates it internally; set only before enabling `metrics` |
+| `ENABLE_WHITELIST` | optional; default `false` | The group chose open access; `true` restores an allowlist |
+| `WHITELIST` | optional | Used only when the whitelist is enabled |
+| `OPS` | optional; default `Mizar__107` | Permanent offline-mode admin; the accepted spoofing trade-off is below |
 | `CF_API_KEY` | optional | Only needed if CurseForge downloads throttle |
 | `WORLD_SEED` | leave empty initially | Set only after the seed audition, before creating the real world |
 | `MC_CPUSET` | optional; blank | Host-specific Docker CPU affinity; never copy another host's topology blindly |
 
-`RCON_PASSWORD` is **not** a player/server-list password. RCON is Minecraft's password-protected remote administration console; this stack uses it internally for backups, scripts, metrics and optional sidecars. Port `25575` is not published by Compose, but the shared secret must still be long and random. Generate it on the host and do not send the value back through chat:
+There are **no required `.env` values for the default `mc + backup` stack**.
+RCON is not a player/server-list password; it is Minecraft's private command
+channel. The server generates a random secret into `data/.rcon-cli.env`, and the
+backup service plus `docker compose exec mc rcon-cli` discover it automatically.
+Port `25575` is only on the Docker network and is not published. Keep RCON enabled:
+live backups use it to flush/pause saves, while Heraldor uses it for player/time
+queries, messages, sounds and shadow events. A truly RCON-free setup would require
+cold backups with Minecraft stopped and would disable Heraldor/Muhtar/metrics.
 
-```bash
-openssl rand -hex 32
-```
-
-Forward the tracked `.env.example` file, not a filled secret file. The host copies it to `.env` and replaces values locally. Minimum LLM-free handoff:
+Forward the tracked `.env.example` file, not a filled secret file. The host copies it to `.env` and replaces values locally. Recommended launch handoff (including optional Heraldor settings):
 
 ```dotenv
-# Host pastes the output of `openssl rand -hex 32` after the equals sign.
-RCON_PASSWORD=
-ENABLE_WHITELIST=true
-WHITELIST=<exact_name_1>,<exact_name_2>
-OPS=
+# Optional metrics-only override; normally leave this commented out.
+# RCON_PASSWORD=<openssl-rand-hex-32-output>
+ENABLE_WHITELIST=false
+WHITELIST=
+OPS=Mizar__107
 WORLD_SEED=
 MC_CPUSET=
 CF_API_KEY=
@@ -53,11 +59,17 @@ HERALDOR_P_DISCORD=0.0003
 HERALDOR_P_SHADOWS=0.0002
 ```
 
-If the host really restricts `25565` to the group with a VPN/Tailscale or a firewall IP allowlist, it may set `ENABLE_WHITELIST=false` and leave `WHITELIST=` empty. A hardened host, an unadvertised IP or a Discord invite alone is **not** that restriction. Never combine public offline-mode, no whitelist and a permanent `OPS=Mizar__107`: anyone can choose that username and inherit admin.
+The owner deliberately chose public offline-mode, no whitelist and permanent
+`OPS=Mizar__107`, and accepts that anyone who reaches `25565` can choose that name
+and inherit full admin. This is not authentication. If that trade-off changes,
+set `ENABLE_WHITELIST=true`, populate `WHITELIST`, clear `OPS`, recreate `mc`, and
+remove any persisted OP entry with host-local `rcon-cli deop Mizar__107`.
 
 Profile-only values:
 
-- `GRAFANA_PASSWORD` → `metrics`; set a long random value before enabling (the compose fallback is public/unsafe)
+- `RCON_PASSWORD` + `GRAFANA_PASSWORD` → `metrics`; generate a shell-safe RCON
+  value with `openssl rand -hex 32`, set both before first enabling the profile,
+  then recreate `mc` with the metrics profile so server/exporter share the RCON value
 - `RCLONE_DEST` plus local `rclone.conf` → `offsite`
 - `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL`, `NPC_POS` → optional `npc` prototype
 - `HERALDOR_WEBHOOK`, `HERALDOR_EVENTS`, `HERALDOR_LLM` and advanced `HERALDOR_CHECK_INTERVAL` / `HERALDOR_P_*` knobs → optional `heraldor`
@@ -69,7 +81,7 @@ The default stack does **not** call an LLM. Normal Minecraft↔Discord bridging 
 ```bash
 git clone <REPO_URL> zapeg-mc-server && cd zapeg-mc-server
 cp .env.example .env
-# edit .env: generate RCON_PASSWORD locally; fill WHITELIST while it is enabled
+# edit only wanted options; the default stack needs no secret or player list
 docker compose up -d        # default stack = mc + backup
 docker compose logs -f mc     # first boot: ~1.1 GB download + Forge install, 5–15 min
 ```
@@ -86,12 +98,16 @@ scripts/apply-overrides.sh && docker compose restart mc
 
 **BlueMap** (live web map on `:8100`): edit `data/config/bluemap/core.conf` → `accept-download: true`, then restart. Map renders as chunks generate (pregen fills it fast). Put it behind your reverse proxy / VPN — don't expose 8100 raw.
 
-**Discord bridge**: create a bot in the [Discord Developer Portal](https://discord.com/developers/applications), enable the intents required by the [official DCI quick setup](https://erdbeerbaerlp.de/projects/discord-integration/quick-setup), then invite it with `bot` + `applications.commands` scopes. Restrict send/read, manage-webhook and documented manage-channel permissions to one normal-chat channel where possible. Start Minecraft once, stop it, then modify these keys inside the **existing** sections of `data/config/Discord-Integration.toml` (do not append duplicate TOML section headers):
+**Discord bridge**: ZapeG's chosen two-way Minecraft↔Discord bridge always
+requires a bot. DCI's `[webhook] enable=true` does not replace it; it only lets
+that bot create/manage an outbound appearance webhook for player names/avatars.
+Create the bot in the [Discord Developer Portal](https://discord.com/developers/applications), enable the intents required by the [official DCI quick setup](https://erdbeerbaerlp.de/projects/discord-integration/quick-setup), then invite it with `bot` + `applications.commands` scopes. Restrict send/read, manage-webhook and documented manage-channel permissions to one normal-chat channel where possible. Start Minecraft once, stop it, then modify these keys inside the **existing** sections of `data/config/Discord-Integration.toml` (do not append duplicate TOML section headers):
 
 ```toml
 [general]
 botToken = "<host-local bot token>"
 botChannel = "<normal chat channel ID>"
+allowWebhookMessages = false
 
 [commands]
 enabled = false
@@ -101,15 +117,27 @@ enable = true
 webhookName = "ZAPEG_MC_BRIDGE"
 ```
 
-The bridge does **not** accept an existing webhook URL: bot token + channel ID are mandatory, and optional webhook mode makes the bot create/manage its own webhook. Restart and test one message in each direction. Keep Discord commands disabled unless role IDs are deliberately locked down; the official setup warns that commands can kick players or stop the server. The token lives in gitignored `data/`, but `data/` is included in backups/snapshots — protect backup and offsite access like credentials. See the [DCI feature wiki](https://wiki.erdbeerbaerlp.de/dcintegration:root) and [webhook FAQ](https://wiki.erdbeerbaerlp.de/dcintegration:faq).
+The bridge does **not** accept an existing webhook URL: bot token + channel ID are mandatory, and optional webhook mode makes the bot create/manage its own webhook. `allowWebhookMessages=false` prevents bot-managed/Heraldor webhook posts from looping back into Minecraft. Restart and test one message in each direction. Keep Discord commands disabled unless role IDs are deliberately locked down; the official setup warns that commands can kick players or stop the server. The token lives in gitignored `data/`, but `data/` is included in backups/snapshots — protect backup and offsite access like credentials. See the [DCI feature wiki](https://wiki.erdbeerbaerlp.de/dcintegration:root), [webhook FAQ](https://wiki.erdbeerbaerlp.de/dcintegration:faq) and [duplicate-message fix](https://wiki.erdbeerbaerlp.de/dcintegration:common-issues).
 
 **Offsite backups** (optional but recommended): drop an `rclone.conf` next to the compose file (gitignored), set `RCLONE_DEST` in `.env` (e.g. `b2:zapeg-backups/world`), then `docker compose --profile offsite up -d`.
 
-**LLM matrix**: the default stack never uses these values. The `npc` profile needs `LLM_BASE_URL`, `LLM_MODEL` and normally `LLM_API_KEY`. Heraldor with `HERALDOR_LLM=false` uses none of them; with `HERALDOR_LLM=true` it needs the same endpoint/model and normally the key. A key may be blank only for an explicitly configured compatible local endpoint that accepts keyless calls.
+**LLM matrix**: launch does not need an LLM. Muhtar's optional `npc` profile
+uses it only to generate a two-sentence reply when chat contains `muhtar`; it does
+not control gameplay. Heraldor with `HERALDOR_LLM=false` uses built-in lines and
+still handles all timing, targeting, sounds and events; enabling it only generates
+fresh spooky one-liners. The group has parked both LLM uses for launch, so leave the
+`npc` profile off and `HERALDOR_LLM=false`. Ollama remains a later OpenAI-compatible
+option, but its Docker networking/model setup is intentionally out of day-0 scope.
 
-**Muhtar NPC prototype** (optional; not part of the default stack): once the town exists, an OP places the body with Easy NPC, writes `NPC_POS="x y z"` into `.env`, then runs `docker compose --profile npc up -d --build`. Leave this profile off if the LLM prototype is not wanted.
+**Muhtar NPC prototype** (optional; not part of the default stack): only after
+`mc` has completed its first boot, an OP places the body with Easy NPC, writes
+`NPC_POS="x y z"` into `.env`, then runs `docker compose --profile npc up -d --build`.
+The post-boot order matters because the sidecar mounts the generated RCON secret
+as one read-only file. Leave this profile off if the LLM prototype is not wanted.
 
-**Heraldor** (optional, LLM-free by default): `docker compose --profile heraldor up -d --build`. Embedded lines work with `HERALDOR_LLM=false`; `LLM_*` is ignored. Only if Discord posts are wanted, create a **separate Heraldor-only webhook**, put its new URL directly in host `.env` as `HERALDOR_WEBHOOK`, and never commit/share it. Blank means no Discord posts. The deliberately rare defaults are exposed as `HERALDOR_CHECK_INTERVAL` and `HERALDOR_P_*`; test before changing them, especially the player-independent Discord roll. `HERALDOR_EVENTS=true` additionally enables staged midnight shadow visits. Do NOT explain Heraldor to the players.
+**Heraldor** (optional, LLM-free by default): enable it only after `mc` has
+completed its first boot, then run `docker compose --profile heraldor up -d --build`.
+Embedded lines work with `HERALDOR_LLM=false`; `LLM_*` is ignored. Only if Discord posts are wanted, create a **separate Heraldor-only webhook**, put its new URL directly in host `.env` as `HERALDOR_WEBHOOK`, and never commit/share it. Blank means no Discord posts. The deliberately rare defaults are exposed as `HERALDOR_CHECK_INTERVAL` and `HERALDOR_P_*`; test before changing them, especially the player-independent Discord roll. `HERALDOR_EVENTS=true` additionally enables staged midnight shadow visits. Do NOT explain Heraldor to the players.
 
 ## Verify all 21 additions loaded (once, after first boot)
 
@@ -125,26 +153,35 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
 
 `ONLINE_MODE=false` is **deliberate**: players join from any launcher, no Mojang auth. Consequences:
 
-- Minecraft cannot prove who owns a username. Whitelist limits the names that may enter, but an attacker can still copy an allowed name; combine it with a firewall allowlist or VPN whenever possible.
-- Keep `ENABLE_WHITELIST=true` if `25565` is internet-reachable. Disable it only behind a real network-level gate, and keep `OPS` empty either way.
-- For administration, run `docker compose exec mc rcon-cli op <name>` from the host only when needed, then `deop <name>`. RCON port `25575` is internal and is not published.
+- Minecraft cannot prove who owns a username. The group knowingly leaves the
+  whitelist off; anyone who can reach `25565` may join.
+- `Mizar__107` is permanent OP by owner decision. Anyone can copy that exact name
+  and gain OP; this risk has been explicitly accepted, not technically mitigated.
+- For administration, the host may run `docker compose exec mc rcon-cli <command>`.
+  It needs no supplied password because the in-container helper reads the generated
+  credential. RCON port `25575` is internal and is not published.
 - Player identity = username (offline UUID is derived from it). A player who changes their name is a *new* player: fresh inventory, lost claims. Tell players to pick a name once.
-- Usernames in the whitelist and personal lore keys must match exactly.
+- Usernames in personal lore keys must match exactly.
 - Do **not** flip online-mode later without coordinating with Ertu — switching modes mid-world changes every UUID and orphans inventories/claims.
 
 ## World protocol (agreed in the brief — please follow)
 
 1. **First world is a throwaway** for verification: join once (ask Ertu), confirm dragon roosts exist (`/locate structure` tab-completes `iceandfire:` entries), Immersive Petroleum loaded, then assemble/move/disassemble a small Eureka ship and reconnect once. Do not enable VS's experimental air-pocket/connectivity system.
-2. **Seed audition** (pack uses Terralith + Biomes O' Plenty — vanilla seed lists don't apply, so we pick empirically): with `WORLD_SEED` empty, each fresh world is a random candidate. Check spawn on foot + BlueMap, screenshot for the group, then `docker compose stop mc && rm -rf data/world && docker compose start mc` for the next candidate. 2–3 rounds; when the group picks, note the seed (shown in BlueMap / `/seed`) and set `WORLD_SEED` in `.env`.
-3. Reset for the real world:
+2. **Generated config pass, before any real-world chunks exist:** run
+   `scripts/iceandfire-config-check.sh`, edit the surfaced live config, set Ice and
+   Fire silver ore generation **off** and dragon griefing low/none, then snapshot
+   and restart `mc`. Recheck the throwaway world. These settings persist when
+   `data/world` is reset; changing silver after pregen would be too late.
+3. **Seed audition** (pack uses Terralith + Biomes O' Plenty — vanilla seed lists don't apply, so we pick empirically): with `WORLD_SEED` empty, each fresh world is a random candidate. Check spawn on foot + BlueMap, screenshot for the group, then stop `backup` and `mc`, remove only `data/world`, and run `docker compose up -d --force-recreate` for the next candidate. 2–3 rounds; when the group picks, note the seed (shown in BlueMap / `/seed`) and set `WORLD_SEED` in `.env`.
+4. Reset for the real world:
    ```bash
-   docker compose stop mc
+   docker compose stop backup mc
    scripts/snapshot.sh pre-real-world
    rm -rf data/world
-   docker compose start mc
+   docker compose up -d --force-recreate
    ```
-4. On the real world, apply the agreed gamerules (once): `scripts/apply-gamerules.sh` (values: [TUNING.md](TUNING.md))
-5. Pregen the real world (run overnight; heavy CPU is expected):
+5. On the real world, apply the agreed gamerules (once): `scripts/apply-gamerules.sh` (values: [TUNING.md](TUNING.md))
+6. Pregen the real world (run overnight; heavy CPU is expected):
    ```bash
    scripts/pregen.sh 6000
    ```
@@ -156,8 +193,12 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
   ```bash
   git pull && scripts/snapshot.sh pre-update && docker compose up -d mc
   ```
-- Backups: automatic daily tar of world+configs → `./backups/`, pruned after 14 days. **Test one restore** in week 1 (stop stack, extract tarball over `data/`, start).
-- Console: `docker compose exec mc rcon-cli` (e.g. `whitelist add <name>`, `op <name>`).
+- Backups: automatic daily tar of world+configs → `./backups/`, pruned after 14 days.
+  Before inviting players, let one real automatic archive finish and perform a
+  cold restore drill with the stack stopped; verify ownership and world startup.
+  Monitor disk usage after pregen. Offsite `rclone sync` mirrors local deletion,
+  so enable bucket versioning/immutability if it must survive local pruning.
+- Console: `docker compose exec mc rcon-cli` (the generated internal password is discovered automatically).
 - Performance complaints: pack ships Spark — `rcon-cli spark profiler start` / `stop`; send results to Ertu. Don't add mods to "fix" performance.
 
 ## Don'ts

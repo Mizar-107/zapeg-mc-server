@@ -9,8 +9,9 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 - Server/client loader override is Forge 47.4.10; offline output is accurately framed as an isolated Forge 47.4.10 game-directory payload.
 - Valkyrien Skies 2.4.11 + Eureka 1.6.3 are the conservative physics-ship phase 1. Trackwork is a post-smoke-test candidate; Interactive/Clockwork wait on a deliberate Create-stack migration, not a blind drop-in.
 - Env docs distinguish the default LLM-free stack from optional Muhtar/Heraldor profiles; Discord bot config and Heraldor webhook are separate mechanisms.
-- `eminomi12` and `MubarekAbi` now have exact-name welcome pools, first-login gifts and Muhtar dossiers; the live roster and slots are 10.
-- Offline access defaults are explicit: whitelist on, permanent OP empty, internal RCON required. Whitelist can be disabled only when a VPN/firewall gates `25565`.
+- `eminomi12` (Emin Taha) and `MubarekAbi` (Mert) now have exact-name welcome pools, first-login gifts and Muhtar dossiers; the live roster and slots are 10.
+- Offline access follows the owner's explicit trade-off: whitelist off and `Mizar__107` permanent OP, with nickname/OP spoofing knowingly accepted. Internal RCON stays enabled but its generated password no longer needs host configuration.
+- LLM work is parked for launch: Muhtar's profile stays off; Heraldor uses its embedded line pools. Ollama remains only a future text-generation option.
 - Post-add material/structure overlap audit is clean; watch-items remain night pressure and structure density (`BALANCE.md`).
 
 ## ✅ v0.8.0 (now) — content drop 2 + Heraldor awakens
@@ -53,11 +54,11 @@ Boot → seed audition → real world → gamerules → pregen → build the lic
 - **Milestone gift items v2**: awarded live at the moment (KubeJS advancement hooks) instead of via quest claim.
 - Playtest-driven trims (remove what nobody touches; Apotheosis/dragon/Mowzie's spawn tuning if needed).
 
-## ✅ v0.7.0 (now) — Muhtar is EMBODIED (verdict: possible, LLM stays)
+## ✅ v0.7.0 (shipped scaffold; LLM parked for launch) — Muhtar is EMBODIED
 
 Feasibility question settled. Three grades, first one shipped:
 
-1. **Shipped — Easy NPC body + LLM brain**: Easy NPC (pinned, client+server) provides a real in-world entity — custom skin, name, poses, stays where placed, players see and walk up to him in the town square. The `npc/` brain (log→LLM→rcon) speaks as him; when he answers, sound + particles fire **at the body's position** (`NPC_POS` in `.env`). Placement: HOSTING §Muhtar.
+1. **Shipped scaffold — Easy NPC body + optional LLM brain**: Easy NPC (pinned, client+server) provides a real in-world entity — custom skin, name, poses, stays where placed, players see and walk up to him in the town square. The optional `npc/` brain only turns `muhtar` chat mentions into generated text via log→LLM→rcon; it is parked for launch. When enabled later, sound + particles fire **at the body's position** (`NPC_POS` in `.env`). Placement: HOSTING §Muhtar.
 2. **Next (cheap)**: Easy NPC dialog hooks + follow mode — guided tours, "Muhtar seni gezdirsin".
 3. **Endgame (SEPARATE PROJECT — decided)**: custom Forge mod `zapeg-mod` — LLM-driven walking/pathfinding, right-click dialogue, per-player memory; same entity tech later powers Heraldor's manifestation. This is its own repo + its own sessions (brief §8 Tier 2, MDK 1.20.1 + agent guardrails). The headless-modded-client+Baritone route stays documented as the fallback experiment if the mod route stalls.
 

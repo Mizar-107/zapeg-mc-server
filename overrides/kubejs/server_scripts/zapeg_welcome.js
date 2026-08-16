@@ -2,7 +2,8 @@
 // Her girişte oyuncuya özel havuzdan rastgele bir satır herkese duyurulur.
 //
 // !!! ANAHTARLAR MINECRAFT KULLANICI ADI OLMALI (oyuna girilen adla birebir) !!!
-// kralxlarge (Emir), Mizar__107 (Recep), eminomi12 ve MubarekAbi kesin.
+// kralxlarge (Emir), Mizar__107 (Recep), eminomi12 (Emin Taha) ve
+// MubarekAbi (Mert; aşağıdaki nadir ziyaretçi Mert'ten farklı) kesin.
 // Enes/Salih/Yusuf/Ali/Mert şimdilik gerçek adla — nick'ler gelince değiştir.
 // Deploy: scripts/apply-overrides.sh ; reload: /kubejs reload server_scripts
 
@@ -20,13 +21,13 @@ const WELCOME_LINES = {
     'sunucunun efendisi döndü.',
     'log\'lar okunuyor, haberiniz olsun.',
   ],
-  'eminomi12': [                       // builder; köy speedrun'u + hayvan ordusu
+  'eminomi12': [                       // Emin Taha — builder; köy speedrun'u + hayvan ordusu
     'usta geldi, şantiye yeniden açıldı.',
     'yarım kalan hardcore speedrun sessizce onu bekliyor.',
     'speedrun yine köy arama simülasyonuna döndü.',
     'köy çanları ve evcil hayvanlar tetikte.',
   ],
-  'MubarekAbi': [                      // arabalar; Salih'in yaktığı eski ev
+  'MubarekAbi': [                      // Mert — arabalar; Salih'in yaktığı eski ev
     'garaj hazır, araba modu hâlâ yok.',
     'minecart\'ı araba saymayı hâlâ reddediyor.',
     'bu ev için yangın sigortası yaptırdı.',

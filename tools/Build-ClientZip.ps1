@@ -296,7 +296,7 @@ function Add-ZapeGClientLayer {
             '4. Minecraft ve CurseForge kapalıyken bu zip içeriğini O KLASÖRÜN KÖKÜNE çıkar.',
             '5. ZapeG dosyaları için üzerine yazma sorulursa onayla. Kişisel options.txt ayarların bu yamada yoktur ve korunur.',
             '6. Sonuçta mods\iceandfire-...jar doğrudan görünmeli.',
-            '7. Oyunu başlat. Kullanıcı adını değiştirme; whitelist ve envanter o ada bağlıdır.',
+            '7. Oyunu başlat. Kullanıcı adını değiştirme; envanter, claim ve kişisel lore o ada bağlıdır.',
             '',
             'Zip içinde yeniden bir ZapeG klasörü oluşturma. mods klasörü profil kökünde olmalı.'
         )
@@ -309,7 +309,7 @@ function Add-ZapeGClientLayer {
             '2. Launcher sorarsa Java 17 seç. Profili bir kez açıp kapat.',
             '3. Minecraft ve launcher kapalıyken bu zip içeriğini o profilin OYUN KLASÖRÜNE çıkar.',
             '4. Sonuçta mods\iceandfire-...jar doğrudan görünmeli; iç içe ZapeG klasörü olmamalı.',
-            '5. Sabit bir kullanıcı adı seç ve Ertu''ya whitelist için bildir. Sonradan değiştirme.'
+            '5. Sabit bir kullanıcı adı seç. Sonradan değiştirme; envanter ve claim kimliğin bu addır.'
         )
     }
     $installLines | Set-Content -LiteralPath (Join-Path $Staging 'INSTALL-TR.txt') -Encoding UTF8

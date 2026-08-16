@@ -10,8 +10,8 @@ const KIT_STAGE = 'zapeg_starter_kit'
 const PERSONAL_GIFTS = {
   'kralxlarge': { item: 'minecraft:compass',        name: 'Acele Etme Pusulası' },   // Emir
   'Mizar__107': { item: 'minecraft:stick',          name: 'Admin Sopası' },          // Recep
-  'eminomi12':  { item: 'minecraft:lead',           name: 'Hayvanat Bahçesi Ruhsatı' },
-  'MubarekAbi': { item: 'minecraft:minecart',       name: 'Araba Modu Gelene Kadar' },
+  'eminomi12':  { item: 'minecraft:lead',           name: 'Hayvanat Bahçesi Ruhsatı' }, // Emin Taha
+  'MubarekAbi': { item: 'minecraft:minecart',       name: 'Araba Modu Gelene Kadar' },  // Mert
   'Enes':       { item: 'minecraft:feather',        name: 'Jetpack Ruhu' },          // Iron Jetpacks pakette, gerisi sende
   'Salih':      { item: 'minecraft:flint_and_steel', name: 'Salih\'in Çakmağı (Ev Yakmak Yasak)' },
   'Yusuf':      { item: 'minecraft:cake',           name: 'Hoş Geldin Pastası' },

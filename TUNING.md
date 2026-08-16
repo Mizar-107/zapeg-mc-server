@@ -17,9 +17,9 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 
 | Setting | Value | Why / trade-off |
 |---|---|---|
-| `ONLINE_MODE` | **false** | Friends on mixed launchers (not everyone has a Microsoft account) must all join. Risk: usernames are spoofable; whitelist limits allowed names but does not authenticate their owners. Use a firewall allowlist/VPN when possible. **Locked before go-live**: flipping it later regenerates every player UUID (inventories/claims orphaned). |
-| `ENABLE_WHITELIST` | **true** | Safe default whenever `25565` is internet-reachable. Set false only behind a real network-level gate. |
-| `OPS` | **empty** | A permanent offline-mode OP name can be copied by an attacker. Grant OP from host-local RCON only when needed, then deop. |
+| `ONLINE_MODE` | **false** | Friends on mixed launchers (not everyone has a Microsoft account) must all join. Usernames are spoofable. **Locked before go-live**: flipping it later regenerates every player UUID (inventories/claims orphaned). |
+| `ENABLE_WHITELIST` | **false** | Owner decision: open join. Anyone who reaches `25565` can enter; the group accepts this risk. |
+| `OPS` | **Mizar__107** | Owner decision: permanent offline-mode admin. Anyone may copy this name and inherit OP; explicitly accepted. |
 
 ## World & team decisions
 
@@ -35,7 +35,7 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 | `DIFFICULTY` | normal | **[vote]** — hard makes Cataclysm/dragons nastier; normal fits "efor gerektirmesin" |
 | `VIEW_DISTANCE` / `SIMULATION_DISTANCE` | 7 / 6 | Server sanity (brief §6); clients can render further locally |
 | `SPAWN_PROTECTION` | 0 | Spawn is buildable; claims are the protection layer |
-| whitelist | enforced | Usernames via `.env` or rcon |
+| whitelist | disabled | Can be restored later through `.env`; not authentication in offline-mode |
 
 ## Post-first-boot config passes (need the mod's config files to exist)
 
@@ -51,8 +51,8 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 ## Deliberately NOT touched
 
 - No extra performance mods (ModernFix/FerriteCore/Spark ship with the pack; profile before adding anything — README §Troubleshooting).
-- No recipe changes beyond the name-tag QoL recipe (`zapeg_starter.js`). Progression is fully natural — endgame hooks exist (`custom_endgame_nerfs.js`) but everything in them is commented out.
-- Mob spawn rates, ore gen, loot tables: stock ATM9 until a playtest says otherwise.
+- No recipe changes beyond the name-tag QoL recipe and the 1:1 silver conversion bridge (`zapeg_starter.js` / `zapeg_balance.js`). Progression is fully natural — endgame hooks exist (`custom_endgame_nerfs.js`) but everything in them is commented out.
+- Mob spawn rates, loot tables and all other ore generation stay stock ATM9 until a playtest says otherwise; the documented Ice and Fire silver toggle is the sole ore-gen exception.
 
 ## Change discipline
 

@@ -9,9 +9,9 @@ ZapeG, **All the Mods 9 sürüm 1.1.1** üzerine hazırlanmıştır. Modları te
 1. CurseForge'dan **ATM9 1.1.1** kur.
 2. **Profile Options** içinden modloader sürümünü **Forge 47.4.10** yap.
 3. Ertu'nun gönderdiği **tek ZapeG Kurulum Yaması zip'ini** profil klasörüne aç.
-4. Kullanıcı adını Ertu'ya bildir ve sunucuya gir.
+4. Kullanıcı adını bir kez seç ve sunucuya gir. Kişisel karşılama istiyorsan adı Ertu'ya ayrıca bildir.
 
-> Önemli: Sunucu offline-mode çalışır. Kullanıcı adın whitelist, envanter ve claim kimliğindir. Bir ad seçtikten sonra değiştirme.
+> Önemli: Sunucu offline-mode çalışır. Kullanıcı adın envanter, claim ve kişisel lore kimliğindir. Bir ad seçtikten sonra değiştirme.
 
 ## Yol A — Minecraft lisansın varsa (önerilen)
 
@@ -19,7 +19,7 @@ Gerekenler:
 
 - CurseForge App
 - `ZapeG-Kurulum-Yamasi-ATM9-1.1.1-YYYYMMDD.zip` — Ertu paylaşacak
-- Whitelist'e yazılacak sabit kullanıcı adın
+- Kullanacağın sabit kullanıcı adı
 
 Adımlar:
 
@@ -55,7 +55,7 @@ Kurulum yaması 17 gerekli ek modu, ZapeG logosunu ve shader ayarını birlikte 
 Ertu sana `ZapeG-Offline-ATM9-1.1.1-YYYYMMDD.zip` dosyasını verecek. Bu dosya bir launcher veya Forge kurucusu değildir; hazır oyun-dizini içeriğidir.
 
 1. Kullandığın launcher'da **Minecraft 1.20.1 + Forge 47.4.10** kullanan yeni ve izole bir profil oluştur. Launcher Java sürümü sorarsa **Java 17** seç.
-2. Kullanıcı adını bir kez seç. Ertu'ya whitelist için aynen bildir; sonra değiştirme.
+2. Kullanıcı adını bir kez seç; sonra değiştirme.
 3. Profili bir kez açıp ana menüye gel, sonra oyunu ve launcher'ı kapat.
 4. Launcher'dan o profilin **oyun klasörünü** aç. Global `.minecraft` veya başka bir modpack klasörü kullanma.
 5. Offline zip'inin içindekileri bu oyun klasörüne çıkar; üzerine yazmayı onayla.
@@ -73,10 +73,6 @@ Launcher'da izole profil/oyun klasörü oluşturma seçeneğini bulamıyorsan ra
 - Profil kökünde `ZAPEG-BUILD.txt` var mı kontrol et.
 - `mods` içinde ZapeG modlarından birinin iki farklı sürümü varsa eski jar'ı kaldır.
 - Yama zip'ini yanlışlıkla iç içe klasöre açmadığından emin ol.
-
-### “Not whitelisted”
-
-Oyundaki kullanıcı adın Ertu'ya bildirdiğin adla harf harf aynı olmalı.
 
 ### Oyun açılırken çöküyor veya çok kasıyor
 

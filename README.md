@@ -31,29 +31,33 @@ Confirmed **already in ATM9 1.1.x** (435-mod list/manifest): Twilight Forest 4.3
 ## Quickstart
 
 ```bash
-cp .env.example .env        # generate RCON_PASSWORD; keep whitelist on unless 25565 is network-gated
+cp .env.example .env        # optional settings; default mc + backup has no required env value
 docker compose up -d        # starts the default stack: mc + backup
 docker compose logs -f mc   # first boot: pack + 21 additions + Forge install — expect 5–15+ min
 ```
 
 Healthy = `[Server thread/INFO]: Done (…)! For help, type "help"`. The backup sidecar starts once `mc` reports healthy.
 
-Whitelist and temporary admin access from the host:
+The server is offline-mode, has no whitelist by group decision, and grants
+`Mizar__107` OP by default. Anyone can copy that name and become OP; the owner
+explicitly accepts this risk. The host can still use the private internal console:
 
 ```bash
-docker compose exec mc rcon-cli whitelist add <name>
-docker compose exec mc rcon-cli op <name>
-# do the admin task, then remove spoofable persistent OP access:
-docker compose exec mc rcon-cli deop <name>
+docker compose exec mc rcon-cli list
+docker compose exec mc rcon-cli <command>
 ```
+
+No RCON password setup is needed: Minecraft generates it inside `data/`, and
+`rcon-cli` plus the backup/Heraldor sidecars read it there. Port `25575` is never
+published. Only the optional metrics profile needs an explicit shared password.
 
 ## First-session checklist (brief §9)
 
 1. **Phase 1 — base boot:** quickstart above, then save the baseline mod list:
    `docker compose exec mc rcon-cli forge mods > docs/modlist-$(date +%F).txt` (create `docs/` first, or just redirect anywhere and commit it).
 2. **Phase 2 — extras verification:** boot log must show all **21 additions** resolving; compare against `extras/cf-mods.txt` and `MODRINTH_PROJECTS`. In a **throwaway world** confirm worldgen: dragon roosts/caves spawn (`/locate structure iceandfire:...` tab-completes), IP oil reservoirs (`/ie` … or JEI the pumpjack), the added content mods appear in `forge mods`, and a small Eureka ship can assemble, move, disassemble and survive a reconnect.
-3. **Phase 3 — seed audition + world prep:** audition 2–3 fresh worlds as described in HOSTING, let the group choose, set `WORLD_SEED`, snapshot, and only then reset for the real world. Apply gamerules and run `scripts/pregen.sh 6000` (hours of CPU, fine overnight).
-4. **Phase 4 — tuning:** `scripts/iceandfire-config-check.sh` → set dragon griefing low/none; endgame policy stays at level 1 (social rule), level-3 hooks ready in `overrides/kubejs/server_scripts/custom_endgame_nerfs.js` → `scripts/apply-overrides.sh`.
+3. **Phase 3 — generated config pass, before the real world:** run `scripts/iceandfire-config-check.sh`; edit the surfaced config so Ice and Fire silver ore generation is **off** and dragon griefing is low/none, snapshot, then restart. Doing this after pregen would leave duplicate silver in every generated chunk. Endgame policy stays level 1 (social); level-3 hooks remain dormant.
+4. **Phase 4 — seed audition + world prep:** audition 2–3 fresh worlds as described in HOSTING, let the group choose, set `WORLD_SEED`, snapshot, and only then reset for the real world. Apply gamerules and run `scripts/pregen.sh 6000` (hours of CPU, fine overnight).
 5. **Phase 5 — clients:** see below.
 6. **Phase 6 — playtest matrix:** Create contraption, IE multiblock, Mekanism fission, MineColonies town hall, Ars spell, Ad Astra rocket, one Cataclysm boss, one dragon.
 
@@ -61,7 +65,15 @@ docker compose exec mc rcon-cli deop <name>
 
 Every player runs **ATM9 1.1.1 on Forge 47.4.10 + the same 17 client additions**. Chunky, BlueMap, Incendium and Discord Integration are server-only.
 
-Do not ask players to download jars individually. On the first verified build, create and review the 17-jar hash lock, commit it, then build the profile-root patch:
+Do not ask players to download jars individually. The **pack maintainer**, once,
+creates the builder source profile: install ATM9 1.1.1 in CurseForge, select Forge
+47.4.10, add every client CurseForge entry in `extras/cf-mods.txt` (all except the
+server-only Discord Integration entry) through the app so its exact file ID lands
+in `minecraftinstance.json`, then place the exact Better Combat/playerAnimator
+Modrinth jars in `mods/`. Launch that profile once. Players never do this.
+
+After the server's pins pass the throwaway-world test, create and review the
+17-jar hash lock, commit it, then build the profile-root patch:
 
 ```powershell
 .\tools\Build-ClientZip.ps1 -PatchOnly -WriteInventoryLock
@@ -76,7 +88,7 @@ For offline players, first run `Build-ClientZip.ps1 -WriteInventoryLock`, inspec
 ## Backups
 
 - **Automated:** sidecar tars `/data` daily (`BACKUP_INTERVAL=24h`), prunes after 14 days → `./backups/`. Jars/caches excluded — they re-resolve from pins; world + configs are the real state.
-- **Manual (mandatory before ANY change):** `scripts/snapshot.sh <label>` → `./snapshots/`. Works hot (flushes saves via rcon) or cold.
+- **Manual (mandatory before ANY change):** `scripts/snapshot.sh <label>` → `./snapshots/`. Works hot (flushes saves via RCON) or cold; it briefly stops/restarts the automatic backup service to prevent overlapping save coordination. Avoid the daily archive window when practical.
 - **Restore:** stop stack, extract the tarball over `data/`, start. Test one restore before go-live.
 
 ## Upgrades / changes — the ritual

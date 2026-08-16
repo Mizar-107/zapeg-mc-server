@@ -17,8 +17,12 @@ Novice-proof client onboarding + operator clarity + pre-launch personalization. 
 - Heraldor's default probabilities were reduced to match the locked rare-ARG intent; its Discord roll remains independent of player presence.
 - Heraldor shadow summons now encode the JSON custom name as a valid SNBT string even though the Turkish name contains an apostrophe.
 - v0.8 overlap audit is recorded in `BALANCE.md`; no recipe/economy changes were required.
-- Added exact-name personalization for `eminomi12` and `MubarekAbi`: per-login joke pools, named first-join gifts (`Hayvanat Bahçesi Ruhsatı` / `Araba Modu Gelene Kadar`) and Muhtar dossiers. Roster and server slots now reflect 10 players.
-- Offline access is fail-safe by default: whitelist stays on, permanent `OPS` stays empty, and host-local RCON is required. `ENABLE_WHITELIST=false` is available only for hosts that network-gate `25565`.
+- Added exact-name personalization for `eminomi12` (Emin Taha) and `MubarekAbi` (Mert): per-login joke pools, named first-join gifts (`Hayvanat Bahçesi Ruhsatı` / `Araba Modu Gelene Kadar`) and Muhtar dossiers. Roster and server slots now reflect 10 players.
+- Applied the owner's offline access decision: whitelist defaults off and `Mizar__107` defaults to permanent OP; nickname/OP spoofing is explicitly accepted and documented.
+- Host-supplied RCON is no longer required for the default stack. Minecraft generates an internal password, live backup/Muhtar/Heraldor discover it through the shared data file, and port 25575 remains unpublished. Only the optional metrics exporter needs an explicit shared override.
+- LLM usage is parked for launch: Muhtar remains an opt-in chat-only profile and Heraldor uses embedded text with `HERALDOR_LLM=false`; Ollama is a compatible future option, not a launch dependency.
+- Manual snapshots now stop/restart the automatic backup sidecar to avoid save-state races, write through a disposable partial archive, and restore `save-on` through an EXIT trap even when archive/RCON steps fail.
+- Fixed the chosen-seed reset protocol to recreate the Minecraft container, so an edited `WORLD_SEED` is actually injected before the real world is generated.
 - Corrected the Discord bridge docs: DCI requires a bot token + channel ID and can create its own optional webhook; it cannot consume a supplied raw webhook URL. Heraldor's raw webhook remains separate.
 - Replaced the pulled host-specific CPU pin with optional `MC_CPUSET`; blank safely uses all CPUs on a new host.
 
