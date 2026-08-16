@@ -16,6 +16,7 @@ edit `.env` and force-recreate the whole metrics profile again.
 
 - Grafana: `:3000` — anonymous read-only for the group; admin password = `GRAFANA_PASSWORD` in `.env`
 - Dashboard "ZapeG — Sunucu" is pre-provisioned: online players, playtime, deaths, blocks mined, distance
+- Offline mode avoids incorrect Mojang name lookups. Upstream labels player series with their offline UUIDs; add friendly dashboard aliases after real player data exists. The dashboard refreshes and Prometheus scrapes once per minute
 - Prometheus keeps 180 days — enough for the yearly **ZapeG Ödülleri** (playtime/death totals straight off the dashboard)
 
 **TPS panel (one manual step):** the exporter exposes Forge TPS metrics, but the exact metric name varies by exporter version. After first start run:

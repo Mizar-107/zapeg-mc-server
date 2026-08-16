@@ -20,8 +20,14 @@ EntityEvents.death('minecraft:player', event => {
   const killer = event.source?.actual
   if (!killer) return
 
-  // Ice and Fire dragons (fire/ice/lightning) share the namespace
-  if (String(killer.type).startsWith('iceandfire:')) {
+  // Count only Ice and Fire's three actual dragon entity types. Other mobs in
+  // the namespace (for example cyclopes or sirens) are not dragons.
+  const dragonTypes = [
+    'iceandfire:fire_dragon',
+    'iceandfire:ice_dragon',
+    'iceandfire:lightning_dragon'
+  ]
+  if (dragonTypes.indexOf(String(killer.type)) !== -1) {
     const server = victim.server
     server.runCommandSilent(`scoreboard players add ${victim.username} zapeg_ejder 1`)
     server.tell(Text.of('🐉 ').append(Text.of(victim.username).red()).append(' bir ejderhaya yem oldu.'))

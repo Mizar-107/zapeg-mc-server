@@ -94,6 +94,11 @@ Then apply the repo's custom layer (quest chapters, kubejs scripts, server icon)
 scripts/apply-overrides.sh && docker compose restart mc
 ```
 
+Open the FTB Quests book and verify all three custom pages load: **ZapeG — Yol
+Haritası**, **ZapeG — Kilometre Taşları**, and the separate personal-lore page
+**ZapeG**. The initial personal objectives are honor-system checkmarks; each
+requested objective is its own quest node.
+
 ## One-time service wiring (after first boot)
 
 **BlueMap** (live web map on `:8100`): edit `data/config/bluemap/core.conf` → `accept-download: true`, then restart. Map renders as chunks generate (pregen fills it fast). Put it behind your reverse proxy / VPN — don't expose 8100 raw.

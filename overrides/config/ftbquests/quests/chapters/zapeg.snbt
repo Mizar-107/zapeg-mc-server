@@ -1,0 +1,158 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: "hexagon"
+	filename: "zapeg"
+	group: ""
+	icon: "minecraft:book"
+	id: "A2E78CBD65A8436D"
+	order_index: 2
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Emir'in görevi: End'e gir, kristalleri indir ve Ender Dragon'a son darbeyi vur."
+				""
+				"&7Bu kişisel hedef ilk sürümde onur sistemiyle işaretlenir; ejderhayı kralxlarge kesince kutuyu o işaretler.&r"
+			]
+			icon: "minecraft:end_crystal"
+			id: "B83937C29F4A971F"
+			subtitle: "kralxlarge — Ender Dragon'ı kes"
+			tasks: [{
+				id: "000E3123FACFC641"
+				title: "Ender Dragon'ı Kes"
+				type: "checkmark"
+			}]
+			title: "&5Emir: Son Darbe"
+			x: -4.5d
+			y: -1.5d
+		}
+		{
+			description: [
+				"Emir, emeğinin karşılığını tek bir parıltılı yığınla kanıtlayacak: aynı anda 64 elması envanterinde bulundur."
+				""
+				"&7Elmaslar teslim edilmez ve tüketilmez. kralxlarge yığını tamamlayınca görevi işaretler.&r"
+			]
+			icon: "minecraft:diamond"
+			id: "C365EF34099C3E16"
+			subtitle: "kralxlarge — 64 elması bir araya getir"
+			tasks: [{
+				id: "55F51C09F9CA1025"
+				title: "Bir Stack Elmas Topla"
+				type: "checkmark"
+			}]
+			title: "&bEmir: Mavi Servet"
+			x: -1.5d
+			y: -1.5d
+		}
+		{
+			description: [
+				"Emin Taha ufukta yeni bir köy arıyor. Bir köy bul, sakinleriyle tanış ve yerini kaybetmemek için haritaya işaret koy."
+				""
+				"&7Köyü eminomi12 bulduğunda görev onur sistemiyle işaretlenir.&r"
+			]
+			icon: "minecraft:bell"
+			id: "4D638BEA6E924FF1"
+			subtitle: "eminomi12 — bir köy keşfet"
+			tasks: [{
+				id: "CDDB1C66FE19DD82"
+				title: "Bir Köy Bul"
+				type: "checkmark"
+			}]
+			title: "&eEmin Taha: Köy Peşinde"
+			x: 1.5d
+			y: -1.5d
+		}
+		{
+			description: [
+				"Emin Taha'nın kafilesi hayvansız olmaz. Kurt, kedi, papağan, at veya pakette evcilleştirilebilen başka canlılardan toplam 10 tanesini evcilleştir."
+				""
+				"&7Yavrulatmak bu hedefe dahil değil; eminomi12 onuncu dostunu edindiğinde görevi işaretler.&r"
+			]
+			icon: "minecraft:lead"
+			id: "21D65B09DA573A9B"
+			subtitle: "eminomi12 — toplam 10 hayvan evcilleştir"
+			tasks: [{
+				id: "D416C228525ED49F"
+				title: "10 Hayvan Evcilleştir"
+				type: "checkmark"
+			}]
+			title: "&aEmin Taha: Büyük Kafile"
+			x: 4.5d
+			y: -1.5d
+		}
+		{
+			description: [
+				"Salih'in kontrollü yangın tatbikatı başlıyor: yalnızca önceden belirlenmiş taş veya netherrack eğitim alanında tek bir ateş yak."
+				""
+				"&cEvler, ormanlar, oyuncu eşyaları ve ahşap yapılar görev alanı değildir.&r &7Su hazır olmadan tatbikat başlamaz.&r"
+			]
+			icon: "minecraft:flint_and_steel"
+			id: "12AD93DCE7AB6EB5"
+			subtitle: "SalihKarahans — güvenli alanda tatbikat ateşini yak"
+			tasks: [{
+				id: "15ED4390EB972793"
+				title: "Kontrollü Ateş Yak"
+				type: "checkmark"
+			}]
+			title: "&6Salih: Tatbikat Başladı"
+			x: -3.0d
+			y: 1.5d
+		}
+		{
+			description: [
+				"Tatbikatın ikinci ve ayrı görevi: Salih yaktığı eğitim ateşini tamamen söndürür, çevrede alev kalmadığını kontrol eder ve alanı güvenli bırakır."
+				""
+				"&7SalihKarahans yangını söndürdükten sonra bu görevi işaretler. Gerçek yapılara zarar vermek hiçbir zaman başarı sayılmaz.&r"
+			]
+			icon: "minecraft:water_bucket"
+			id: "C315EF02FEA9F4AF"
+			subtitle: "SalihKarahans — tatbikat ateşini tamamen söndür"
+			tasks: [{
+				id: "26BEE202F4AB1770"
+				title: "Kontrollü Ateşi Söndür"
+				type: "checkmark"
+			}]
+			title: "&3Salih: Alan Güvenli"
+			x: 0.0d
+			y: 1.5d
+		}
+		{
+			description: [
+				"Recep'in kadim görevi basit görünür: bir sandığın kapağında dimdik dur ve sandık nöbetini tamamla."
+				""
+				"&7Mizar__107 gerçekten sandığın üzerinde bekledikten sonra görevi işaretler. İçindekileri almak şart değil.&r"
+			]
+			icon: "minecraft:chest"
+			id: "52A9FA4E43803736"
+			subtitle: "Mizar__107 — bir sandığın üzerinde bekle"
+			tasks: [{
+				id: "B86D6769503F1DF9"
+				title: "Sandık Üstü Nöbeti"
+				type: "checkmark"
+			}]
+			title: "&6Recep: Sandık Muhafızı"
+			x: 3.0d
+			y: 1.5d
+		}
+		{
+			description: [
+				"Enes bir arbaleti doldurup güvenli bir hedefe ateş eder. İsabet şart değil; mekanizmayı gerçekten kullanmak yeterli."
+				""
+				"&7Nick kesinleşene kadar bu kişisel hedef onur sistemiyle işaretlenir.&r"
+			]
+			icon: "minecraft:crossbow"
+			id: "E82FE092F3CF415E"
+			subtitle: "Enes — bir arbalet kullan"
+			tasks: [{
+				id: "88AD1A6A59C28098"
+				title: "Arbalet Kullan"
+				type: "checkmark"
+			}]
+			title: "&cEnes: Arbaletçi"
+			x: 6.0d
+			y: 1.5d
+		}
+	]
+	title: "&bZapeG"
+}

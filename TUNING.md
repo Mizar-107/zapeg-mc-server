@@ -26,7 +26,7 @@ My defaults below are encoded in the repo (compose env / `scripts/apply-gamerule
 | Decision | Default | Notes | |
 |---|---|---|---|
 | `WORLD_SEED` | empty until audition | Terralith + BoP ship in ATM9 → published vanilla seeds are meaningless. Pick via the audition protocol (HOSTING §World protocol), then lock in `.env` **before** the real world. | |
-| FTB Teams | **one shared party** | Milestone chapter assumes shared progress: everyone joins one party (`/ftbteams party create zapeg`, invite all). Quest completions + trophies then fire for the whole group. Alternative: solo teams, milestones become per-person. | **[vote]** |
+| FTB Teams | **one shared party** | Milestone chapter assumes shared progress: everyone joins one party (`/ftbteams party create zapeg`, invite all). Quest completions + trophies then fire for the whole group. The personal **ZapeG** page is initially an honor system: only the named player checks their node, but the shared party sees the completion. Exact-name automation comes after runtime event tests. Alternative: solo teams, all progress becomes per-person. | **[vote]** |
 
 ## Already set in `docker-compose.yml`
 

@@ -11,6 +11,8 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 - Env docs distinguish the default LLM-free stack from optional Muhtar/Heraldor profiles; Discord bot config and Heraldor webhook are separate mechanisms.
 - `eminomi12` (Emin Taha) and `MubarekAbi` (Mert) now have exact-name welcome pools, first-login gifts and Muhtar dossiers; the live roster and slots are 10.
 - `SalihKarahans` is now Salih's confirmed exact login key; his arson-history welcome pool, named flint-and-steel gift and Muhtar dossier are wired to it.
+- A third FTB Quests page, **ZapeG**, contains eight independent personal-lore objectives for Emir, Emin Taha, Salih, Recep and Enes. No quest combines two requested conditions; Mert stays intentionally unassigned. The launch-safe first version uses honor-system checkmarks, with exact-name automation added only after runtime event checks.
+- Stats correctness pass: dragon deaths use an explicit three-dragon allowlist; the exporter avoids Mojang lookup for offline identities and samples once per minute. Friendly UUID→name dashboard aliases wait for real post-boot player data.
 - Redundant WDA/playerAnimator manual pins were removed after the first real boot: ATM9 1.1.1 already supplies WDA 2.1.58 and the exact playerAnimator dependency. Both features remain, but neither belongs in the 15-jar ZapeG patch.
 - Offline access follows the owner's explicit trade-off: whitelist off and `Mizar__107` permanent OP, with nickname/OP spoofing knowingly accepted. Internal RCON stays enabled but its generated password no longer needs host configuration.
 - LLM work is parked for launch: Muhtar's profile stays off; Heraldor uses its embedded line pools. Ollama remains only a future text-generation option.
