@@ -2,9 +2,9 @@
 // Her girişte oyuncuya özel havuzdan rastgele bir satır herkese duyurulur.
 //
 // !!! ANAHTARLAR MINECRAFT KULLANICI ADI OLMALI (oyuna girilen adla birebir) !!!
-// kralxlarge (Emir), Mizar__107 (Recep), eminomi12 (Emin Taha) ve
-// MubarekAbi (Mert; aşağıdaki nadir ziyaretçi Mert'ten farklı) kesin.
-// Enes/Salih/Yusuf/Ali/Mert şimdilik gerçek adla — nick'ler gelince değiştir.
+// kralxlarge (Emir), Mizar__107 (Recep), eminomi12 (Emin Taha),
+// MubarekAbi (Mert; aşağıdaki nadir ziyaretçi Mert'ten farklı) ve
+// SalihKarahans (Salih) kesin. Enes/Yusuf/Ali/Mert şimdilik gerçek adla.
 // Deploy: scripts/apply-overrides.sh ; reload: /kubejs reload server_scripts
 
 const WELCOME_LINES = {
@@ -38,7 +38,7 @@ const WELCOME_LINES = {
     'önce jetpack, gerisi detay.',
     'gökyüzü hazırlıklara başladı.',
   ],
-  'Salih': [                            // meşhur ev yakma vakaları
+  'SalihKarahans': [                    // Salih — meşhur başkalarının evini yakma vakaları
     'evleri kilitleyin, kibritleri saklayın.',
     'itfaiye teyakkuza geçti.',
     'yangın sigortanızı yenileyin.',

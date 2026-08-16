@@ -12,7 +12,7 @@ Scope: what our five content adds do to ATM9's economy. Verified against the pac
 | 4 | **Mowzie's Mobs** | No ores | Boss-drop items are strong but earned; configs exist if a drop feels broken post-playtest |
 | 5 | **AC nuclear bomb** exists (cave uranium) | Social rule | Recipe-removal one-liner staged (commented) in `zapeg_balance.js` if the social rule fails |
 | 6 | **Progression pace** | Baseline | ATM9 kitchen-sink with no recipe overhaul IS the low-grind mode; stars stay craftable per the natural-progression decision (v0.3.1). Nothing to tune pre-playtest |
-| 7 | **v0.8.0 overlap audit** (post-add self-check) | Clean | Aquamirae vs pack's Aquaculture = horror biome vs fishing rods, no overlap. When Dungeons Arise: **Dungeon Crawl is NOT in ATM9 1.1.x** (the old brief was stale) → WDA fills an empty mega-dungeon niche; structure stack layers by size (CTOV villages / Structory ruins / YUNG temples / WDA complexes). Simply Swords vs Silent Gear = found-loot vs crafted-gear systems, coexist. Two watch-items for playtest: combined night pressure (Born in Chaos + Apotheosis elites) and total structure density — both are config dials |
+| 7 | **v0.8.0 overlap audit** (post-add self-check) | Clean | Aquamirae vs pack's Aquaculture = horror biome vs fishing rods, no overlap. ATM9 1.1.1 already supplies WDA 2.1.58; the redundant ZapeG 2.1.57 declaration was removed, while its mega-dungeon niche remains. Structure layers by size (CTOV villages / Structory ruins / YUNG temples / WDA complexes). Simply Swords vs Silent Gear = found-loot vs crafted-gear systems, coexist. Two watch-items for playtest: combined night pressure (Born in Chaos + Apotheosis elites) and total structure density — both are config dials |
 
 ## Rules for future adds
 

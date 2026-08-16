@@ -48,7 +48,7 @@ Adımlar:
 9. CurseForge ayarlarından Minecraft RAM'ini ayarla: 16 GB RAM'li bilgisayarda **8–10 GB**, 32 GB ve üzerindeyse **10–12 GB**.
 10. Oyunu aç → **Multiplayer → Add Server** → adres: `81.213.77.41`.
 
-Kurulum yaması 17 gerekli ek modu, ZapeG logosunu ve shader ayarını birlikte getirir. Shader varsayılan olarak açıktır; oyun içinde **K** ile kapatabilirsin.
+Kurulum yaması 15 gerekli ek modu, ZapeG logosunu ve shader ayarını birlikte getirir. Shader varsayılan olarak açıktır; oyun içinde **K** ile kapatabilirsin.
 
 ## Yol B — Lisansın yoksa
 

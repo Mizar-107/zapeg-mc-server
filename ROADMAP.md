@@ -5,18 +5,20 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 ## 🛠️ v0.8.1 (working tree) — one-patch onboarding + overlap audit
 
 - Licensed-player path is now ATM9 1.1.1 + one profile-root `ZapeG-Kurulum-Yamasi` zip. No individual jar downloads and no second defaults zip.
-- Client builder validates structured ATM9/Forge metadata, fifteen CurseForge file IDs, all 17 exact filenames and reviewed SHA-256 locks; it preserves licensed players' personal settings. Offline payloads use a separate reviewed complete-mod inventory lock.
+- Client builder validates current/legacy structured ATM9/Forge metadata, fourteen CurseForge file IDs, all 15 exact filenames and reviewed SHA-256 locks; it preserves licensed players' personal settings. Offline payloads use a separate reviewed complete-mod inventory lock.
 - Server/client loader override is Forge 47.4.10; offline output is accurately framed as an isolated Forge 47.4.10 game-directory payload.
 - Valkyrien Skies 2.4.11 + Eureka 1.6.3 are the conservative physics-ship phase 1. Trackwork is a post-smoke-test candidate; Interactive/Clockwork wait on a deliberate Create-stack migration, not a blind drop-in.
 - Env docs distinguish the default LLM-free stack from optional Muhtar/Heraldor profiles; Discord bot config and Heraldor webhook are separate mechanisms.
 - `eminomi12` (Emin Taha) and `MubarekAbi` (Mert) now have exact-name welcome pools, first-login gifts and Muhtar dossiers; the live roster and slots are 10.
+- `SalihKarahans` is now Salih's confirmed exact login key; his arson-history welcome pool, named flint-and-steel gift and Muhtar dossier are wired to it.
+- Redundant WDA/playerAnimator manual pins were removed after the first real boot: ATM9 1.1.1 already supplies WDA 2.1.58 and the exact playerAnimator dependency. Both features remain, but neither belongs in the 15-jar ZapeG patch.
 - Offline access follows the owner's explicit trade-off: whitelist off and `Mizar__107` permanent OP, with nickname/OP spoofing knowingly accepted. Internal RCON stays enabled but its generated password no longer needs host configuration.
 - LLM work is parked for launch: Muhtar's profile stays off; Heraldor uses its embedded line pools. Ollama remains only a future text-generation option.
 - Post-add material/structure overlap audit is clean; watch-items remain night pressure and structure density (`BALANCE.md`).
 
 ## ✅ v0.8.0 (now) — content drop 2 + Heraldor awakens
 
-- **Combat/exploration adds** (all pre-world, verified 1.20.1 Forge): Aquamirae, Born in Chaos, When Dungeons Arise, Simply Swords, Better Combat (+playerAnimator dep), Incendium (server-only nether overhaul). Magic deliberately skipped — ATM9 already ships Eidolon, Forbidden & Arcanus, Mahou Tsukai, Ars Elemental. Client jars now **12**; v0.8.1 wraps them with defaults/branding into one profile-root patch.
+- **Combat/exploration work** (all pre-world, verified 1.20.1 Forge): Aquamirae, Born in Chaos, Simply Swords and Better Combat were manual additions; Incendium is server-only. WDA and playerAnimator were initially declared here but v0.8.1 established that ATM9 already supplies both. Magic deliberately skipped — ATM9 already ships Eidolon, Forbidden & Arcanus, Mahou Tsukai and Ars Elemental.
 - **Heraldor presence engine** (`--profile heraldor`): night-biased whispers only the target sees (+ cave sounds at their position), rare global lines, rarest Discord webhook posts. Staged: midnight shadow visits (self-despawning named vexes; `HERALDOR_EVENTS`). Muhtar refuses to speak his name. Optional LLM-generated lines (`HERALDOR_LLM`).
 
 ### Heraldor arc (the long game)
@@ -44,13 +46,13 @@ Boot → seed audition → real world → gamerules → pregen → build the lic
 ## ✅ v0.5.0 (now) — metrics + scaffolds
 
 - **Grafana stack shipped** (`--profile metrics`): minecraft-exporter + Prometheus (180d) + Grafana `:3000`, pre-provisioned dashboard (online, playtime, deaths, blocks, distance) → yearly **ZapeG Ödülleri** reads straight off it
-- **Login-lines mechanism shipped** (`zapeg_welcome.js`) with nine personal pools: four exact usernames plus five temporary real-name keys
+- **Login-lines mechanism shipped** (`zapeg_welcome.js`) with nine personal pools: five exact usernames plus four temporary real-name keys
 - **Build-ClientZip.ps1** — builds both the one-zip licensed patch (`-PatchOnly`) and offline game-directory payload
 
 ## v0.5.x — the lore era (first weeks)
 
 - **Lore datapack**: hand-built structures seeded in unexplored territory — "ZapeG Araştırma Tesisi" ruins, Turkish lore books referencing group history. New-chunks-only = world-safe. **Blocked on: in-jokes/lore input from the group.**
-- **Real login lines**: nine pools are live; only Enes/Salih/Yusuf/Ali/Mert still need exact Minecraft usernames.
+- **Real login lines**: nine pools are live; only Enes, Yusuf, Ali and the other Mert still need exact Minecraft usernames.
 - **Milestone gift items v2**: awarded live at the moment (KubeJS advancement hooks) instead of via quest claim.
 - Playtest-driven trims (remove what nobody touches; Apotheosis/dragon/Mowzie's spawn tuning if needed).
 

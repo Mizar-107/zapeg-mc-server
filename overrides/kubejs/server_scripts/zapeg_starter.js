@@ -13,7 +13,7 @@ const PERSONAL_GIFTS = {
   'eminomi12':  { item: 'minecraft:lead',           name: 'Hayvanat Bahçesi Ruhsatı' }, // Emin Taha
   'MubarekAbi': { item: 'minecraft:minecart',       name: 'Araba Modu Gelene Kadar' },  // Mert
   'Enes':       { item: 'minecraft:feather',        name: 'Jetpack Ruhu' },          // Iron Jetpacks pakette, gerisi sende
-  'Salih':      { item: 'minecraft:flint_and_steel', name: 'Salih\'in Çakmağı (Ev Yakmak Yasak)' },
+  'SalihKarahans': { item: 'minecraft:flint_and_steel', name: 'Salih\'in Çakmağı (Ev Yakmak Yasak)' }, // Salih
   'Yusuf':      { item: 'minecraft:cake',           name: 'Hoş Geldin Pastası' },
   'Ali':        { item: 'minecraft:cake',           name: 'Hoş Geldin Pastası' },
   'Mert':       { item: 'minecraft:cake',           name: 'Nadir Ziyaretçi Pastası' },

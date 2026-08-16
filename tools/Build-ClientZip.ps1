@@ -1,23 +1,23 @@
 ﻿# Build-ClientZip.ps1 — ZapeG oyuncu paketi üretici
 #
 # Lisanslı oyuncular için önerilen çıktı:
-#   .\Build-ClientZip.ps1 -PatchOnly -WriteInventoryLock  # bir kez; incele
-#   .\Build-ClientZip.ps1 -PatchOnly                      # sonra paketi üret
+#   .\Build-ClientZip.ps1 -PatchOnly  # repodaki incelenmiş lock ile üret
 #   -> ZapeG-Kurulum-Yamasi-ATM9-1.1.1-YYYYMMDD.zip
 #   Oyuncu bu TEK zip'i ATM9 profil köküne açar. mods/, shader ayarı ve
 #   PackMenu logosu doğru klasör yapısıyla birlikte gelir. Kişisel
 #   options.txt dosyasına dokunulmaz.
 #
 # Offline oyuncular için oyun-dizini payload'ı:
-#   .\Build-ClientZip.ps1 -WriteInventoryLock   # bir kez; dosyayı incele
-#   .\Build-ClientZip.ps1                       # sonra paketi üret
+#   .\Build-ClientZip.ps1  # repodaki incelenmiş tam-envanter lock'u ile üret
 #   -> ZapeG-Offline-ATM9-1.1.1-YYYYMMDD.zip
 #   Bu bir launcher profili veya Forge kurucusu değildir; izole Forge 47.4.10
 #   profilinin oyun dizinine açılır (zip içindeki INSTALL-TR.txt'ye bakın).
+# -WriteInventoryLock yalnız pinler bilinçli değiştiğinde, mevcut lock kontrollü
+# olarak yenilenirken kullanılır; normal build komutu değildir.
 
 [CmdletBinding()]
 param(
-    [string]$ProfileDir = "$env:USERPROFILE\curseforge\minecraft\Instances\All the Mods 9",
+    [string]$ProfileDir = "$env:USERPROFILE\curseforge\minecraft\Instances\All the Mods 9 - ATM9",
     [string]$OutDir = [Environment]::GetFolderPath('Desktop'),
     [Alias('ExtrasOnly')]
     [switch]$PatchOnly,
@@ -50,8 +50,7 @@ $extraMods = @(
     [pscustomobject]@{ Name = 'Simply Swords';       Prefix = 'simplyswords';          FileName = 'simplyswords-forge-1.56.0-1.20.1.jar';              FileId = '5639538'; Pin = 'CurseForge file 5639538' },
     [pscustomobject]@{ Name = 'Valkyrien Skies';     Prefix = 'valkyrienskies';        FileName = 'valkyrienskies-120-2.4.11.jar';                     FileId = '7906689'; Pin = 'CurseForge file 7906689' },
     [pscustomobject]@{ Name = 'Eureka';              Prefix = 'eureka';                FileName = 'eureka-1201-1.6.3.jar';                             FileId = '7979379'; Pin = 'CurseForge file 7979379' },
-    [pscustomobject]@{ Name = 'Better Combat';       Prefix = 'bettercombat';          FileName = 'bettercombat-forge-1.9.0+1.20.1.jar';               FileId = $null;     Pin = 'Modrinth 1.9.0+1.20.1-forge' },
-    [pscustomobject]@{ Name = 'playerAnimator';      Prefix = 'player-animation-lib'; FileName = 'player-animation-lib-forge-1.0.2-rc1+1.20.jar';     FileId = $null;     Pin = 'Modrinth 1.0.2-rc1+1.20-forge' }
+    [pscustomobject]@{ Name = 'Better Combat';       Prefix = 'bettercombat';          FileName = 'bettercombat-forge-1.9.0+1.20.1.jar';               FileId = $null;     Pin = 'Modrinth 1.9.0+1.20.1-forge' }
 )
 
 function Assert-SourceProfile {
@@ -83,7 +82,13 @@ function Assert-SourceProfile {
         throw "CurseForge profil bilgisi geçerli JSON değil: $instanceFile"
     }
 
-    $actualFileId = [string]$instance.installedModpack.installedFile.id
+    # CurseForge has used more than one schema for this value. Current profiles
+    # store it under installedFile.id; older exports used fileID directly.
+    $fileIdValues = @(
+        [string]$instance.installedModpack.installedFile.id,
+        [string]$instance.installedModpack.fileID,
+        [string]$instance.fileID
+    ) | Where-Object { $_ } | Select-Object -Unique
     $actualMinecraft = [string]$instance.baseModLoader.minecraftVersion
     $loaderValues = @(
         [string]$instance.baseModLoader.forgeVersion,
@@ -97,7 +102,7 @@ function Assert-SourceProfile {
         "net.minecraftforge:forge:1.20.1-$forgeVersion"
     )
     $forgeMatches = @($loaderValues | Where-Object { $_ -in $acceptedForgeValues })
-    if ($actualFileId -ne $packFileId) {
+    if ($packFileId -notin $fileIdValues) {
         throw "Seçilen profil ATM9 $packVersion (CurseForge file $packFileId) olarak doğrulanamadı. Profil sürümünü CurseForge'dan kontrol edin."
     }
     if ($actualMinecraft -ne '1.20.1' -or $forgeMatches.Count -eq 0) {

@@ -7,8 +7,10 @@
 # CLIENT+SERVER (players need these exact builds too — see docs/PLAYER-SETUP-TR.md):
 #   ice-and-fire-dragons, citadel, immersive-petroleum, alexs-caves, mowzies-mobs,
 #   easy-npc bundle + core + config-ui, aquamirae + fragmentum, born-in-chaos,
-#   when-dungeons-arise, simply-swords, valkyrien-skies, eureka-ships
-#   (+ better-combat & playeranimator via MODRINTH_PROJECTS — also client-side)
+#   simply-swords, valkyrien-skies, eureka-ships
+#   (+ better-combat via MODRINTH_PROJECTS — also client-side)
+# ATM9 1.1.1 already supplies When Dungeons Arise 2.1.58 and the exact
+# playerAnimator build required by Better Combat; do not declare either twice.
 # SERVER-ONLY (players skip): dcintegration (+ chunky, bluemap, incendium via MODRINTH_PROJECTS)
 
 # --- content: client + server ------------------------------------------------

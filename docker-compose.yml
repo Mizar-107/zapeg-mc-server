@@ -47,8 +47,9 @@ services:
       CURSEFORGE_FILES: "@/extras/cf-mods.txt"
       # Modrinth pins. Server-only: chunky (1.20.1 Forge is Modrinth-only), bluemap
       # (5.3 = last Java-17 build), incendium (nether overhaul, Stardust).
-      # Client+server (players install too): better-combat + playeranimator.
-      MODRINTH_PROJECTS: "chunky:1.3.146,bluemap:5.3-forge-1.20,incendium:5.3.1,better-combat:1.9.0+1.20.1-forge,playeranimator:1.0.2-rc1+1.20-forge"
+      # Client+server (players install too): better-combat. Its exact
+      # playerAnimator dependency already ships in the ATM9 1.1.1 manifest.
+      MODRINTH_PROJECTS: "chunky:1.3.146,bluemap:5.3-forge-1.20,incendium:5.3.1,better-combat:1.9.0+1.20.1-forge"
 
       # ---- resources (brief §6) --------------------------------------------
       MEMORY: 12G                          # ATM guidance 8–12G; do NOT exceed ~12G (GC degrades)
