@@ -125,13 +125,13 @@ services:
       - ./data:/data:ro
       - ./backups:/backups
 
-  # Shared controller for player-owned ZapeG Citizens — OPT-IN:
+  # Shared controller for player-owned and server-owned ZapeG Citizens — OPT-IN:
   # docker compose --profile citizens up -d --build citizen-brain mc backup
   # No host port, Minecraft data, logs, RCON, or Docker socket are exposed.
   citizen-brain:
-    image: zapeg/citizen-brain:0.2.1
+    image: zapeg/citizen-brain:0.3.0
     build:
-      context: https://github.com/Mizar-107/zapeg-citizens.git#v0.2.1:brain
+      context: https://github.com/Mizar-107/zapeg-citizens.git#v0.3.0:brain
     container_name: atm9-citizen-brain
     profiles: ["citizens"]
     restart: unless-stopped

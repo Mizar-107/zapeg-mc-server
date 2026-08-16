@@ -90,7 +90,7 @@ docker compose logs -f mc     # first boot: ~1.1 GB download + Forge install, 5â
 
 Ready when the log shows `Done (â€¦)! For help, type "help"`. The backup sidecar starts automatically once `mc` is healthy.
 
-For the intended launch with player-owned LLM citizens, do the one-time secret
+For the intended launch with player- and server-owned LLM citizens, do the one-time secret
 setup and use the `citizens` profile instead of stopping here:
 [docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). One shared Ollama
 key serves every citizen; players never receive it and never run a sidecar.

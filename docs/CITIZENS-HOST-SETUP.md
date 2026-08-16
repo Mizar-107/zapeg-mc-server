@@ -18,20 +18,20 @@ host. Confirm the three pinned client/server components are present:
 
 ```bash
 git pull --ff-only
-test -f overrides/mods/zapeg-citizens-forge-1.20.1-0.2.1.jar
+test -f overrides/mods/zapeg-citizens-forge-1.20.1-0.3.0.jar
 test -f overrides/mods/cc-tweaked-1.20.1-forge-1.116.1.jar
 printf '%s  %s\n' \
-  '00DCFB4820CCD8B1F85B091668C274A4CD335087B68088AECB7D5609CAFB9801' \
-  'overrides/mods/zapeg-citizens-forge-1.20.1-0.2.1.jar' | sha256sum -c -
+  '3ACB06FCE1B118990A6F2D7F9080F5FC7C0BEEDEEA1701530658ABF9404EE3C5' \
+  'overrides/mods/zapeg-citizens-forge-1.20.1-0.3.0.jar' | sha256sum -c -
 printf '%s  %s\n' \
   'FFFA7EAC48606DBC9F8E88DDF6C09EF218F0004B42F165F5476B700788806C9E' \
   'overrides/mods/cc-tweaked-1.20.1-forge-1.116.1.jar' | sha256sum -c -
 grep -F 'CF_EXCLUDE_MODS: "cc-tweaked"' docker-compose.yml
 grep -F 'CF_FORCE_SYNCHRONIZE: "true"' docker-compose.yml
-grep -i numen extras/cf-mods.txt
+grep -Fx 'numen-ai:8551640' extras/cf-mods.txt
 ```
 
-Do not start the production world if either check fails. The exact same Numen and
+Do not start the production world if any check fails. The exact same Numen and
 ZapeG Citizens versions must be in the player pack before anyone joins.
 
 ## One-time secret setup
@@ -80,19 +80,29 @@ the brain container. Port 8787 is not published to the host or internet.
 
 ## Build and start
 
-The build is pinned to the public `zapeg-citizens` tag `v0.2.1`, specifically its
-`brain/` directory. This starts/recreates Minecraft, its backup service, and the
-opt-in brain:
+The build is pinned to the public `zapeg-citizens` tag `v0.3.0`, specifically its
+`brain/` directory. Citizens 0.3.0 uses brain protocol 2: deploy the 0.3.0 JAR and
+brain together. A mixed 0.2.x/0.3.0 rollout is unsupported and deliberately fails
+instead of silently corrupting a turn.
+
+This sequence first verifies that no citizen turn is active, stops Minecraft so
+it can finish its cancellation/shutdown hooks, then stops the brain. It removes
+exact retired JARs and recreates
+Minecraft, its backup service, and the opt-in brain as one coordinated rollout:
 
 ```bash
 docker compose --profile citizens config --quiet
 docker compose --profile citizens build --pull citizen-brain
+docker compose exec -T mc rcon-cli "citizen brain-status"  # require 0 active turn(s)
 docker compose stop mc
+docker compose --profile citizens stop citizen-brain
 rm -f -- data/mods/cc-tweaked-1.20.1-forge-1.113.1.jar
 rm -f -- data/mods/zapeg-citizens-forge-1.20.1-0.2.0.jar
+rm -f -- data/mods/zapeg-citizens-forge-1.20.1-0.2.1.jar
 test ! -e data/mods/cc-tweaked-1.20.1-forge-1.113.1.jar
 test ! -e data/mods/zapeg-citizens-forge-1.20.1-0.2.0.jar
-docker compose --profile citizens up -d mc backup citizen-brain
+test ! -e data/mods/zapeg-citizens-forge-1.20.1-0.2.1.jar
+docker compose --profile citizens up -d --force-recreate citizen-brain mc backup
 docker compose --profile citizens ps
 ```
 
@@ -100,10 +110,10 @@ The first command prints nothing when the Compose model is valid. The Minecraft
 container copies the tracked jar from `overrides/mods/` through its dedicated
 `MODS` source; do not manually copy a different Citizens jar into `data/mods/`.
 The narrowly exact `rm` commands remove only ATM9's retired CC:Tweaked 1.113.1
-and the previous Citizens 0.2.0 jar from the persistent server directory before
-recreation. Do not replace them with wildcard deletion. `CF_EXCLUDE_MODS` plus
+and the previous Citizens 0.2.0/0.2.1 jars from the persistent server directory
+before recreation. Do not replace them with wildcard deletion. `CF_EXCLUDE_MODS` plus
 `CF_FORCE_SYNCHRONIZE` prevents AUTO_CURSEFORGE from restoring the base CC copy,
-while `/citizens-mods` installs the pinned CC 1.116.1 and Citizens 0.2.1 jars.
+while `/citizens-mods` installs the pinned CC 1.116.1 and Citizens 0.3.0 jars.
 
 ## Verify before inviting players
 
@@ -117,16 +127,20 @@ docker compose exec -T mc rcon-cli "citizen list"
 find data/mods -maxdepth 1 -type f -name 'cc-tweaked-1.20.1-forge-*.jar' -print
 test "$(find data/mods -maxdepth 1 -type f -name 'cc-tweaked-1.20.1-forge-*.jar' -print | wc -l)" -eq 1
 test -f data/mods/cc-tweaked-1.20.1-forge-1.116.1.jar
+find data/mods -maxdepth 1 -type f -name 'numen-forge-*.jar' -print
+test "$(find data/mods -maxdepth 1 -type f -name 'numen-forge-*.jar' -print | wc -l)" -eq 1
+test -f data/mods/numen-forge-1.20.1-0.1.1-all.jar
 find data/mods -maxdepth 1 -type f -name 'zapeg-citizens-forge-*.jar' -print
 test "$(find data/mods -maxdepth 1 -type f -name 'zapeg-citizens-forge-*.jar' -print | wc -l)" -eq 1
-test -f data/mods/zapeg-citizens-forge-1.20.1-0.2.1.jar
+test -f data/mods/zapeg-citizens-forge-1.20.1-0.3.0.jar
 ```
 
 The status command must say `Shared brain: configured`, not `disabled`. The brain
 logs must not contain configuration, authentication, or provider errors. Container
 health proves the private service is running; the Ollama key is exercised on the
 first real citizen turn. The CC:Tweaked and Citizens checks must each show exactly
-one pinned jar (1.116.1 and 0.2.1 respectively); stop here if an older copy remains.
+one pinned jar (1.116.1 and 0.3.0 respectively), and Numen must be exactly 0.1.1;
+stop here if an older copy remains.
 
 For the acceptance test, have one player join, then an OP runs:
 
@@ -145,6 +159,38 @@ After a successful reply, clean up with:
 ```text
 /citizen remove TestCitizen
 ```
+
+### Server-owned lore citizens
+
+An OP can create an always-awake, server-owned character at the OP's current
+position. Players talk to it with `@Name message`; OPs use explicit task commands
+when it should act in the world:
+
+```text
+/citizen spawn-server Archivist lore village Remembers the settlement's history and greets visitors.
+@Archivist Who founded this village?
+/citizen task Archivist walk to the town bell and wait there
+/citizen stop Archivist
+/citizen persona Archivist You are the village archivist. Be concise and stay in character.
+/citizen set-home Archivist
+/citizen wake Archivist
+/citizen remove Archivist
+```
+
+`spawn-server` accepts `name [role] [faction] [persona...]`; the shorter
+`/citizen spawn-server Archivist` form uses the defaults. Server-owned bodies wake
+after restart, keep their technical UUID and inventory, and recover at their saved
+home after death. They are intentionally always awake in this first release, so
+keep the lore population small and use ordinary mobs for crowds or common enemies.
+`/citizen task` must be entered by an in-game OP; console/RCON cannot impersonate
+the speaking actor. When spawning or changing home from console/RCON, use an
+explicit source such as:
+
+```text
+/execute in minecraft:overworld positioned 100 65 100 run citizen spawn-server Archivist ...
+```
+
+Use the same wrapper around `citizen set-home`.
 
 Test movement and mining later in an unclaimed disposable area, not beside the
 production base. One Ollama key serves all citizens; the brain serializes provider
@@ -195,6 +241,8 @@ build/start/verify commands above.
   token is non-empty, and recreate `mc` (a restart alone cannot change env vars).
 - HTTP/authentication failure after spawning: recreate both services so they read
   the same bridge token.
+- Protocol/version mismatch: confirm the server has only Citizens 0.3.0 and the
+  brain image/build context both use `v0.3.0`; recreate both peers together.
 - Ollama authentication/model error: correct the host-only key or model, then
   recreate only `citizen-brain`.
 - Players cannot join: verify their pack has the exact pinned Numen and Citizens

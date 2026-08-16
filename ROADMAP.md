@@ -2,14 +2,14 @@
 
 Not everything in v1 — each phase ships through the UPDATING.md ritual. World-risk notes per item.
 
-## 🛠️ v0.9.0 (working tree) — player-owned ZapeG Citizens
+## 🛠️ v0.9.0 (working tree) — player- and server-owned ZapeG Citizens
 
 - **Real workers, not a named mascot**: an OP can run `/citizen spawn <name> <onlinePlayer>` to create multiple chat-commanded citizens, each logically assigned to a player.
-- Numen AI 0.1.1 supplies the player-like body and tool engine. ZapeG Citizens 0.2.1 owns assignment, authorization, prompt routing, timeouts and removal safety, and exposes all 32 server-executable Numen tools for movement, mining, building, crafting, storage, item transfer, interaction and combat.
+- Numen AI 0.1.1 supplies the player-like body and tool engine. ZapeG Citizens 0.3.0 owns assignment, authorization, prompt routing, timeouts and lifecycle safety, and exposes all 32 server-executable Numen tools for movement, mining, building, crafting, storage, item transfer, interaction and combat.
 - One private `citizen-brain` container on the host serves every citizen through one shared Ollama key. Players receive the required Forge components in the generated patch and never receive a provider key.
 - The generated player patch grows from 15 to **18** exact client additions. Numen is pinned to CurseForge file `8551640`, CC:Tweaked 1.116.1 is re-pinned from Modrinth, and the owned Citizens jar is tracked and locked by SHA-256.
 - Memory stays private per citizen and commanding actor in SQLite. The Minecraft server remains final authority: the model can request every registered server-executable Numen tool, but never arbitrary commands, RCON or client-only tools.
-- Initial scope is online player-owned citizens. The data model already separates logical owner, physical-body owner and brain controller; true server-owned lore citizens are a later lifecycle/controller phase, not faked under a player's identity.
+- True server-owned lore citizens now use a durable world principal, persistent persona/home, public dialogue, operator-only physical tasks, restart wake-up and delayed death recovery. They are not faked under a player's identity.
 - Common enemies and bosses remain deterministic mobs/state machines. LLMs may eventually choose high-level intent or dialogue, but should not drive every combat tick.
 - The obsolete single-character, log-tail chat prototype is removed. Easy NPC remains available for non-worker lore/quest characters; Heraldor remains an independent optional presence service.
 

@@ -2,7 +2,7 @@
 
 Self-hosted server for the custom pack: **ATM9 1.1.1 base + 22 additions** (18 client+server, 4 server-only). The server resolves the external pins and installs the reviewed ZapeG Citizens build; players receive one generated ZapeG patch instead of downloading jars individually. This README is the full reference; start with [HOSTING.md](HOSTING.md) if you're the operator. Decisions: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md) · change playbook: [UPDATING.md](UPDATING.md) · player install: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.md).
 
-## Version pins (verified 2026-08-16)
+## Version pins (verified 2026-08-17)
 
 | Component | Version | Pin | Notes |
 |---|---|---|---|
@@ -24,7 +24,7 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + 22 additions** (18 c
 | Eureka | 1.6.3 | CF file `7979379` | Client+server ship/helm addon; requires VS ≥2.4.10. Kotlin for Forge already ships in ATM9 |
 | Numen AI | 0.1.1 | CF file `8551640` | Client+server; managed citizen body and tool engine; embeds its matching Numen API |
 | CC:Tweaked | 1.116.1 | Modrinth pin | Client+server re-pin; ATM9's CurseForge resolution does not reliably provide the version required by the Numen/Advanced Peripherals integration |
-| ZapeG Citizens | 0.2.1 | owned jar + reviewed SHA-256 lock | Client+server custom controller with all 32 server-executable Numen tools enabled; installed from `overrides/mods`, not represented as CurseForge content |
+| ZapeG Citizens | 0.3.0 | owned jar + reviewed SHA-256 lock | Client+server controller for player-owned workers and persistent server-owned lore citizens; all 32 server-executable Numen tools enabled; installed from `overrides/mods`, not represented as CurseForge content |
 | Incendium | 5.3.1 | Modrinth pin | **Server-only**; nether overhaul (Stardust, pairs with pack's Terralith) |
 | BlueMap | 5.3-forge-1.20 | Modrinth (`MODRINTH_PROJECTS`) | Server-only web map on `:8100`. Pinned to 5.3 — 5.12+ needs Java 21, we're on 17 |
 | Discord Integration | 3.0.7.1 (2024-05) | CF file `5332465` | Server-only; token wired post-boot (HOSTING) |
@@ -45,7 +45,7 @@ The commands above load the Citizens Forge mods but deliberately leave their
 shared LLM controller disabled. For the planned launch, the host must complete
 [the one-time Citizens setup](docs/CITIZENS-HOST-SETUP.md) and start the
 `citizens` profile before players are invited. One host-side Ollama key serves
-all player-owned citizens; no key or separate app is distributed to players.
+all player- and server-owned citizens; no key or separate app is distributed to players.
 
 The server is offline-mode, has no whitelist by group decision, and grants
 `Mizar__107` OP by default. Anyone can copy that name and become OP; the owner

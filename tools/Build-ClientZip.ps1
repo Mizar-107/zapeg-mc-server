@@ -67,9 +67,9 @@ $ownedMods = @(
     [pscustomobject]@{
         Name = 'ZapeG Citizens'
         Prefix = 'zapeg-citizens-forge-1.20.1-'
-        FileName = 'zapeg-citizens-forge-1.20.1-0.2.1.jar'
-        RelativePath = 'overrides\mods\zapeg-citizens-forge-1.20.1-0.2.1.jar'
-        Pin = 'ZapeG owned release 0.2.1 (not CurseForge)'
+        FileName = 'zapeg-citizens-forge-1.20.1-0.3.0.jar'
+        RelativePath = 'overrides\mods\zapeg-citizens-forge-1.20.1-0.3.0.jar'
+        Pin = 'ZapeG owned release 0.3.0 (not CurseForge)'
     }
 )
 
@@ -467,10 +467,10 @@ function Add-ZapeGClientLayer {
              '1. CurseForge App içinde All the Mods 9 sürüm 1.1.1 kurulu olsun.',
              '2. Profile Options / Profil Seçenekleri içinde modloader sürümünü Forge 47.4.10 yap.',
              '3. Profil menüsünde ... > Open Folder / Klasörü Aç seçeneğine bas.',
-             '4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile zapeg-citizens-forge-1.20.1-0.2.0.jar silinmiş olmalı.',
+             '4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile Citizens 0.2.0/0.2.1 jarları silinmiş olmalı.',
              '5. Bu zip içeriğini O KLASÖRÜN KÖKÜNE çıkar.',
              '6. ZapeG dosyaları için üzerine yazma sorulursa onayla. Kişisel options.txt ayarların bu yamada yoktur ve korunur.',
-             '7. Sonuçta mods içinde yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.2.1.jar bulunmalı; mods\iceandfire-...jar da doğrudan görünmeli.',
+             '7. Bu iki mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.3.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar da doğrudan görünmeli.',
              '8. Oyunu başlat. Kullanıcı adını değiştirme; envanter, claim ve kişisel lore o ada bağlıdır.',
             '',
             'Zip içinde yeniden bir ZapeG klasörü oluşturma. mods klasörü profil kökünde olmalı.'
@@ -482,9 +482,9 @@ function Add-ZapeGClientLayer {
              'BU ZIP BİR LAUNCHER VEYA FORGE KURUCUSU DEĞİLDİR.',
              '1. Launcher içinde Minecraft 1.20.1 + Forge 47.4.10 kullanan İZOLE bir profil oluştur.',
              '2. Launcher sorarsa Java 17 seç. Profili bir kez açıp kapat.',
-             '3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile zapeg-citizens-forge-1.20.1-0.2.0.jar silinmiş olmalı.',
+             '3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile Citizens 0.2.0/0.2.1 jarları silinmiş olmalı.',
              '4. Bu zip içeriğini o profilin OYUN KLASÖRÜNE çıkar.',
-             '5. Sonuçta mods içinde yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.2.1.jar bulunmalı; mods\iceandfire-...jar da doğrudan görünmeli ve iç içe ZapeG klasörü olmamalı.',
+             '5. Bu iki mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.3.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar da doğrudan görünmeli ve iç içe ZapeG klasörü olmamalı.',
              '6. Sabit bir kullanıcı adı seç. Sonradan değiştirme; envanter ve claim kimliğin bu addır.'
          )
     }
