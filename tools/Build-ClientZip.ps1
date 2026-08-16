@@ -54,7 +54,8 @@ $extraMods = @(
     [pscustomobject]@{ Name = 'Valkyrien Skies';     Prefix = 'valkyrienskies';        FileName = 'valkyrienskies-120-2.4.11.jar';                     FileId = '7906689'; Pin = 'CurseForge file 7906689' },
     [pscustomobject]@{ Name = 'Eureka';              Prefix = 'eureka';                FileName = 'eureka-1201-1.6.3.jar';                             FileId = '7979379'; Pin = 'CurseForge file 7979379' },
     [pscustomobject]@{ Name = 'Numen AI';            Prefix = 'numen-forge';           FileName = 'numen-forge-1.20.1-0.1.1-all.jar';                 FileId = '8551640'; Pin = 'CurseForge file 8551640' },
-    [pscustomobject]@{ Name = 'Better Combat';       Prefix = 'bettercombat';          FileName = 'bettercombat-forge-1.9.0+1.20.1.jar';               FileId = $null;     Pin = 'Modrinth 1.9.0+1.20.1-forge' }
+    [pscustomobject]@{ Name = 'Better Combat';       Prefix = 'bettercombat';          FileName = 'bettercombat-forge-1.9.0+1.20.1.jar';               FileId = $null;     Pin = 'Modrinth 1.9.0+1.20.1-forge' },
+    [pscustomobject]@{ Name = 'CC: Tweaked (1.116.1 re-pin)'; Prefix = 'cc-tweaked-1.20.1-forge-1.116'; FileName = 'cc-tweaked-1.20.1-forge-1.116.1.jar'; FileId = $null; Pin = 'Modrinth 1.116.1 — ATM9 base pack CurseForge resolution does not reliably give every player this version (mod stopped publishing new files to CurseForge); re-pinned so Numen/AdvancedPeripherals integration does not throw a missing-dependency error' }
 )
 
 $ownedMods = @(
