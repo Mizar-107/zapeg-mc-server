@@ -48,9 +48,6 @@ fragmentum:8506891
 # Born in Chaos 1.7.5 (2026-04-12) — horror night mobs; lore: Heraldor'un orduları
 born-in-chaos:7917933
 
-# When Dungeons Arise 2.1.57 (2023-10-14, final 1.20.1) — massive dungeons
-when-dungeons-arise:4798432
-
 # Simply Swords 1.56.0 (2024-08-18) — ~50 unique weapons; pairs with Better Combat
 simply-swords:5639538
 

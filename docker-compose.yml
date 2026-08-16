@@ -10,6 +10,18 @@ services:
     # Optional host-specific CPU affinity. Blank = all host CPUs; never copy a
     # cpuset from another machine without checking its logical CPU topology.
     cpuset: "${MC_CPUSET:-}"
+    # Must exceed STOP_SERVER_ANNOUNCE_DELAY (20s) below, or `docker compose stop`'s
+    # own default 10s timeout SIGKILLs the container mid-shutdown, before the world
+    # save even starts (confirmed: exit code 137, no "Saving..." in the log).
+    stop_grace_period: 60s
+    # Image default start_period (120s) is too short for this modpack's ~500s
+    # boot — was flipping to "unhealthy" mid-load (port not open yet), which
+    # made depends_on: service_healthy (heraldor/backup) fail immediately.
+    healthcheck:
+      test: ["CMD-SHELL", "mc-health"]
+      interval: 30s
+      start_period: 900s
+      retries: 3
     ports:
       - "25565:25565"
       - "8100:8100"                        # BlueMap web UI (reverse-proxy/VPN it; don't expose raw)
