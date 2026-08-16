@@ -70,9 +70,9 @@ Profile-only values:
 - `CITIZENS_BRAIN_URL` + `CITIZENS_BRAIN_TOKEN` → shared Citizens controller;
   keep the Ollama key only in `secrets/citizens_ollama_api_key.txt` and follow
   [the dedicated setup guide](docs/CITIZENS-HOST-SETUP.md)
-- `RCON_PASSWORD` + `GRAFANA_PASSWORD` → `metrics`; generate a shell-safe RCON
-  value with `openssl rand -hex 32`, set both before first enabling the profile,
-  then recreate `mc` with the metrics profile so server/exporter share the RCON value
+- `RCON_PASSWORD` + `GRAFANA_PASSWORD` → `metrics`; generate two different
+  shell-safe values, leave Grafana on `127.0.0.1` with anonymous access off,
+  then follow [the metrics runbook](metrics/README.md)
 - `RCLONE_DEST` plus local `rclone.conf` → `offsite`
 - `HERALDOR_WEBHOOK`, `HERALDOR_EVENTS`, `HERALDOR_LLM` and advanced `HERALDOR_CHECK_INTERVAL` / `HERALDOR_P_*` knobs → optional `heraldor`
 
@@ -103,8 +103,9 @@ scripts/apply-overrides.sh && docker compose restart mc
 
 Open the FTB Quests book and verify all three custom pages load: **ZapeG — Yol
 Haritası**, **ZapeG — Kilometre Taşları**, and the separate personal-lore page
-**ZapeG**. The initial personal objectives are honor-system checkmarks; each
-requested objective is its own quest node.
+**ZapeG**. Achievement tasks are non-clickable and server-authoritative; exact
+checks, migration/reset commands and the few OP-reviewed milestones are in
+[docs/QUEST-VALIDATION-TR.md](docs/QUEST-VALIDATION-TR.md).
 
 ## One-time service wiring (after first boot)
 

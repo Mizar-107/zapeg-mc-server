@@ -120,7 +120,9 @@ services:
       # No password here: mc-backup auto-reads /data/.rcon-cli.env from SRC_DIR.
       PAUSE_IF_NO_PLAYERS: "false"
       # jars/caches are re-resolvable from pins — world + configs are what matter
-      EXCLUDES: "*.jar,cache,temp,logs,crash-reports,libraries,versions"
+      # BlueMap tiles are regenerated from the world; archiving them every day
+      # wastes disk and I/O while the renderer is writing.
+      EXCLUDES: "*.jar,cache,temp,logs,crash-reports,libraries,versions,bluemap,bluemap/**"
     volumes:
       - ./data:/data:ro
       - ./backups:/backups
@@ -156,9 +158,10 @@ services:
       - citizen-brain-data:/data
 
   # Metrics stack — OPT-IN: docker compose --profile metrics up -d
-  # Grafana at :3000 (anonymous read-only for the group), dashboards pre-provisioned.
+  # Grafana is localhost-only by default. Use an SSH tunnel/VPN or authenticated
+  # HTTPS reverse proxy; do not publish raw :3000 to the internet.
   metrics-exporter:
-    image: ghcr.io/dirien/minecraft-exporter:latest
+    image: ghcr.io/dirien/minecraft-exporter:0.24.0
     container_name: atm9-exporter
     profiles: ["metrics"]
     restart: unless-stopped
@@ -173,35 +176,40 @@ services:
       MC_RCON_PASSWORD: ${RCON_PASSWORD:-}
       MC_WORLD: /data/world
       # Do not send offline UUIDs to Mojang name lookup. Upstream labels these
-      # series by UUID; add friendly aliases after real player data exists.
+      # series by UUID; Prometheus rewrites only the five confirmed exact logins.
       MC_NAME_SOURCE: offline
       MC_MOD_SERVER_STATS: forge         # per-dimension TPS/tick-time via forge rcon
     volumes:
       - ./data:/data:ro
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.12.0
     container_name: atm9-prometheus
     profiles: ["metrics"]
     restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=180d"
+      # A full season/year remains queryable, but the disk cap wins if needed.
+      - "--storage.tsdb.retention.time=400d"
+      - "--storage.tsdb.retention.size=10GB"
     volumes:
       - ./metrics/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prom-data:/prometheus
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.1.0
     container_name: atm9-grafana
     profiles: ["metrics"]
     restart: unless-stopped
     ports:
-      - "3000:3000"                      # reverse-proxy/VPN like BlueMap
+      - "${GRAFANA_BIND_ADDRESS:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-zapeg-admin}
-      GF_AUTH_ANONYMOUS_ENABLED: "true"  # group members view without login
+      # The fallback is intentionally usable only with the localhost bind above.
+      # Set a unique value before any reverse-proxy/VPN publication.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-zapeg-local-only}
+      GF_AUTH_ANONYMOUS_ENABLED: ${GRAFANA_ANONYMOUS_ENABLED:-false}
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - ./metrics/grafana/provisioning:/etc/grafana/provisioning:ro
       - graf-data:/var/lib/grafana

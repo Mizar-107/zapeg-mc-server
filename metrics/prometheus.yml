@@ -8,3 +8,26 @@ scrape_configs:
       - targets: ["metrics-exporter:9150"]
         labels:
           server: zapeg
+    # The server deliberately runs offline-mode, so upstream exports raw
+    # offline UUIDs. Rewrite only identities whose exact login is confirmed.
+    metric_relabel_configs:
+      - source_labels: [player]
+        regex: "45726f8f-62d0-3103-9d0a-41820a668eb2"
+        target_label: player
+        replacement: "kralxlarge"
+      - source_labels: [player]
+        regex: "05575801-d37c-30bf-ae2c-bb3a46d2be3e"
+        target_label: player
+        replacement: "Mizar__107"
+      - source_labels: [player]
+        regex: "74f26ba4-5f96-356d-b8b2-e71a0a4d9b6e"
+        target_label: player
+        replacement: "eminomi12"
+      - source_labels: [player]
+        regex: "f7b0e41a-6037-334a-adf4-892f42797f55"
+        target_label: player
+        replacement: "SalihKarahan"
+      - source_labels: [player]
+        regex: "4376391e-f698-382c-997f-4e0c530343c7"
+        target_label: player
+        replacement: "MertOnal"

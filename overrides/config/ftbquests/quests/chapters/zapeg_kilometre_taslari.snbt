@@ -11,9 +11,9 @@
 	quests: [
 		{
 			description: [
-				"Grup hedefleri: biri başarınca hepimizin hanesine yazılır. Çoğu onur sistemiyle işaretlenir — başaran tıklar, ödül kupası ganimet odasına gider."
+				"Grup hedefleri: biri başarınca hepimizin hanesine yazılır. Ölçülebilen hedefleri sunucu tamamlar; yapı ve güvenlik hedeflerini yalnız yetkili incelemesi onaylar."
 				""
-				"&7İpucu: herkes tek FTB Teams partisindeyse ilerleme ortak akar — TUNING.md'ye bak.&r"
+				"&eYetkili onayı:&r &7Meydan, ortak depo ve arsalar birlikte kontrol edildikten sonra verilir. Oyuncu tiki yoktur.&r"
 			]
 			icon: "minecraft:bell"
 			id: "843AD30B6CF7061D"
@@ -30,6 +30,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -40,22 +41,25 @@
 			]
 			subtitle: "Spawn kasabası kuruldu: waystone meydanı + ortak depo + herkese arsa"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "town"
 				id: "32E1DC6BB2D341C9"
 				title: "ZapeG Kasabası"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&bZapeG Kasabası"
 			x: -6.0d
 			y: -1.5d
 		}
 		{
-			description: ["En az 3 bölge waystone ile spawn meydanına bağlandı — ışınlanma ağı canlı."]
+			description: ["En az 3 farklı bölge waystone ile spawn meydanına bağlandı. &eYetkili, üç benzersiz ve çalışan bağlantıyı kontrol ederek onaylar; oyuncu tiki yoktur.&r"]
 			icon: "waystones:waystone"
 			id: "D0FDCE0243F50358"
 			rewards: [
 				{
 					id: "28EA6210E10BCBCA"
 					item: "waystones:waystone"
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -66,9 +70,11 @@
 			]
 			subtitle: "3+ waystone bağlı"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "waystones"
 				id: "5ACF092BB3044DD3"
 				title: "Işınlanma Ağı"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&bIşınlanma Ağı"
 			x: -3.0d
@@ -78,7 +84,7 @@
 			description: [
 				"Birimiz bir ejderhayı evcilleştirip semere oturdu. Yumurta çalmak, büyütmek, isim takmak — hepsi dahil."
 				""
-				"&7(Name tag tarifimiz JEI'de.)&r"
+				"&7(Name tag tarifimiz JEI'de.)&r &aSunucu, bir oyuncu kendi evcil ateş/buz/yıldırım ejderhasına bindiğinde tame ve owner UUID bilgisini doğrular; oyuncu tiki yoktur.&r"
 			]
 			icon: "minecraft:dragon_head"
 			id: "EB8574773D945505"
@@ -95,6 +101,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -105,16 +112,18 @@
 			]
 			subtitle: "Ice and Fire: yumurtadan semere"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "dragon_rider"
 				id: "C86F5A9CA10749C7"
 				title: "İlk Evcil Ejderha"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&cİlk Evcil Ejderha"
 			x: 0.0d
 			y: -1.5d
 		}
 		{
-			description: ["Ad Astra roketi kalktı, ay yüzeyine sağ inildi ve — önemli kısım — geri dönüldü."]
+			description: ["Ad Astra roketi kalktı, aynı oyuncu ay yüzeyine indi ve Overworld'e döndü. &aSunucu iki ayağı da sırasıyla doğrular; oyuncu tiki yoktur.&r"]
 			icon: "minecraft:firework_rocket"
 			id: "620074861623E2CB"
 			rewards: [
@@ -130,6 +139,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -140,16 +150,18 @@
 			]
 			subtitle: "Gidiş VE dönüş sayılır"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "moon_return"
 				id: "E39F217E73843A49"
 				title: "Ay'a İniş"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&6Ay'a İniş"
 			x: 3.0d
 			y: -1.5d
 		}
 		{
-			description: ["Mekanism fisyon reaktörü kritik oldu ve kasaba hâlâ yerinde duruyor. Waste yönetimi dahil — sızıntı olursa bu quest geri alınır :)"]
+			description: ["Mekanism fisyon reaktörü kritik oldu ve kasaba hâlâ yerinde duruyor. Waste yönetimi dahil. &eYetkili; çalışan reaktörü, soğutmayı ve atık hattını görerek onaylar; oyuncu tiki yoktur.&r"]
 			icon: "minecraft:blaze_powder"
 			id: "43E03F0AC326A33B"
 			rewards: [
@@ -165,6 +177,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -175,16 +188,18 @@
 			]
 			subtitle: "Sızıntısız, kasabasız kalmadan"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "reactor"
 				id: "A020A1076698863D"
 				title: "Reaktör Kritik"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&eReaktör Kritik"
 			x: 6.0d
 			y: -1.5d
 		}
 		{
-			description: ["L_Ender's Cataclysm'in ilk büyük boss'u grupça düşürüldü. Hangisi olduğu önemli değil — ilk kan bizden."]
+			description: ["L_Ender's Cataclysm'in büyük boss'larından biri bir oyuncu tarafından düşürüldü. &aSunucu gerçek boss ölümünü ve son darbeyi doğrular.&r"]
 			icon: "minecraft:wither_skeleton_skull"
 			id: "F37D7538B644AE06"
 			rewards: [
@@ -200,6 +215,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -210,16 +226,18 @@
 			]
 			subtitle: "Grup halinde gidin — şaka değiller"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "cataclysm"
 				id: "0FDC3E3C48594883"
 				title: "Cataclysm: İlk Boss"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&4Cataclysm: İlk Boss"
 			x: -6.0d
 			y: 1.5d
 		}
 		{
-			description: ["Üç kafa, bir öfke: Wither çağrıldı ve gömüldü."]
+			description: ["Üç kafa, bir öfke: Wither bir oyuncu tarafından öldürüldü. &aÖzel advancement ölüm olayını otomatik doğrular.&r"]
 			icon: "minecraft:nether_star"
 			id: "CFB32965C992B831"
 			rewards: [
@@ -235,6 +253,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -245,9 +264,11 @@
 			]
 			subtitle: "Beacon yolu açıldı"
 			tasks: [{
+				advancement: "zapeg:group_wither"
+				criterion: "wither_killed"
 				id: "18C6DC9B44DFC49F"
 				title: "Wither Düştü"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&8Wither Düştü"
 			x: -3.0d
@@ -274,6 +295,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -295,7 +317,7 @@
 			y: 1.5d
 		}
 		{
-			description: ["MineColonies kasabası 10 vatandaşa ulaştı — inşaatçısı, çiftçisi, muhafızı olan gerçek bir koloni."]
+			description: ["MineColonies kasabası 10 vatandaşa ulaştı. &aMineColonies'in kendi colony_population_10 advancement'ı otomatik doğrular.&r"]
 			icon: "minecraft:emerald"
 			id: "38A53554A3B89F08"
 			rewards: [
@@ -311,6 +333,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -321,9 +344,11 @@
 			]
 			subtitle: "MineColonies: 10 vatandaş"
 			tasks: [{
+				advancement: "minecolonies:minecolonies/colony_population_10"
+				criterion: ""
 				id: "EF90D40A19C1D872"
 				title: "Vali"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&aVali"
 			x: 3.0d
@@ -333,7 +358,7 @@
 			description: [
 				"Draconic Evolution'ın Chaos Guardian'ı. Paketin gerçek son boss'u — buraya kadar gelen olursa artık rehber falan gerekmiyor."
 				""
-				"&7Baskı yok. Yıllar sürebilir. Belki de hiç olmaz. Olursa efsane olur.&r"
+				"&7Baskı yok. Yıllar sürebilir. Belki de hiç olmaz. Olursa gerçek Chaos Guardian ölümü sunucu tarafından doğrulanır.&r"
 			]
 			icon: "minecraft:end_crystal"
 			id: "CF96D7D50C5B16F1"
@@ -350,6 +375,7 @@
 							}
 						}
 					}
+					team_reward: true
 					type: "item"
 				}
 				{
@@ -362,9 +388,11 @@
 			size: 1.5d
 			subtitle: "Belki bir gün"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "chaos_guardian"
 				id: "8E33CA264762AA20"
 				title: "Kaos Kırıcı"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&5Kaos Kırıcı"
 			x: 6.0d

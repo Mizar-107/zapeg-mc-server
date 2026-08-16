@@ -3,7 +3,7 @@
   "title": "ZapeG — Sunucu",
   "tags": ["zapeg", "minecraft"],
   "timezone": "browser",
-  "schemaVersion": 39,
+  "schemaVersion": 41,
   "refresh": "1m",
   "time": { "from": "now-7d", "to": "now" },
   "panels": [
@@ -11,7 +11,7 @@
       "id": 1,
       "type": "stat",
       "title": "Şu An Online",
-      "gridPos": { "h": 6, "w": 5, "x": 0, "y": 0 },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [{ "expr": "sum(minecraft_player_online)", "refId": "A" }],
       "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
@@ -19,54 +19,150 @@
     },
     {
       "id": 2,
+      "type": "stat",
+      "title": "TPS",
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "minecraft_tps", "refId": "A" }],
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 1, "min": 0, "max": 20, "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "orange", "value": 15 }, { "color": "green", "value": 18 }] } }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Ortalama Tick Süresi",
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "minecraft_ticktime_ms", "refId": "A" }],
+      "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "ms", "decimals": 1, "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "orange", "value": 40 }, { "color": "red", "value": 50 }] } }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Aktif Varlık",
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(minecraft_active_entities)", "refId": "A" }],
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0 }, "overrides": [] }
+    },
+    {
+      "id": 5,
       "type": "timeseries",
-      "title": "Online Oyuncular (7g)",
-      "gridPos": { "h": 6, "w": 19, "x": 5, "y": 0 },
+      "title": "Online Oyuncular",
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 5 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [{ "expr": "sum(minecraft_player_online)", "legendFormat": "online", "refId": "A" }],
       "fieldConfig": { "defaults": { "unit": "none", "min": 0, "custom": { "fillOpacity": 15, "lineWidth": 2 } }, "overrides": [] }
     },
     {
-      "id": 3,
+      "id": 6,
       "type": "bargauge",
       "title": "Oyun Süresi (saat)",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 6 },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 11 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [{ "expr": "sort_desc(sum by (player) (minecraft_play_time_ticks_total) / 72000)", "legendFormat": "{{player}}", "refId": "A" }],
       "options": { "displayMode": "gradient", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
       "fieldConfig": { "defaults": { "unit": "h", "decimals": 1 }, "overrides": [] }
     },
     {
-      "id": 4,
+      "id": 7,
       "type": "bargauge",
       "title": "Ölümler",
-      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 11 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [{ "expr": "sort_desc(sum by (player) (minecraft_deaths_total))", "legendFormat": "{{player}}", "refId": "A" }],
       "options": { "displayMode": "gradient", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
       "fieldConfig": { "defaults": { "unit": "none", "color": { "mode": "fixed", "fixedColor": "red" } }, "overrides": [] }
     },
     {
-      "id": 5,
+      "id": 8,
       "type": "bargauge",
-      "title": "Kazılan Blok (toplam)",
-      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 },
+      "title": "Mob Öldürme",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 11 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sort_desc(sum by (player) (minecraft_blocks_mined_total))", "legendFormat": "{{player}}", "refId": "A" }],
+      "targets": [{ "expr": "sort_desc(sum by (player) (minecraft_mobs_killed_total))", "legendFormat": "{{player}}", "refId": "A" }],
       "options": { "displayMode": "gradient", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
       "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
     },
     {
-      "id": 6,
-      "type": "timeseries",
-      "title": "Kat Edilen Mesafe (km, oyuncu başına)",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "id": 9,
+      "type": "bargauge",
+      "title": "Kazılan Elmas Cevheri",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 11 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "targets": [{ "expr": "sum by (player) (minecraft_movement_meters_total) / 1000", "legendFormat": "{{player}}", "refId": "A" }],
+      "targets": [{ "expr": "sort_desc(sum by (player) (minecraft_blocks_mined_total{namespace=\"minecraft\",block=~\"(deepslate_)?diamond_ore\"}))", "legendFormat": "{{player}}", "refId": "A" }],
+      "options": { "displayMode": "gradient", "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Kat Edilen Mesafe (km)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 19 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (player) (minecraft_movement_meters_total{player=~\"$player\"}) / 1000", "legendFormat": "{{player}}", "refId": "A" }],
       "fieldConfig": { "defaults": { "unit": "lengthkm", "custom": { "fillOpacity": 5, "lineWidth": 2 } }, "overrides": [] }
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Boyut TPS",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 19 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "minecraft_dimension_tps", "legendFormat": "{{namespace}}:{{dimension}}", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "none", "min": 0, "max": 20, "custom": { "fillOpacity": 5, "lineWidth": 2 } }, "overrides": [] }
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Seçili Oyuncu — Minecart (km)",
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (player) (minecraft_movement_meters_total{player=~\"$player\",means=\"minecart\"}) / 1000", "legendFormat": "{{player}}", "refId": "A" }],
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "lengthkm", "decimals": 2 }, "overrides": [] }
+    },
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "Seçili Oyuncu — Hasar (kalp)",
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (player) (minecraft_damage_dealt_total{player=~\"$player\",type=\"hit\"}) / 10", "legendFormat": "{{player}}", "refId": "A" }],
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "none", "decimals": 0 }, "overrides": [] }
+    },
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "Seçili Oyuncu — Mob Öldürme",
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 27 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum by (player) (minecraft_mobs_killed_total{player=~\"$player\"})", "legendFormat": "{{player}}", "refId": "A" }],
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
     }
   ],
   "annotations": { "list": [] },
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "player",
+        "label": "Oyuncu",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "definition": "label_values(minecraft_play_time_ticks_total, player)",
+        "query": { "query": "label_values(minecraft_play_time_ticks_total, player)", "refId": "StandardVariableQuery" },
+        "current": { "selected": true, "text": "All", "value": "$__all" },
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "refresh": 1,
+        "sort": 1
+      }
+    ]
+  },
   "editable": true
 }

@@ -1,0 +1,5 @@
+{
+  "criteria": {
+    "tamed": { "trigger": "minecraft:tame_animal" }
+  }
+}

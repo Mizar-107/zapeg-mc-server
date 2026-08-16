@@ -12,6 +12,8 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 - True server-owned lore citizens now use a durable world principal, persistent persona/home, public dialogue, operator-only physical tasks, restart wake-up and delayed death recovery. They are not faked under a player's identity.
 - Common enemies and bosses remain deterministic mobs/state machines. LLMs may eventually choose high-level intent or dialogue, but should not drive every combat tick.
 - The obsolete single-character, log-tail chat prototype is removed. Easy NPC remains available for non-worker lore/quest characters; Heraldor remains an independent optional presence service.
+- **Quest authority pass:** every custom quest checkmark is replaced by a real item/advancement/server criterion. Exact-name inventory/stat/advancement checks cover the initial roster; subjective builds require OP inspection. `MertOnal` owns the 5 km minecart, house and exploit-resistant 64-ray quests; Emin has a town fountain; Emir and Salih each have an owned-dragon quest. Five named items are delivered directly to their exact owners. See `docs/QUEST-VALIDATION-TR.md`.
+- **Live metrics pass:** exporter/Prometheus/Grafana images are pinned; Grafana is localhost-only and non-anonymous by default; retention is 400d/10GB; the provisioned dashboard includes TPS, tick time, entities and player drill-down. BlueMap cache is excluded from daily archives.
 
 ## ✅ v0.8.1 — one-patch onboarding + overlap audit
 
@@ -20,9 +22,9 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 - Server/client loader override is Forge 47.4.10; offline output is accurately framed as an isolated Forge 47.4.10 game-directory payload.
 - Valkyrien Skies 2.4.11 + Eureka 1.6.3 are the conservative physics-ship phase 1. Trackwork is a post-smoke-test candidate; Interactive/Clockwork wait on a deliberate Create-stack migration, not a blind drop-in.
 - Env docs distinguish the default stack from optional service profiles; Discord bot config and Heraldor webhook are separate mechanisms.
-- `eminomi12` (Emin Taha) and `MubarekAbi` (Mert) have exact-name welcome pools and first-login gifts; the live roster and slots are 10.
-- `SalihKarahans` is Salih's confirmed exact login key; his arson-history welcome pool and named flint-and-steel gift are wired to it.
-- A third FTB Quests page, **ZapeG**, contains eight independent personal-lore objectives for Emir, Emin Taha, Salih, Recep and Enes. No quest combines two requested conditions; Mert stays intentionally unassigned. The launch-safe first version uses honor-system checkmarks, with exact-name automation added only after runtime event checks.
+- `eminomi12` (Emin Taha) and `MertOnal` (the car-fan Mert) have exact-name welcome pools and first-login gifts; the other Mert remains an unconfirmed real-name key. The live roster and slots are 10.
+- `SalihKarahan` is Salih's confirmed exact login key; his arson-history welcome pool and named flint-and-steel gift are wired to it.
+- A third FTB Quests page, **ZapeG**, began with eight independent personal-lore objectives. The current working tree replaces their honor-system checkmarks with server authority and expands the page to 14 nodes, including `MertOnal`'s three-node quest line.
 - Stats correctness pass: dragon deaths use an explicit three-dragon allowlist; the exporter avoids Mojang lookup for offline identities and samples once per minute. Friendly UUID→name dashboard aliases wait for real post-boot player data.
 - Redundant WDA/playerAnimator manual pins were removed after the first real boot: ATM9 1.1.1 already supplies WDA 2.1.58 and the exact playerAnimator dependency. Both features remain, but neither belongs in the 15-jar ZapeG patch.
 - Offline access follows the owner's explicit trade-off: whitelist off and `Mizar__107` permanent OP, with nickname/OP spoofing knowingly accepted. Internal RCON stays enabled but its generated password no longer needs host configuration.
@@ -65,7 +67,7 @@ Boot → seed audition → real world → gamerules → pregen → build the lic
 ## v0.5.x — the lore era (first weeks)
 
 - **Lore datapack**: hand-built structures seeded in unexplored territory — "ZapeG Araştırma Tesisi" ruins, Turkish lore books referencing group history. New-chunks-only = world-safe. **Blocked on: in-jokes/lore input from the group.**
-- **Real login lines**: nine pools are live; only Enes, Yusuf, Ali and the other Mert still need exact Minecraft usernames.
+- **Real login lines**: nine pools are live; Enes, Yusuf, Ali and the other Mert still need exact Minecraft usernames.
 - **Milestone gift items v2**: awarded live at the moment (KubeJS advancement hooks) instead of via quest claim.
 - Playtest-driven trims (remove what nobody touches; Apotheosis/dragon/Mowzie's spawn tuning if needed).
 
