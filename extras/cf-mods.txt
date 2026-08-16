@@ -32,10 +32,17 @@ mowzies-mobs:7815705
 # Easy NPC bundle 7.7.7 (2026-08-14) — Muhtar'ın fiziksel bedeni (skin, poz, follow)
 easy-npc:8644040
 
+# Easy NPC Dependencies
+easy-npc-core:8644032
+easy-npc-config-ui:8644036
+
 # --- v0.8.0 content drop (all client+server) ----------------------------------
 
 # Aquamirae 7.1.10 (2026-08-02) — ship-graveyard ocean horror + Captain Cornelia
 aquamirae:8558369
+
+# Aquamirae Dependency
+fragmentum:8506891
 
 # Born in Chaos 1.7.5 (2026-04-12) — horror night mobs; lore: Heraldor'un orduları
 born-in-chaos:7917933

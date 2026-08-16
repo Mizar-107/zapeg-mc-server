@@ -23,6 +23,10 @@ services:
                                            # Bump deliberately; run scripts/snapshot.sh first.
       # Image bundles a CF API key; set your own in .env if downloads throttle.
       CF_API_KEY: ${CF_API_KEY:-}
+      # ATM9 1.1.1 pins Forge 47.4.0, but easy_npc 7.7.7 needs >=47.4.10 and
+      # immersive-petroleum needs >=47.4.6 (all their CF builds do — checked).
+      # Override just the loader, keep the pack pin as-is.
+      CF_MOD_LOADER_VERSION: "47.4.10"
 
       # ---- manual additions (brief §4) — exact pins live in extras/cf-mods.txt
       CURSEFORGE_FILES: "@/extras/cf-mods.txt"
