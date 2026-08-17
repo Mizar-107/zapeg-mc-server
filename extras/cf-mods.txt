@@ -11,7 +11,7 @@
 #   immersive-vehicles + official-content-pack + official-automobile-pack,
 #   aleki's Nifty Ships
 #   (+ better-combat and the CC:Tweaked 1.116.1 re-pin via Modrinth — client+server)
-#   (+ ZapeG Citizens from the owned overrides/mods jar — not CurseForge)
+#   (+ ZapeG Citizens and ZapeG Runtime from owned overrides/mods jars — not CurseForge)
 # ATM9 1.1.1 already supplies When Dungeons Arise 2.1.58 and the exact
 # playerAnimator build required by Better Combat; do not declare either twice.
 # SERVER-ONLY (players skip): dcintegration (+ chunky, bluemap, incendium via MODRINTH_PROJECTS)
@@ -86,8 +86,8 @@ valkyrien-skies:7906689
 eureka-ships:7979379
 
 # Numen AI 0.1.1 (2026-08-01) — managed citizen body/tool engine.
-# ZapeG Citizens itself is an owned custom jar under overrides/mods and is
-# deliberately not represented as a CurseForge entry here.
+# ZapeG Citizens and ZapeG Runtime are owned custom jars under overrides/mods
+# and are deliberately not represented as CurseForge entries here.
 numen-ai:8551640
 
 # --- server-only ---------------------------------------------------------------

@@ -40,9 +40,9 @@ $ccTweakedReplacement = [pscustomobject]@{
 # Her ek moddan TAM BİR, TAM SÜRÜM jar bulunmalı. Dosya adları
 # extras/cf-mods.txt, docker-compose.yml ve oyuncu rehberindeki pinlerle
 # senkron kalır. Yalnız önek kontrolü eski bir jar'ı yanlışlıkla kabul eder.
-# ZapeG Citizens bize ait bir build'dir; CurseForge profili gibi gösterilmez.
-# Repo içindeki overrides/mods kopyası ayrı doğrulanır ve aynı SHA kilitlerine
-# dahil edilir.
+# ZapeG Citizens ve Runtime bize ait build'lerdir; CurseForge profili gibi
+# gösterilmez. Repo içindeki overrides/mods kopyaları ayrı doğrulanır ve aynı
+# SHA kilitlerine dahil edilir.
 $extraMods = @(
     [pscustomobject]@{ Name = 'Ice and Fire';        Prefix = 'iceandfire';           FileName = 'iceandfire-2.1.13-1.20.1-beta-5.jar';               FileId = '5633453'; Pin = 'CurseForge file 5633453' },
     [pscustomobject]@{ Name = 'Citadel';             Prefix = 'citadel';              FileName = 'citadel-2.6.3-1.20.1.jar';                          FileId = '7476570'; Pin = 'CurseForge file 7476570' },
@@ -74,6 +74,13 @@ $ownedMods = @(
         FileName = 'zapeg-citizens-forge-1.20.1-0.3.0.jar'
         RelativePath = 'overrides\mods\zapeg-citizens-forge-1.20.1-0.3.0.jar'
         Pin = 'ZapeG owned release 0.3.0 (not CurseForge)'
+    },
+    [pscustomobject]@{
+        Name = 'ZapeG Runtime'
+        Prefix = 'zapeg-runtime-forge-1.20.1-'
+        FileName = 'zapeg-runtime-forge-1.20.1-0.1.0.jar'
+        RelativePath = 'overrides\mods\zapeg-runtime-forge-1.20.1-0.1.0.jar'
+        Pin = 'ZapeG owned release 0.1.0 (not CurseForge)'
     }
 )
 
@@ -503,10 +510,10 @@ function Add-ZapeGClientLayer {
              '1. CurseForge App içinde All the Mods 9 sürüm 1.1.1 kurulu olsun.',
              '2. Profile Options / Profil Seçenekleri içinde modloader sürümünü Forge 47.4.10 yap.',
              '3. Profil menüsünde ... > Open Folder / Klasörü Aç seçeneğine bas.',
-             '4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile Citizens 0.2.0/0.2.1 jarları silinmiş olmalı.',
+             '4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar, zapeg-citizens-forge-1.20.1-*.jar ve zapeg-runtime-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile eski Citizens/Runtime jarları silinmiş olmalı.',
              '5. Bu zip içeriğini O KLASÖRÜN KÖKÜNE çıkar.',
              '6. ZapeG dosyaları için üzerine yazma sorulursa onayla. Kişisel options.txt ayarların bu yamada yoktur ve korunur.',
-             '7. Bu iki mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.3.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli.',
+             '7. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, zapeg-citizens-forge-1.20.1-0.3.0.jar ve zapeg-runtime-forge-1.20.1-0.1.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli.',
              '8. Oyunu başlat. Kullanıcı adını değiştirme; envanter, claim ve kişisel lore o ada bağlıdır.',
             '',
             'Zip içinde yeniden bir ZapeG klasörü oluşturma. mods klasörü profil kökünde olmalı.'
@@ -518,9 +525,9 @@ function Add-ZapeGClientLayer {
              'BU ZIP BİR LAUNCHER VEYA FORGE KURUCUSU DEĞİLDİR.',
              '1. Launcher içinde Minecraft 1.20.1 + Forge 47.4.10 kullanan İZOLE bir profil oluştur.',
              '2. Launcher sorarsa Java 17 seç. Profili bir kez açıp kapat.',
-             '3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile Citizens 0.2.0/0.2.1 jarları silinmiş olmalı.',
+             '3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar, zapeg-citizens-forge-1.20.1-*.jar ve zapeg-runtime-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile eski Citizens/Runtime jarları silinmiş olmalı.',
              '4. Bu zip içeriğini o profilin OYUN KLASÖRÜNE çıkar.',
-             '5. Bu iki mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.3.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli; iç içe ZapeG klasörü olmamalı.',
+             '5. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, zapeg-citizens-forge-1.20.1-0.3.0.jar ve zapeg-runtime-forge-1.20.1-0.1.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli; iç içe ZapeG klasörü olmamalı.',
              '6. Sabit bir kullanıcı adı seç. Sonradan değiştirme; envanter ve claim kimliğin bu addır.'
          )
     }
@@ -596,7 +603,7 @@ if ($WriteInventoryLock) {
     New-ModInventoryLock -Jars $inventoryJars -Path $InventoryLockFile -Mode $mode
     Write-Host "Aday envanter kilidi yazıldı: $InventoryLockFile" -ForegroundColor Yellow
     if ($PatchOnly) {
-        Write-Host "$($extraMods.Count) satırın beklenen kaynaklardan geldiğini inceleyip lock dosyasını repoya ekleyin; sonra normal -PatchOnly komutunu çalıştırın."
+        Write-Host "$($inventoryJars.Count) satırın beklenen kaynaklardan geldiğini inceleyip lock dosyasını repoya ekleyin; sonra normal -PatchOnly komutunu çalıştırın."
     } else {
         Write-Host 'Dağıtmadan önce listeyi inceleyin: kişisel ve server-only jar bulunmamalı. Lock dosyasını repoya ekleyip normal komutla offline payload üretin.'
     }

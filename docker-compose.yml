@@ -56,7 +56,7 @@ services:
       # Client+server (players install too): better-combat. Its exact
       # playerAnimator dependency already ships in the ATM9 1.1.1 manifest.
       MODRINTH_PROJECTS: "chunky:1.3.146,bluemap:5.3-forge-1.20,incendium:5.3.1,better-combat:1.9.0+1.20.1-forge"
-      # Repo-tracked replacement/custom jars (CC:Tweaked + ZapeG Citizens).
+      # Repo-tracked replacement/custom jars (CC:Tweaked + owned ZapeG jars).
       # itzg records this MODS source separately from the base/resolver lists.
       MODS: /citizens-mods
 

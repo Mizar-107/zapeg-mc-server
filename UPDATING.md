@@ -12,6 +12,7 @@ The pack is meant to evolve (brief §8–9). This is the playbook for doing that
 | Mod config / `server.properties` / gamerules | None | None |
 | Add a server-side util (Chunky, profilers) | None | None |
 | Update Numen or ZapeG Citizens | Low–medium — snapshot first and test citizen save/stop/remove behavior | Rebuild and distribute the matching client patch before reconnecting |
+| Update ZapeG Runtime | Low for v0.1 scene-only builds; snapshot first because the network handshake is exact | Rebuild and distribute the exact matching client patch; pass the two-client privacy/render gate before live use |
 | Update only the private Citizens brain | None to world data; SQLite/protocol migration still needs backup + compatibility review | None when the Forge protocol remains compatible |
 | Add the pinned Immersive Vehicles official trio | Low — no worldgen; existing chunks are unchanged. Removal becomes **high risk** after vehicles/items exist | Rebuild and distribute the same three exact jars before reconnecting |
 | Add the experimental Nifty Ships core | Medium — unfinished hulls generate only in new chunks, and known unload/mooring defects require a copied-world test. Removal becomes **high risk** after ships, cargo/items or generated structures exist | Rebuild and distribute the same exact core jar before reconnecting |
@@ -96,10 +97,24 @@ docker compose --profile citizens build --pull citizen-brain
 docker compose --profile citizens up -d mc backup citizen-brain
 ```
 
+## Runtime release discipline
+
+ZapeG Runtime uses an exact Forge network protocol and is mandatory on both
+client and server. Its owned jar under `overrides/mods/` and both client lock
+entries must always have the same filename and SHA-256. Never replace only the
+live copy in `data/mods/`.
+
+For every Runtime change: snapshot first, rebuild the client patch, update the
+server and every player together, then pass the target/observer two-client gate
+in `docs/ZAPEG-RUNTIME-RUNBOOK.md`. Verify the target sees the apparition, the
+observer receives no scene, direct gaze cancels it, timeout/lifecycle cleanup is
+reliable, and shaders plus Entity Culling do not expose or break it. Do not arm a
+live Director trigger until that gate passes.
+
 ## Immersive Vehicles rollout
 
 Treat core `24.0.0`, MTS Official Pack `V29` and Official Automobile Pack `V3`
-as one dependency set. Snapshot first, rebuild the 22-jar client patch, and use a
+as one dependency set. Snapshot first, rebuild the 23-jar client patch, and use a
 throwaway world before promotion. With 2–3 clients, create a vehicle from each
 pack, fuel/drive it on normal terrain, unload its chunk, restart/reconnect and
 verify persistence while watching Spark/TPS and host network use. Do not use IV

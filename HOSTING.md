@@ -1,6 +1,6 @@
 # HOSTING — day-0 guide for the server operator
 
-You're hosting **ZapeG** — a private modded Minecraft server for 4–10 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 26 additions** (22 client+server, 4 server-only). The container resolves the external pins and installs the reviewed ZapeG Citizens jar from this repo. Players never install jars one-by-one; Ertu generates one client patch. Full reference: [README.md](README.md). Citizens launch setup: [docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
+You're hosting **ZapeG** — a private modded Minecraft server for 4–10 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 27 additions** (23 client+server, 4 server-only). The container resolves the external pins and installs the reviewed ZapeG Citizens and Runtime jars from this repo. Players never install jars one-by-one; Ertu generates one client patch. Full reference: [README.md](README.md). Citizens launch setup: [docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). Private-scene setup: [docs/ZAPEG-RUNTIME-RUNBOOK.md](docs/ZAPEG-RUNTIME-RUNBOOK.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
 
 ## Requirements
 
@@ -198,10 +198,10 @@ the new score look like a regression. After restoring a normal server archive,
 keep Heraldor stopped and promote its consistent SQLite snapshot using the
 restore command in the runbook before starting the service.
 
-## Verify all 26 additions loaded (once, after first boot)
+## Verify all 27 additions loaded (once, after first boot)
 
 ```bash
-ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|Immersive Vehicles|MTS Official Pack|OAmP|alekiNiftyShips|alexscaves|mowziesmobs|easy_npc|aquamirae|fragmentum|born_in_chaos|simplyswords|valkyrienskies|eureka|numen|cc-tweaked|zapeg-citizens|bettercombat|chunky|bluemap|incendium|dcintegration'   # expect 26
+ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|Immersive Vehicles|MTS Official Pack|OAmP|alekiNiftyShips|alexscaves|mowziesmobs|easy_npc|aquamirae|fragmentum|born_in_chaos|simplyswords|valkyrienskies|eureka|numen|cc-tweaked|zapeg-citizens|zapeg-runtime|bettercombat|chunky|bluemap|incendium|dcintegration'   # expect 27
 test -f data/mods/DungeonsArise-1.20.x-2.1.58-release.jar && test -f data/mods/player-animation-lib-forge-1.0.2-rc1+1.20.jar   # ATM9 base, not additions
 ```
 
@@ -264,5 +264,5 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
 ## Don'ts
 
 - Don't exceed `MEMORY: 12G` — GC degrades above that on this pack.
-- Don't update the ATM9 version or any mod yourself — that's coordinated with client updates. Players need the same 22 client+server additions; Chunky, BlueMap, Incendium and Discord Integration stay server-only.
+- Don't update the ATM9 version or any mod yourself — that's coordinated with client updates. Players need the same 23 client+server additions; Chunky, BlueMap, Incendium and Discord Integration stay server-only.
 - Don't delete `snapshots/` or `backups/` to free space without checking with Ertu.
