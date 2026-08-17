@@ -1,0 +1,6 @@
+# Install the voice dependencies explicitly. discord.py 2.7.1's published
+# `voice` extra caps PyNaCl below 1.6, while current upstream accepts 1.6.x;
+# explicit pins retain the security-fixed PyNaCl 1.6.2 on Python 3.12.
+discord.py==2.7.1
+PyNaCl==1.6.2
+davey==0.1.6

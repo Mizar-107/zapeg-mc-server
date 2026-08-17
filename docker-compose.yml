@@ -242,6 +242,9 @@ services:
       HERALDOR_WEBHOOK: ${HERALDOR_WEBHOOK:-}
       HERALDOR_EVENTS: ${HERALDOR_EVENTS:-false}
       HERALDOR_LLM: ${HERALDOR_LLM:-false}
+      # True only when the separate output-only relay is intentionally live.
+      # Existing suppressed rows are terminal and are never revived.
+      HERALDOR_VOICE_ENABLED: ${HERALDOR_VOICE_ENABLED:-false}
       CHECK_INTERVAL: ${HERALDOR_CHECK_INTERVAL:-300}
       MINION_POLL_INTERVAL: ${HERALDOR_MINION_POLL_INTERVAL:-10}
       HERALDOR_DB_PATH: /state/heraldor.sqlite3
@@ -263,6 +266,41 @@ services:
         read_only: true
         bind:
           create_host_path: false
+
+  # Output-only Discord voice cameo — OPT-IN and isolated from the DCI process.
+  # It may authenticate as the same bot account; it never mounts DCI config.
+  # Receives no RCON, Minecraft data, webhook, LLM key, or Docker socket.
+  heraldor-voice:
+    build:
+      context: ./npc
+      dockerfile: Dockerfile.voice
+    container_name: atm9-heraldor-voice
+    profiles: ["heraldor-voice"]
+    restart: unless-stopped
+    read_only: true
+    stop_grace_period: 35s
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    environment:
+      HERALDOR_DB_PATH: /state/heraldor.sqlite3
+      HERALDOR_SNAPSHOT_PATH: /state/backup/heraldor.sqlite3
+      HERALDOR_DISCORD_TOKEN_FILE: /run/secrets/heraldor_discord_bot_token
+      HERALDOR_DISCORD_GUILD_ID: ${HERALDOR_DISCORD_GUILD_ID:-}
+      HERALDOR_DISCORD_VOICE_CHANNEL_ID: ${HERALDOR_DISCORD_VOICE_CHANNEL_ID:-}
+      HERALDOR_DISCORD_TEST_VOICE_CHANNEL_ID: ${HERALDOR_DISCORD_TEST_VOICE_CHANNEL_ID:-}
+      HERALDOR_DISCORD_SHARED_BOT: ${HERALDOR_DISCORD_SHARED_BOT:-false}
+      HERALDOR_VOICE_POLL_SECONDS: ${HERALDOR_VOICE_POLL_SECONDS:-2}
+      HERALDOR_VOICE_CONNECT_TIMEOUT_SECONDS: "15"
+    secrets:
+      - heraldor_discord_bot_token
+    volumes:
+      - type: bind
+        source: ./data/heraldor
+        target: /state
 
   # Offsite backup sync — OPT-IN: docker compose --profile offsite up -d
   # Needs ./rclone.conf (gitignored) with a remote named per RCLONE_DEST in .env
@@ -288,3 +326,6 @@ secrets:
   # Created locally by the host; never commit or send it back through chat.
   citizens_ollama_api_key:
     file: ./secrets/citizens_ollama_api_key.txt
+  # Relay token. It may duplicate DCI's bot token, or use a dedicated bot.
+  heraldor_discord_bot_token:
+    file: ./secrets/heraldor_discord_bot_token.txt

@@ -17,12 +17,15 @@ or explain the command, tags, counters, thresholds, or audio trigger.
   Minecraft world gets a persistent random token, so replacing a throwaway
   world starts a separate stream instead of looking like a score regression.
 - One typed audio request at the third legitimate victory, stored with clip ID
-  `servants_after_three_v1`.
+  `servants_after_three_v1`. When explicitly enabled, the isolated Discord
+  voice relay resolves that ID to a hash-pinned 23.6-second Opus clip, joins one
+  fixed voice channel self-deafened, plays once and immediately leaves.
 
-There is no automatic servant schedule, voice relay, custom Heraldor body, boss
-fight or LLM-driven combat in this slice. With no relay, the audio request is
-recorded as `suppressed_no_sink`; installing a relay later will not unexpectedly
-play an old event.
+There is no automatic servant schedule, custom Heraldor body, boss fight or
+LLM-driven combat in this slice. With voice disabled, the audio request is
+recorded as `suppressed_no_sink`; enabling the relay later never revives an old
+event. Pending live requests expire after five minutes rather than ambushing a
+channel hours later.
 
 ## Deploy
 
@@ -54,6 +57,7 @@ then start Minecraft/backup:
 
 ```bash
 docker compose --profile heraldor stop heraldor
+docker compose --profile heraldor-voice stop heraldor-voice
 docker compose stop backup mc
 # Restore the pre-Heraldor archive over data/ and return to the prior release.
 rm -f -- data/kubejs/server_scripts/zapeg_heraldor_servant.js
@@ -115,7 +119,91 @@ At the first transition to three victories, status should show the same
 `servant_world_token` as the hidden world score, `servant_high_water: 3`, a
 recent `servant_threshold` event and an outbox row named
 `story:heraldor-servants:defeated:3:v1:world:<token>` with status
-`suppressed_no_sink`.
+`suppressed_no_sink` while voice is disabled, or `pending` followed by one
+terminal relay result while it is enabled.
+
+## Configure and rehearse Discord voice
+
+The existing DCI Minecraft-chat bot may also be the Heraldor voice identity.
+Discord explicitly permits multiple Gateway sessions for an application, so
+DCI can retain its chat session while the isolated relay owns voice. Reusing it
+is the simplest option for this small, single-guild deployment. It does couple
+the relay secret to DCI's broader chat permissions and couples token rotation
+and bot-account failure across both features, so a dedicated Heraldor bot
+remains an optional stronger isolation boundary.
+
+When reusing DCI, copy the same token into
+`secrets/heraldor_discord_bot_token.txt`; do not mount, parse or expose
+`data/config/Discord-Integration.toml` to the relay. Give that existing bot
+`View Channel`, `Connect`, `Speak` and `Use Voice Activity` in exactly the
+private rehearsal and eventual live voice channels. Do not run any other voice
+controller for the same bot in this guild. If using a dedicated bot instead,
+invite it with only those permissions. Neither option needs a privileged
+intent, message permission or slash command for the relay. See Discord's
+[Gateway session guidance](https://docs.discord.com/developers/events/gateway).
+
+Set `HERALDOR_DISCORD_SHARED_BOT=true` when reusing DCI. This prevents the
+relay's second Gateway session from changing DCI's visible presence. Start the
+relay only after DCI reports ready so the two processes do not spend the same
+application's concurrent Identify allowance at once. For a dedicated Heraldor
+bot, use `false` instead.
+
+Create `secrets/heraldor_discord_bot_token.txt` locally with only the token,
+restrict its host permissions, and set these non-secret values in `.env`:
+
+```dotenv
+HERALDOR_VOICE_ENABLED=false
+HERALDOR_DISCORD_GUILD_ID=<server-id>
+HERALDOR_DISCORD_VOICE_CHANNEL_ID=<eventual-live-channel-id>
+HERALDOR_DISCORD_TEST_VOICE_CHANNEL_ID=<private-rehearsal-channel-id>
+HERALDOR_DISCORD_SHARED_BOT=true
+```
+
+Keep `HERALDOR_VOICE_ENABLED=false` through setup. Build and verify the baked
+catalog, then start the relay. The relay receives no RCON secret, Minecraft
+data, webhook, LLM key or Docker socket:
+
+[Discord voice](https://docs.discord.com/developers/topics/voice-connections)
+uses outbound HTTPS/WebSocket plus UDP hole punching. No Docker port is
+published, but the host/provider firewall must allow outbound UDP and its return
+traffic; a bot that logs in yet times out while joining voice usually indicates
+that network boundary or missing channel permissions.
+
+```bash
+docker compose --profile heraldor-voice build heraldor-voice
+docker compose --profile heraldor-voice run --rm --no-deps heraldor-voice \
+  python heraldor_voice.py validate
+docker compose --profile heraldor-voice up -d heraldor-voice
+docker compose --profile heraldor-voice logs --tail=100 heraldor-voice
+```
+
+Join the private rehearsal voice channel with a human account that is not
+self/server-deafened, then enqueue one short-lived rehearsal. It never changes
+servant victories or story flags:
+
+```bash
+docker compose --profile heraldor exec heraldor \
+  python heraldor.py admin voice-rehearse
+docker compose --profile heraldor exec heraldor \
+  python heraldor.py admin status
+```
+
+Success is one join, one complete `servants_after_three_v1` playback, immediate
+disconnect, and outbox status `delivered`. With nobody audible in the test
+channel it must remain silent and finish `suppressed_empty_channel`. A stopped/crashed
+relay leaves an uncertain attempt `ambiguous`; it is never replayed. Rehearsal
+requests expire in two minutes and have a 30-second pacing gate.
+
+Only after this passes, set `HERALDOR_VOICE_ENABLED=true` and recreate the
+Director so future live threshold events are born `pending`:
+
+```bash
+docker compose --profile heraldor up -d --force-recreate heraldor
+```
+
+Changing the flag does not modify any row already stored as
+`suppressed_no_sink`. The live relay also requires a human already present in
+the fixed channel and enforces a six-hour voice-attempt gap.
 
 ## Restore from a normal server archive
 
@@ -125,15 +213,17 @@ After extracting the normal archive and while the Heraldor daemon is stopped,
 promote the verified snapshot and then start it:
 
 ```bash
+docker compose --profile heraldor-voice stop heraldor-voice
 docker compose --profile heraldor stop heraldor
 docker compose --profile heraldor run --rm --no-deps heraldor \
   python heraldor.py admin restore-snapshot
 docker compose --profile heraldor up -d heraldor
+docker compose --profile heraldor-voice up -d heraldor-voice
 ```
 
 `restore-snapshot` verifies SQLite integrity, atomically replaces the live DB,
-and removes archived `-wal`/`-shm` files. Never run it while the Heraldor daemon
-is active.
+and removes archived `-wal`/`-shm` files. It takes both process locks and refuses
+while either the Director or voice relay is active.
 
 ## Acceptance gate
 
@@ -157,6 +247,13 @@ Before using it in the story, verify all of these in a copied/disposable world:
    exactly once.
 9. Run the normal backup, restore it with `admin restore-snapshot`, then inspect
    the promoted live DB with `admin status`; no event is duplicated.
+10. Validate the audio catalog/hash/decode, rehearse once with an audible human
+    in the private channel, then repeat with an empty or fully deafened channel.
+    Verify one self-deafened join/play/
+    leave, `delivered` once, and terminal `suppressed_empty_channel` once.
+11. Stop the relay during a mocked/private playback, restart it and verify the
+    uncertain row becomes `ambiguous` without replay. Verify restore refuses
+    while the voice relay lock is held.
 
 Use `/zapeg-lore servant cleanup` immediately if any targeting or drop invariant
 fails. Keep the feature manual until this gate passes.

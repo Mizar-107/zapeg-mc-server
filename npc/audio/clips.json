@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "clips": {
+    "servants_after_three_v1": {
+      "filename": "servants_after_three_v1.ogg",
+      "sha256": "aa4c331c8a63b6af517efd7dc142452e0ffb2a64426b7885427560057346b03d",
+      "duration_seconds": 23.5985,
+      "codec": "opus",
+      "sample_rate": 48000,
+      "channels": 2,
+      "source_sha256": "0a0e1aa0b626a8021fbc8b81f17b561d22d1bc56a9ec645b5615360ce5ed94dc"
+    }
+  }
+}

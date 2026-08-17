@@ -85,6 +85,12 @@ KubeJS `startup_scripts/` are outside this hot-reload path: Heraldor's Forge XP
 drop hook requires a full Minecraft restart and must be checked with
 `/kubejs errors` after boot.
 
+Heraldor audio catalog/relay changes are also image changes, not KubeJS reloads.
+Rebuild `heraldor-voice`, run `python heraldor_voice.py validate`, and rehearse
+only in the fixed private test channel. Never enable live voice merely because a
+new file exists; its manifest hash, expiry, no-audience behavior and one-shot
+disconnect must pass `docs/HERALDOR-RUNBOOK.md` first.
+
 ## Easy NPC Muhtar fast path
 
 Muhtar is intentionally separate from quest authority. Use the fixed UUID and

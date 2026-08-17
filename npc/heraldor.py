@@ -46,6 +46,7 @@ RCON_ENV_FILE = Path(os.environ.get("RCON_ENV_FILE", "/run/secrets/mc-rcon.env")
 WEBHOOK = os.environ.get("HERALDOR_WEBHOOK", "").strip()
 EVENTS = os.environ.get("HERALDOR_EVENTS", "false").lower() == "true"
 USE_LLM = os.environ.get("HERALDOR_LLM", "false").lower() == "true"
+VOICE_ENABLED = os.environ.get("HERALDOR_VOICE_ENABLED", "false").lower() == "true"
 CHECK_INTERVAL = max(10, int(os.environ.get("CHECK_INTERVAL", "300")))
 MINION_POLL_INTERVAL = max(5, int(os.environ.get("MINION_POLL_INTERVAL", "10")))
 DB_PATH = Path(os.environ.get("HERALDOR_DB_PATH", "/state/heraldor.sqlite3"))
@@ -317,10 +318,15 @@ def poll_servant_score(director: DirectorStore):
             f"{result.previous_high_water} -> {result.high_water}"
         )
     if result.story_event_id:
+        output_state = (
+            "ses çıkışı bekleyen kuyruğa alındı"
+            if VOICE_ENABLED
+            else "ses çıkışı bağlı değil; olay bastırıldı"
+        )
         print(
             "[heraldor] hikâye eşiği kaydedildi: "
             f"{result.story_event_id}; ses kimliği=servants_after_three_v1; "
-            "ses çıkışı henüz bağlı değil"
+            f"{output_state}"
         )
     return result, score, world_before
 
@@ -329,11 +335,15 @@ def run_daemon() -> None:
     print(
         f"[heraldor] uyanıyor — ambient={CHECK_INTERVAL}s, minion={MINION_POLL_INTERVAL}s, "
         f"webhook={'var' if WEBHOOK else 'yok'}, events={EVENTS}, llm={USE_LLM}, "
-        f"db={DB_PATH}"
+        f"voice={VOICE_ENABLED}, db={DB_PATH}"
     )
     with (
         DirectorStateLock(Path(str(DB_PATH) + ".lock")),
-        DirectorStore(DB_PATH, snapshot_path=SNAPSHOT_PATH) as director,
+        DirectorStore(
+            DB_PATH,
+            snapshot_path=SNAPSHOT_PATH,
+            audio_sink_enabled=VOICE_ENABLED,
+        ) as director,
     ):
         director.backup_snapshot()
         next_ambient = time.monotonic() + CHECK_INTERVAL
@@ -392,6 +402,12 @@ def run_admin(command: str) -> None:
         elif command == "snapshot":
             director.backup_snapshot()
             print(f"[heraldor] tutarlı yedek yazıldı: {SNAPSHOT_PATH}")
+        elif command == "voice-rehearse":
+            event_id = director.enqueue_audio_rehearsal()
+            print(
+                "[heraldor] ses provası sıraya alındı; iki dakika içinde yalnız "
+                f"test kanalında çalabilir: {event_id}"
+            )
         else:
             raise ValueError(f"bilinmeyen admin komutu: {command}")
 
@@ -400,7 +416,10 @@ def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Heraldor persistent director")
     subparsers = parser.add_subparsers(dest="mode")
     admin = subparsers.add_parser("admin", help="host-only state inspection")
-    admin.add_argument("command", choices=("status", "snapshot", "restore-snapshot"))
+    admin.add_argument(
+        "command",
+        choices=("status", "snapshot", "restore-snapshot", "voice-rehearse"),
+    )
     args = parser.parse_args(argv)
 
     if args.mode == "admin":

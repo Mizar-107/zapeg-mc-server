@@ -110,10 +110,10 @@ installer. Player-facing steps: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.m
 - **Automated:** sidecar tars `/data` daily (`BACKUP_INTERVAL=24h`), prunes after 14 days → `./backups/`. Jars/caches excluded — they re-resolve from pins; world + configs are the real state.
 - **Manual (mandatory before ANY change):** `scripts/snapshot.sh <label>` → `./snapshots/`. Works hot (flushes saves via RCON) or cold; it briefly stops/restarts the automatic backup service to prevent overlapping save coordination. Avoid the daily archive window when practical.
 - **Restore:** stop the stack (including optional profiles), extract the tarball
-  over `data/`, and keep Heraldor stopped. If the archive contains
+  over `data/`, and keep both Heraldor services stopped. If the archive contains
   `data/heraldor/backup/heraldor.sqlite3`, promote that consistent copy with
   `docker compose --profile heraldor run --rm --no-deps heraldor python heraldor.py admin restore-snapshot`
-  before starting the Heraldor profile; then start the required services. See
+  before starting the Director or voice profile; then start the required services. See
   [the Heraldor runbook](docs/HERALDOR-RUNBOOK.md#restore-from-a-normal-server-archive).
   Test one complete restore before go-live.
 

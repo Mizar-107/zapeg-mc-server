@@ -59,6 +59,11 @@ HERALDOR_P_WHISPER=0.002
 HERALDOR_P_GLOBAL=0.0005
 HERALDOR_P_DISCORD=0.0003
 HERALDOR_P_SHADOWS=0.0002
+HERALDOR_VOICE_ENABLED=false
+HERALDOR_DISCORD_GUILD_ID=
+HERALDOR_DISCORD_VOICE_CHANNEL_ID=
+HERALDOR_DISCORD_TEST_VOICE_CHANNEL_ID=
+HERALDOR_DISCORD_SHARED_BOT=true
 ```
 
 The owner deliberately chose public offline-mode, no whitelist and permanent
@@ -77,6 +82,7 @@ Profile-only values:
   then follow [the metrics runbook](metrics/README.md)
 - `RCLONE_DEST` plus local `rclone.conf` → `offsite`
 - `HERALDOR_WEBHOOK`, `HERALDOR_EVENTS`, `HERALDOR_LLM` and advanced `HERALDOR_CHECK_INTERVAL` / `HERALDOR_MINION_POLL_INTERVAL` / `HERALDOR_P_*` knobs → optional `heraldor`
+- `HERALDOR_VOICE_ENABLED`, fixed Discord guild/voice-channel IDs and the relay token file → optional `heraldor-voice`; keep disabled until private rehearsal passes
 
 The default stack does **not** call an LLM. Normal Minecraft↔Discord bridging is also not configured through `.env`; it uses the generated mod config described below.
 
@@ -167,10 +173,24 @@ damage only its selected real player, and expires after 120 seconds. Three
 explicit live `/zapeg-lore servant awaken <player>` victories create one durable
 story event; rehearsal victories never advance it. Inspect state with
 `docker compose --profile heraldor exec heraldor python heraldor.py admin status`.
-Voice playback is deliberately not connected yet; the event records only the
-allowlisted clip ID `servants_after_three_v1`, so an absent relay cannot speak
-unexpectedly after it is installed. Follow [the Heraldor runbook](docs/HERALDOR-RUNBOOK.md)
-before using the encounter in the live world.
+The optional `heraldor-voice` sidecar now maps the allowlisted clip ID
+`servants_after_three_v1` to the supplied hash-pinned audio. It is a separate,
+self-deafened, output-only relay process that can join only fixed voice channels,
+plays once only when a non-deafened human is already present, and immediately disconnects.
+It receives no RCON, Minecraft data, webhook, LLM key or Docker socket. On this
+single-guild deployment, the relay may reuse the existing DCI bot identity:
+copy the same token into `secrets/heraldor_discord_bot_token.txt`, set
+`HERALDOR_DISCORD_SHARED_BOT=true`, and do not mount or parse
+`Discord-Integration.toml`. Discord supports multiple
+Gateway sessions for an application; DCI remains the chat session and the
+relay owns voice only. Never run another voice controller for that bot in the
+same guild. A dedicated bot remains the stronger isolation option because a
+relay-token leak would also expose DCI's broader chat permissions, while token
+rotation or account failure can break both systems. Existing
+`suppressed_no_sink` rows never replay. Follow
+[the Heraldor runbook](docs/HERALDOR-RUNBOOK.md) before enabling it. Discord
+voice needs outbound HTTPS/WebSocket and UDP return traffic; no inbound Docker
+port should be published for the relay.
 
 Each Minecraft world receives a hidden random Heraldor token. Replacing a
 throwaway world starts an independent servant-victory stream instead of making

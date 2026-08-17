@@ -16,7 +16,7 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 - **Live metrics pass:** exporter/Prometheus/Grafana images are pinned; Grafana is localhost-only and non-anonymous by default; retention is 400d/10GB; the provisioned dashboard includes TPS, tick time, entities and player drill-down. BlueMap cache is excluded from daily archives.
 - **Muhtar v1 quest router:** one stateless Easy NPC in the town square opens the existing ZapeG path cards for non-OP players. It owns no rewards, scores, path locks or quest progress; a fixed entity UUID plus versioned presets make update, rollback and permanent deletion explicit. Specialist mentors and the personal Nemesis remain later experiments.
 - **Immersive Vehicles baseline:** core 24.0.0 + MTS Official Pack V29 + Official Automobile Pack V3 bring the native Forge 1.20.1 official vehicle set. Entity Culling compatibility is shipped in the patch; community packs wait until persistence, client FPS, TPS/network use and normal-terrain driving pass a multiplayer smoke test. IV vehicles and moving Eureka/VS/Create constructs remain separate physics systems.
-- **Heraldor Director v2:** SQLite-backed pacing prevents clustered random events and persists a one-shot story ledger. An OP-only KubeJS rehearsal summons one target-bound, no-loot/no-XP vanilla servant named `Heraldor'un Hizmetkârı`; the third legitimate victory records a typed future-audio request without playing it.
+- **Heraldor Director v2:** SQLite-backed pacing prevents clustered random events and persists a one-shot story ledger. An OP-only KubeJS rehearsal summons one target-bound, no-loot/no-XP vanilla servant named `Heraldor'un Hizmetkârı`; the third legitimate victory emits a typed request for an opt-in, self-deafened Discord voice cameo. The first hash-pinned clip and isolated relay are built; private live-Discord acceptance still gates activation.
 
 ## ✅ v0.8.1 — one-patch onboarding + overlap audit
 
@@ -42,7 +42,7 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 ### Heraldor arc (the long game)
 
 1. **Presence** (shipped) — whispers, sightings-by-sound, Discord intrusions. Nobody's told; let them figure it out.
-2. **Servants** (first rehearsal built) — deterministic tagged minions, sparse victory-triggered responses and later output-only Discord audio.
+2. **Servants** (first rehearsal + voice relay built) — deterministic tagged minions and sparse victory-triggered, allowlisted Discord audio. It stays manually triggered until copied-world and private-channel acceptance pass.
 3. **Manifestation** — a fleeting, gaze-aware, target-private apparition only after the mystery earns a coordinated client update.
 4. **Confrontation** — fight guards/echoes with deterministic mechanics. Heraldor remains unresolved unless a one-time narrative finale justifies a custom entity; never turn him into a farmable boss.
 
