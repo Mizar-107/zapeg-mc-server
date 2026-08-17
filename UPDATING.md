@@ -112,6 +112,34 @@ public redistribution. Do not add community packs until this baseline passes;
 removing any chosen pack after its content enters the world is a destructive
 content removal, not a routine rollback.
 
+## Aleki's Nifty Ships decision (deferred)
+
+Core `1.0.14` (`alekiNiftyShips-FORGE-1.20.1-1.0.14.jar`, CurseForge file
+`5963449`) passes the static loader/dependency check: client+server, MIT, no
+required library, Minecraft 1.20.1 and Forge 47.1.3+. It also adds no duplicate
+ore, fluid or energy economy. It does **not** pass ZapeG's compatibility gate:
+open upstream reports against this exact line include mooring leads breaking or
+disconnecting after chunk unload/reload even with Nifty as the only mod, ships
+drifting/rubber-banding on return, anchors becoming unusable until relog and the
+whole vessel disappearing at some camera angles. Its fixed entity ships would
+also be a third physics stack beside Eureka/VS and Immersive Vehicles.
+
+Do not pin Nifty Ships to the supported pack yet. ATM9 contains Biomes O' Plenty
+`19.0.0.96`; the official Nifty BOP addon `1.0.4` targets the old RegistryObject
+API and crashes against this version, so it is not an option. The community
+MuddyPatch `1.0.6` is a possible replacement but remains a separate, low-adoption
+candidate; never install both BOP addons. Skip the registry-mutating every-wood
+addon and the TerraFirmaCraft-only Firma addon.
+
+Reconsider after a fixed core release, or as an explicitly experimental copied-
+world test: core only first; 2–3 clients build, load cargo, fire a cannon, sail,
+anchor and dual-lead moor; travel 16+ chunks away, return, restart and reconnect;
+repeat with Entity Culling and shaders on/off while watching Spark, client FPS
+and network use. Never carry Nifty vessels on Eureka/VS ships, Create
+contraptions or IV vehicles. Adding generates unfinished hulls only in new
+beach/river chunks; removal after ships, cargo or generated structures exist is
+high risk.
+
 ## KubeJS fast path (zero-risk customization)
 
 Recipe/tweak work never touches world data and doesn't even need a restart:
