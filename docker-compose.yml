@@ -67,6 +67,12 @@ services:
       CITIZENS_BRAIN_TOKEN: ${CITIZENS_BRAIN_TOKEN:-}
       CITIZENS_BRAIN_REQUEST_TIMEOUT_MS: "150000"
       CITIZENS_BRAIN_TURN_TIMEOUT_MS: "600000"
+      # Protocol-3 durable physical jobs use independent persisted budgets.
+      # Paused time (owner/body/brain/input unavailable) does not consume the
+      # active-time budget.
+      CITIZENS_JOB_MAX_ACTIONS: "${CITIZENS_JOB_MAX_ACTIONS:-128}"
+      CITIZENS_JOB_MAX_MODEL_CALLS: "${CITIZENS_JOB_MAX_MODEL_CALLS:-192}"
+      CITIZENS_JOB_MAX_ACTIVE_SECONDS: "${CITIZENS_JOB_MAX_ACTIVE_SECONDS:-10800}"
 
       # ---- resources (brief §6) --------------------------------------------
       MEMORY: 12G                          # ATM guidance 8–12G; do NOT exceed ~12G (GC degrades)
@@ -131,9 +137,9 @@ services:
   # docker compose --profile citizens up -d --build citizen-brain mc backup
   # No host port, Minecraft data, logs, RCON, or Docker socket are exposed.
   citizen-brain:
-    image: zapeg/citizen-brain:0.3.0
+    image: zapeg/citizen-brain:0.4.0
     build:
-      context: https://github.com/Mizar-107/zapeg-citizens.git#v0.3.0:brain
+      context: https://github.com/Mizar-107/zapeg-citizens.git#v0.4.0:brain
     container_name: atm9-citizen-brain
     profiles: ["citizens"]
     restart: unless-stopped
@@ -152,6 +158,15 @@ services:
       CITIZENS_LLM_QUEUE_TIMEOUT_SECONDS: "20"
       CITIZENS_LLM_TIMEOUT_SECONDS: "90"
       CITIZENS_DB_PATH: /data/citizens-brain.sqlite3
+      # Protocol-3 planner/journal caps. The large argument allowance is needed
+      # for Numen's bounded multi-thousand-block build plans.
+      CITIZENS_MAX_ACTIVE_JOBS: "${CITIZENS_MAX_ACTIVE_JOBS:-16}"
+      CITIZENS_MAX_TOOL_ARGUMENT_CHARS: "${CITIZENS_MAX_TOOL_ARGUMENT_CHARS:-262144}"
+      CITIZENS_MAX_RESULT_CHARS: "${CITIZENS_MAX_RESULT_CHARS:-16000}"
+      CITIZENS_MAX_JOB_CONTEXT_CHARS: "${CITIZENS_MAX_JOB_CONTEXT_CHARS:-65536}"
+      CITIZENS_MAX_JOB_CHECKPOINT_CHARS: "${CITIZENS_MAX_JOB_CHECKPOINT_CHARS:-16384}"
+      CITIZENS_MAX_JOB_RECENT_EVENTS: "${CITIZENS_MAX_JOB_RECENT_EVENTS:-8}"
+      CITIZENS_MAX_JOB_INTERNAL_STEPS: "${CITIZENS_MAX_JOB_INTERNAL_STEPS:-8}"
     secrets:
       - citizens_ollama_api_key
     volumes:

@@ -49,7 +49,7 @@ Adımlar:
 
    `All the Mods 9\ZapeG-Kurulum-Yamasi-...\mods` şeklinde iç içe klasör oluştuysa yanlış yere çıkardın. Zip'in içindeki `mods` klasörü doğrudan profil kökünde olmalı.
 
-   Bu üç mod ailesi için yalnız `cc-tweaked-1.20.1-forge-1.116.1.jar`, `zapeg-citizens-forge-1.20.1-0.3.0.jar` ve `zapeg-runtime-forge-1.20.1-0.2.0.jar` bulunmalı; diğer ATM9/ZapeG modlarını silme.
+   Bu üç mod ailesi için yalnız `cc-tweaked-1.20.1-forge-1.116.1.jar`, `zapeg-citizens-forge-1.20.1-0.4.0.jar` ve `zapeg-runtime-forge-1.20.1-0.2.0.jar` bulunmalı; diğer ATM9/ZapeG modlarını silme.
 
 10. CurseForge ayarlarından Minecraft RAM'ini ayarla: 16 GB RAM'li bilgisayarda **8–10 GB**, 32 GB ve üzerindeyse **10–12 GB**.
 11. Oyunu aç → **Multiplayer → Add Server** → adres: `81.213.77.41`.
@@ -66,7 +66,7 @@ Ertu sana `ZapeG-Offline-ATM9-1.1.1-YYYYMMDD.zip` dosyasını verecek. Bu dosya 
 4. Launcher'dan o profilin **oyun klasörünü** aç. Global `.minecraft` veya başka bir modpack klasörü kullanma.
 5. Zip'i çıkarmadan önce `mods` içindeki tüm `cc-tweaked-1.20.1-forge-*.jar`, `zapeg-citizens-forge-1.20.1-*.jar` ve `zapeg-runtime-forge-1.20.1-*.jar` dosyalarını sil; buna eski `cc-tweaked-1.20.1-forge-1.113.1.jar` ile eski Citizens/Runtime jarları da dahildir.
 6. Offline zip'inin içindekileri bu oyun klasörüne çıkar; üzerine yazmayı onayla.
-7. `mods\iceandfire-....jar` dosyasının doğrudan profil altında olduğunu ve bu üç mod ailesi için yalnız `cc-tweaked-1.20.1-forge-1.116.1.jar`, `zapeg-citizens-forge-1.20.1-0.3.0.jar` ve `zapeg-runtime-forge-1.20.1-0.2.0.jar` bulunduğunu kontrol et; diğer ATM9/ZapeG modlarını silme. Arada ikinci bir ZapeG klasörü olmamalı.
+7. `mods\iceandfire-....jar` dosyasının doğrudan profil altında olduğunu ve bu üç mod ailesi için yalnız `cc-tweaked-1.20.1-forge-1.116.1.jar`, `zapeg-citizens-forge-1.20.1-0.4.0.jar` ve `zapeg-runtime-forge-1.20.1-0.2.0.jar` bulunduğunu kontrol et; diğer ATM9/ZapeG modlarını silme. Arada ikinci bir ZapeG klasörü olmamalı.
 8. RAM'i **8–10 GB** yap, oyunu aç ve `81.213.77.41` adresine bağlan.
 
 Launcher'da izole profil/oyun klasörü oluşturma seçeneğini bulamıyorsan rastgele klasöre kurma; ekran görüntüsüyle Ertu'ya sor.
@@ -77,15 +77,23 @@ Bir OP sana bir vatandaş atadıktan sonra normal Minecraft sohbetine adını `@
 yazarak görev verirsin:
 
 ```text
-@Atlas git demir topla
+@Atlas buradaki sandıkları kategorilere göre düzenle; gerekirse yeni sandık yap
+@Atlas status
 ```
 
 Bu komut genel sohbette yayınlanmaz; yalnız sana atanmış vatandaşı kontrol
-edebilirsin. Devam eden görevi hemen durdurmak için:
+edebilirsin. İş; planı, ilerlemesi ve son dünya eylemiyle birlikte kaydedilir,
+sunucu/brain yeniden başlarsa unutulmaz. Durumu görmek veya işi hemen durdurmak için:
 
 ```text
 @Atlas stop
 ```
+
+Vatandaş bir karar isterse normal bir `@Atlas <cevap>` mesajıyla cevap verebilir
+veya açıkça `@Atlas answer <cevap>` yazabilirsin. Varsayılan iş bütçesi 128 dünya
+eylemi, 192 model çağrısı ve üç saat aktif çalışma süresidir; duraklatıldığı süre
+bu üç saate dahil değildir. Bir görev bütçeyi aşarsa OP sonucu inceler; bütçesi
+tükenmiş aynı iş doğrudan devam ettirilemez, gerekirse daha dar yeni bir iş açılır.
 
 Sunucuya ait lore karakterleri bir oyuncuya atanmaz. Herkes onlarla aynı biçimde
 konuşabilir; soru ve yanıt bu kez genel sohbette görünür. Normal oyuncu konuşması
@@ -96,7 +104,16 @@ onlara fiziksel görev vermez:
 ```
 
 Yürüme, inşa, savaş veya eşya taşıma gibi fiziksel bir işi yalnız OP,
-`/citizen task Edda <görev>` ile başlatır.
+`/citizen task Edda <görev>` ile başlatır. Sunucuya ait lore karakterinin sohbeti
+fiziksel işinden ayrıdır; çalışırken de karakterle konuşulabilir.
+
+Uzun görevlerde gerçek sınırlar hâlâ geçerlidir: vatandaşın uygun alet, yiyecek,
+malzeme ve boş envantere ihtiyacı vardır; claim korumasını veya ulaşılamayan
+blokları aşamaz. Elmas arama normal ve deepslate cevherini kapsar fakat sınırsız
+kör tünel kazısı değildir. Büyük bir villa survival envanterine tek seferde
+sığmıyorsa malzemeleri aşamalı sağla. Wither skeleton işi için vatandaşı önce
+Nether'da erişilebilir bir kalenin yakınına götür; güvenilir otomatik portal
+seferi henüz yoktur.
 
 İlk kazma, savaş veya eşya taşıma denemelerini evlerin yanında değil, boş ve
 claim'siz bir test alanında yap. Oyuncu tarafında Ollama anahtarı veya ayrı bir
@@ -109,7 +126,7 @@ uygulama gerekmez.
 - ATM9 sürümünün **1.1.1** olduğunu kontrol et.
 - Modloader sürümünün **Forge 47.4.10** olduğunu kontrol et.
 - Profil kökünde `ZAPEG-BUILD.txt` var mı kontrol et.
-- `mods` içinde bu üç mod ailesinden birinin iki farklı sürümü varsa eski jar'ı kaldır. CC:Tweaked ailesinde yalnız `cc-tweaked-1.20.1-forge-1.116.1.jar`, Citizens ailesinde yalnız `zapeg-citizens-forge-1.20.1-0.3.0.jar`, Runtime ailesinde yalnız `zapeg-runtime-forge-1.20.1-0.2.0.jar` kalmalı; diğer ATM9/ZapeG modlarını silme.
+- `mods` içinde bu üç mod ailesinden birinin iki farklı sürümü varsa eski jar'ı kaldır. CC:Tweaked ailesinde yalnız `cc-tweaked-1.20.1-forge-1.116.1.jar`, Citizens ailesinde yalnız `zapeg-citizens-forge-1.20.1-0.4.0.jar`, Runtime ailesinde yalnız `zapeg-runtime-forge-1.20.1-0.2.0.jar` kalmalı; diğer ATM9/ZapeG modlarını silme.
 - Yama zip'ini yanlışlıkla iç içe klasöre açmadığından emin ol.
 
 ### Oyun açılırken çöküyor veya çok kasıyor

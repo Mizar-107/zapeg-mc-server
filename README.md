@@ -28,7 +28,7 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + 27 additions** (23 c
 | Eureka | 1.6.3 | CF file `7979379` | Client+server ship/helm addon; requires VS ≥2.4.10. Kotlin for Forge already ships in ATM9 |
 | Numen AI | 0.1.1 | CF file `8551640` | Client+server; managed citizen body and tool engine; embeds its matching Numen API |
 | CC:Tweaked | 1.116.1 | Modrinth pin | Client+server re-pin; ATM9's CurseForge resolution does not reliably provide the version required by the Numen/Advanced Peripherals integration |
-| ZapeG Citizens | 0.3.0 | owned jar + reviewed SHA-256 lock | Client+server controller for player-owned workers and persistent server-owned lore citizens; all 32 server-executable Numen tools enabled; installed from `overrides/mods`, not represented as CurseForge content |
+| ZapeG Citizens | 0.4.0 | owned jar + reviewed SHA-256 lock | Client+server controller for player-owned workers and persistent server-owned lore citizens; protocol-3 durable jobs orchestrate all 32 server-executable Numen tools plus trusted storage/building/mining/combat workflows; installed from `overrides/mods`, not represented as CurseForge content |
 | ZapeG Runtime | 0.2.0 | owned jar + reviewed SHA-256 lock | Mandatory client+server renderer for target-private, camera-aware apparitions, motion echoes and bounded reality faults; installed from `overrides/mods`, not represented as CurseForge content |
 | Incendium | 5.3.1 | Modrinth pin | **Server-only**; nether overhaul (Stardust, pairs with pack's Terralith) |
 | BlueMap | 5.3-forge-1.20 | Modrinth (`MODRINTH_PROJECTS`) | Server-only web map on `:8100`. Pinned to 5.3 — 5.12+ needs Java 21, we're on 17 |
@@ -51,6 +51,16 @@ shared LLM controller disabled. For the planned launch, the host must complete
 [the one-time Citizens setup](docs/CITIZENS-HOST-SETUP.md) and start the
 `citizens` profile before players are invited. One host-side Ollama key serves
 all player- and server-owned citizens; no key or separate app is distributed to players.
+
+Citizens 0.4.0 separates quick conversation from durable physical work. Player-owned
+workers accept complex jobs through `@Name <goal>` and support `@Name status`,
+`@Name stop`, and answers to requested decisions. OPs assign server-owned workers
+with `/citizen task <name> <goal>` and inspect or control them with `/citizen status`,
+`/citizen jobs`, `/citizen resume`, and `/citizen stop`. Each physical job persists
+a plan, checkpoint, action journal, submission position/look target, and independent
+128-action/192-model-call/three-active-hour default budgets across restarts. The
+Minecraft world ledger and brain SQLite volume are a coordinated backup pair; use
+[the Citizens host guide](docs/CITIZENS-HOST-SETUP.md) for rollout and recovery.
 
 The server is offline-mode, has no whitelist by group decision, and grants
 `Mizar__107` OP by default. Anyone can copy that name and become OP; the owner
@@ -123,7 +133,11 @@ installer. Player-facing steps: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.m
 
 1. `scripts/snapshot.sh pre-<change>`
 2. Edit the pin (`CF_FILE_ID` for pack bump, `extras/cf-mods.txt` for mod bumps)
-3. `docker compose up -d mc` (recreates, re-resolves)
+3. For ordinary external pins, `docker compose up -d --force-recreate mc`
+   (recreates and re-resolves). An owned-jar version change also requires the
+   runbook's exact retired-jar cleanup from persistent `data/mods/`; Citizens
+   must use the full paired rollout in
+   [the Citizens host guide](docs/CITIZENS-HOST-SETUP.md#build-and-start).
 4. Watch boot log; on failure: restore snapshot, revert pin
 5. Ship matching client update **before** players reconnect — clients need the same 23 client+server additions; the four server-only additions never go in a client
 

@@ -157,8 +157,10 @@ The bridge does **not** accept an existing webhook URL: bot token + channel ID a
 loaded as normal client+server Forge mods. The host additionally runs one private
 `citizen-brain` container with the shared Ollama key; it is not installed by
 players. Follow [the Citizens host guide](docs/CITIZENS-HOST-SETUP.md) exactly,
-including its acceptance test, before distributing the pack. The old chat-only
-prototype has been removed.
+including its protocol-3 durable-job acceptance test and paired world/brain backup,
+before distributing the pack. Citizens 0.4.0 persists multi-step physical work
+across restarts under bounded action/model/time budgets; player chat and OP job
+controls are documented in that guide. The old chat-only prototype has been removed.
 
 Heraldor with `HERALDOR_LLM=false` uses built-in lines and still handles all
 timing, targeting, sounds and events; enabling it only generates fresh spooky

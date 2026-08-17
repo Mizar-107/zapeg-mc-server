@@ -13,7 +13,7 @@ The pack is meant to evolve (brief §8–9). This is the playbook for doing that
 | Add a server-side util (Chunky, profilers) | None | None |
 | Update Numen or ZapeG Citizens | Low–medium — snapshot first and test citizen save/stop/remove behavior | Rebuild and distribute the matching client patch before reconnecting |
 | Update ZapeG Runtime | Low for visual-only builds; snapshot first because the network handshake is exact | Rebuild and distribute the exact matching client patch; rehearse every profile through the two-client privacy/render gate before live use |
-| Update only the private Citizens brain | None to world data; SQLite/protocol migration still needs backup + compatibility review | None when the Forge protocol remains compatible |
+| Update only the private Citizens brain | None to blocks/entities, but protocol-3 job state spans world `SavedData` + brain SQLite; back up and restore them as one pair | None only when the Forge/brain protocol remains compatible |
 | Add the pinned Immersive Vehicles official trio | Low — no worldgen; existing chunks are unchanged. Removal becomes **high risk** after vehicles/items exist | Rebuild and distribute the same three exact jars before reconnecting |
 | Add the experimental Nifty Ships core | Medium — unfinished hulls generate only in new chunks, and known unload/mooring defects require a copied-world test. Removal becomes **high risk** after ships, cargo/items or generated structures exist | Rebuild and distribute the same exact core jar before reconnecting |
 | **Add a content mod** (e.g. Alex's Caves, Mowzie's later) | Low — new worldgen appears only in **newly generated chunks**; existing chunks unchanged. Fine, just explore outward for the new stuff | Same jar, same version, before reconnecting |
@@ -69,9 +69,12 @@ deployment as a way to discover whether it works.
 1. `scripts/snapshot.sh pre-<change>` on the host
 2. Make the change in **this repo** (pin bump in `extras/cf-mods.txt` / `docker-compose.yml`, or files in `overrides/`) — never live-edit the server
 3. Commit, tag if player-visible (`vX.Y.Z`), update `CHANGELOG.md`
-4. Host: `git pull && docker compose up -d mc`; for non-jar overrides only:
+4. Host: `git pull`. For an ordinary external pin, run
+   `docker compose up -d --force-recreate mc`; for non-jar overrides only, use
    `scripts/apply-overrides.sh` (no restart). Owned jars under `overrides/mods/`
-   are excluded from rsync and require recreating/restarting `mc` through Compose.
+   are excluded from rsync: remove only the exact retired live filename required
+   by its runbook, then force-recreate `mc`. Citizens always uses the full paired
+   rollout in `docs/CITIZENS-HOST-SETUP.md`, not this generic shortcut.
 5. Watch boot log; broken → restore snapshot, revert commit
 6. If anything client-side changed, announce to players **before** they reconnect (guide: `docs/PLAYER-SETUP-TR.md` §Güncellemeler)
 
@@ -87,15 +90,21 @@ set even though they arrive through three mechanisms:
 - `citizen-brain` builds from an immutable public Git tag in
   `docker-compose.yml`. Never point production Compose at a moving branch.
 
-For any Citizens change: snapshot the world, back up the named brain volume,
-update all three pins deliberately, rebuild the client patch, and run the
-spawn/chat/stop/remove acceptance test from
-`docs/CITIZENS-HOST-SETUP.md`. The host deploy command is:
+For any Citizens change: quiesce or cancel active jobs, stop Minecraft before the
+brain, snapshot the world, archive the stopped named brain volume under the same
+pair ID, update all three pins deliberately, rebuild the client patch, and run the
+spawn/job/status/stop/remove acceptance test from
+`docs/CITIZENS-HOST-SETUP.md`. Its **Build and start** sequence is the authoritative
+host deployment procedure and must be followed in full. Do not replace it with a
+short `compose up`: the sequence stops the two state peers in order, takes the
+paired backup, removes exact retired jars from persistent `data/mods/`, rebuilds
+the pinned brain, and force-recreates the affected services so duplicate mod IDs
+cannot survive an owned-jar version change.
 
-```bash
-docker compose --profile citizens build --pull citizen-brain
-docker compose --profile citizens up -d mc backup citizen-brain
-```
+Citizens 0.4.0 uses brain document protocol 3. Never mix its Forge jar with a
+protocol-1/2 brain, and never restore only the Minecraft job ledger or only the
+brain database. A one-sided restore is detected conservatively but can leave jobs
+requiring operator repair or replacement.
 
 ## Runtime release discipline
 

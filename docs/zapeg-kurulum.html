@@ -101,7 +101,7 @@
           ZapeG dosyaları için üzerine yazma sorulursa onayla; yama kişisel <code>options.txt</code> dosyanı içermez.</li>
       <li>Doğru sonuç: <code>All the Mods 9\mods\iceandfire-....jar</code>.
           Bu üç mod ailesi için yalnız <code>cc-tweaked-1.20.1-forge-1.116.1.jar</code>,
-          <code>zapeg-citizens-forge-1.20.1-0.3.0.jar</code> ve
+          <code>zapeg-citizens-forge-1.20.1-0.4.0.jar</code> ve
           <code>zapeg-runtime-forge-1.20.1-0.2.0.jar</code> bulunmalı; diğer ATM9/ZapeG modlarını silme.
           Arada ikinci bir <code>ZapeG-Kurulum-Yamasi</code> klasörü varsa zip'i yanlış yere açtın.</li>
       <li>RAM: 16 GB bilgisayarda <b>8–10 GB</b>; 32 GB ve üzerindeyse <b>10–12 GB</b>.</li>
@@ -135,7 +135,7 @@
       <tr><td><b>Numen AI</b></td><td><code>numen-forge-1.20.1-0.1.1-all.jar</code></td></tr>
       <tr><td><b>CC:Tweaked</b></td><td><code>cc-tweaked-1.20.1-forge-1.116.1.jar</code></td></tr>
       <tr><td><b>Better Combat</b></td><td><code>bettercombat-forge-1.9.0+1.20.1.jar</code></td></tr>
-      <tr><td><b>ZapeG Citizens</b></td><td><code>zapeg-citizens-forge-1.20.1-0.3.0.jar</code></td></tr>
+      <tr><td><b>ZapeG Citizens</b></td><td><code>zapeg-citizens-forge-1.20.1-0.4.0.jar</code></td></tr>
       <tr><td><b>ZapeG Runtime</b></td><td><code>zapeg-runtime-forge-1.20.1-0.2.0.jar</code></td></tr>
     </table>
     <p class="muted">When Dungeons Arise 2.1.58 ve playerAnimator zaten ATM9 1.1.1 içinde gelir; yamaya ikinci kez eklenmez.</p>
@@ -152,7 +152,7 @@
           dosyalarını sil; buna <code>cc-tweaked-1.20.1-forge-1.113.1.jar</code> ve eski Citizens/Runtime jarları da dahildir.</li>
       <li><code>ZapeG-Offline-ATM9-1.1.1-....zip</code> içeriğini o klasöre çıkar. Üzerine yazmayı onayla.</li>
       <li>Doğru sonuç: <code>&lt;profil&gt;\mods\iceandfire-....jar</code>; bu üç mod ailesi için yalnız
-          <code>cc-tweaked-1.20.1-forge-1.116.1.jar</code>, <code>zapeg-citizens-forge-1.20.1-0.3.0.jar</code>
+          <code>cc-tweaked-1.20.1-forge-1.116.1.jar</code>, <code>zapeg-citizens-forge-1.20.1-0.4.0.jar</code>
           ve <code>zapeg-runtime-forge-1.20.1-0.2.0.jar</code>. Diğer ATM9/ZapeG modlarını silme; arada ikinci bir ZapeG klasörü olmamalı.</li>
       <li>RAM: <b>8–10 GB</b> → başlat → Multiplayer → IP: <code>81.213.77.41</code>.</li>
     </ol>
@@ -162,10 +162,10 @@
   <h2><span class="tag o">Citizens</span> Vatandaşına görev verme</h2>
   <div class="card">
     <p>Bir OP sana bir vatandaş atadıktan sonra normal sohbete adını <code>@</code> ile yazarak görev ver:</p>
-    <p><code>@Atlas git demir topla</code></p>
-    <p>Bu satır genel sohbette yayınlanmaz; yalnız sana atanmış vatandaşı kontrol edebilirsin. Devam eden görevi hemen kesmek için <code>@Atlas stop</code> yaz.</p>
-    <p>Sunucuya ait lore karakterleriyle herkes konuşabilir: örneğin <code>@Edda bu köy hakkında ne biliyorsun?</code>. Bu konuşma ve yanıt genel sohbette görünür; normal oyuncu konuşması lore karakterine fiziksel görev vermez. Yürüme, inşa veya savaş işini yalnız OP <code>/citizen task Edda &lt;görev&gt;</code> ile başlatır.</p>
-    <p class="muted">İlk kazma, savaş veya eşya taşıma denemelerini evlerin yanında değil, boş ve claim'siz bir test alanında yap. Oyuncu tarafında Ollama anahtarı veya ayrı uygulama gerekmez.</p>
+    <p><code>@Atlas buradaki sandıkları kategorilere göre düzenle; gerekirse yeni sandık yap</code></p>
+    <p>Bu satır genel sohbette yayınlanmaz; yalnız sana atanmış vatandaşı kontrol edebilirsin. İş planı ve ilerleme yeniden başlatmalarda korunur. Durumu görmek için <code>@Atlas status</code>, işi hemen kesmek için <code>@Atlas stop</code> yaz. Vatandaş bir karar isterse <code>@Atlas answer &lt;cevap&gt;</code> ile yanıtla.</p>
+    <p>Sunucuya ait lore karakterleriyle herkes konuşabilir: örneğin <code>@Edda bu köy hakkında ne biliyorsun?</code>. Bu konuşma ve yanıt genel sohbette görünür; normal oyuncu konuşması lore karakterine fiziksel görev vermez. Yürüme, inşa veya savaş işini yalnız OP <code>/citizen task Edda &lt;görev&gt;</code> ile başlatır; karakter çalışırken de normal lore sohbeti devam eder.</p>
+    <p class="muted">Uzun işler gerçek dünya koşullarına bağlıdır: uygun alet, yiyecek, malzeme, envanter alanı ve erişilebilir/claim'siz hedef gerekir. Büyük survival yapılar malzemelerin aşamalı sağlanmasını isteyebilir; güvenilir otomatik boyut/portal seferi henüz yoktur. İlk denemeleri üretim üssünden uzakta yap. Oyuncu tarafında Ollama anahtarı veya ayrı uygulama gerekmez.</p>
   </div>
 
   <h2><span class="tag">SSS</span> Sorun giderme</h2>
