@@ -2,18 +2,21 @@
 
 Not everything in v1 — each phase ships through the UPDATING.md ritual. World-risk notes per item.
 
-## 🛠️ v0.9.0 (working tree) — player- and server-owned ZapeG Citizens
+## 🛠️ v0.9.0 (working tree) — ZapeG Citizens + official vehicle stack
 
 - **Real workers, not a named mascot**: an OP can run `/citizen spawn <name> <onlinePlayer>` to create multiple chat-commanded citizens, each logically assigned to a player.
 - Numen AI 0.1.1 supplies the player-like body and tool engine. ZapeG Citizens 0.3.0 owns assignment, authorization, prompt routing, timeouts and lifecycle safety, and exposes all 32 server-executable Numen tools for movement, mining, building, crafting, storage, item transfer, interaction and combat.
 - One private `citizen-brain` container on the host serves every citizen through one shared Ollama key. Players receive the required Forge components in the generated patch and never receive a provider key.
-- The generated player patch grows from 15 to **18** exact client additions. Numen is pinned to CurseForge file `8551640`, CC:Tweaked 1.116.1 is re-pinned from Modrinth, and the owned Citizens jar is tracked and locked by SHA-256.
+- The generated player patch grows from 15 to **21** exact client additions. Numen is pinned to CurseForge file `8551640`, CC:Tweaked 1.116.1 is re-pinned from Modrinth, the owned Citizens jar is tracked by SHA-256, and every vehicle jar is exact-pinned and hash-locked.
 - Memory stays private per citizen and commanding actor in SQLite. The Minecraft server remains final authority: the model can request every registered server-executable Numen tool, but never arbitrary commands, RCON or client-only tools.
 - True server-owned lore citizens now use a durable world principal, persistent persona/home, public dialogue, operator-only physical tasks, restart wake-up and delayed death recovery. They are not faked under a player's identity.
 - Common enemies and bosses remain deterministic mobs/state machines. LLMs may eventually choose high-level intent or dialogue, but should not drive every combat tick.
 - The obsolete single-character, log-tail chat prototype is removed. Easy NPC remains available for non-worker lore/quest characters; Heraldor remains an independent optional presence service.
 - **Quest authority pass:** every custom quest checkmark is replaced by a real item/advancement/server criterion. Exact-name inventory/stat/advancement checks cover the initial roster; subjective builds require OP inspection. `MertOnal` owns the 5 km minecart, house and exploit-resistant 64-ray quests; Emin has a town fountain; Emir and Salih each have an owned-dragon quest. Five named items are delivered directly to their exact owners. See `docs/QUEST-VALIDATION-TR.md`.
 - **Live metrics pass:** exporter/Prometheus/Grafana images are pinned; Grafana is localhost-only and non-anonymous by default; retention is 400d/10GB; the provisioned dashboard includes TPS, tick time, entities and player drill-down. BlueMap cache is excluded from daily archives.
+- **Muhtar v1 quest router:** one stateless Easy NPC in the town square opens the existing ZapeG path cards for non-OP players. It owns no rewards, scores, path locks or quest progress; a fixed entity UUID plus versioned presets make update, rollback and permanent deletion explicit. Specialist mentors and the personal Nemesis remain later experiments.
+- **Immersive Vehicles baseline:** core 24.0.0 + MTS Official Pack V29 + Official Automobile Pack V3 bring the native Forge 1.20.1 official vehicle set. Entity Culling compatibility is shipped in the patch; community packs wait until persistence, client FPS, TPS/network use and normal-terrain driving pass a multiplayer smoke test. IV vehicles and moving Eureka/VS/Create constructs remain separate physics systems.
+- **Heraldor Director v2:** SQLite-backed pacing prevents clustered random events and persists a one-shot story ledger. An OP-only KubeJS rehearsal summons one target-bound, no-loot/no-XP vanilla servant named `Heraldor'un Hizmetkârı`; the third legitimate victory records a typed future-audio request without playing it.
 
 ## ✅ v0.8.1 — one-patch onboarding + overlap audit
 
@@ -39,8 +42,9 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 ### Heraldor arc (the long game)
 
 1. **Presence** (shipped) — whispers, sightings-by-sound, Discord intrusions. Nobody's told; let them figure it out.
-2. **Lore era** — his ruins in the lore datapack; Born in Chaos mobs canonically become his forces; books hint at his name.
-3. **Manifestation** — summonable boss fight: reskinned/custom-named elite (Cataclysm/Mowzie's base via summon NBT) → ultimately a real custom entity in the ZapeG mod.
+2. **Servants** (first rehearsal built) — deterministic tagged minions, sparse victory-triggered responses and later output-only Discord audio.
+3. **Manifestation** — a fleeting, gaze-aware, target-private apparition only after the mystery earns a coordinated client update.
+4. **Confrontation** — fight guards/echoes with deterministic mechanics. Heraldor remains unresolved unless a one-time narrative finale justifies a custom entity; never turn him into a farmable boss.
 
 ## ✅ v0.4.0 (now) — pre-world content + presence layer
 

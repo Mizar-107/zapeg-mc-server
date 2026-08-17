@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Heraldor — ZapeG'in karanlık varlığı (v1: presence engine).
+Heraldor — ZapeG'in karanlık varlığı (v2: persistent director).
 
 Herobrine türü bir varlık ama bizimki: adı Heraldor. Kimse ondan bahsetmez,
 o herkesi izler. Bu servis rastgele ve NADİR olaylar üretir:
@@ -12,18 +12,32 @@ o herkesi izler. Bu servis rastgele ve NADİR olaylar üretir:
              30 saniyeliğine "Heraldor'un Gölgesi" adlı 3 vex (kendiliğinden yok
              olur — korkutur, eşya/ev zararı yok)
 
+KubeJS'in gizli skor tahtasındaki ``Heraldor'un Hizmetkârı`` zaferleri ayrıca
+izlenir. SQLite yüksek-su işareti ve tek-seferlik hikâye bayrağı sayesinde
+yeniden başlatmalar aynı eşiği tekrar çalıştırmaz.
+
 Gece (oyun saati 13000–23000) fısıltı olasılığı 3 katına çıkar.
 LLM opsiyoneldir (HERALDOR_LLM=true + LLM_* env): satırlar üretilir; kapalıysa
-gömülü havuzlar kullanılır. Asla oyuncu komutu çalıştırılmaz.
+gömülü havuzlar kullanılır. Asla oyuncu girdisi komut olarak çalıştırılmaz.
 """
+import argparse
 import json
 import os
 import random
+import re
 import time
 import urllib.request
 from pathlib import Path
 
 from mcrcon import MCRcon
+
+from heraldor_director import (
+    DirectorStateLock,
+    DirectorStore,
+    Reservation,
+    parse_score_output,
+    restore_snapshot,
+)
 
 RCON_HOST = os.environ.get("RCON_HOST", "mc")
 RCON_PORT = int(os.environ.get("RCON_PORT", "25575"))
@@ -32,7 +46,17 @@ RCON_ENV_FILE = Path(os.environ.get("RCON_ENV_FILE", "/run/secrets/mc-rcon.env")
 WEBHOOK = os.environ.get("HERALDOR_WEBHOOK", "").strip()
 EVENTS = os.environ.get("HERALDOR_EVENTS", "false").lower() == "true"
 USE_LLM = os.environ.get("HERALDOR_LLM", "false").lower() == "true"
-CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "300"))  # saniye
+CHECK_INTERVAL = max(10, int(os.environ.get("CHECK_INTERVAL", "300")))
+MINION_POLL_INTERVAL = max(5, int(os.environ.get("MINION_POLL_INTERVAL", "10")))
+DB_PATH = Path(os.environ.get("HERALDOR_DB_PATH", "/state/heraldor.sqlite3"))
+SNAPSHOT_PATH = Path(
+    os.environ.get("HERALDOR_SNAPSHOT_PATH", "/state/backup/heraldor.sqlite3")
+)
+SERVANT_OBJECTIVE = "zapeg_hsvc"
+SERVANT_SCORE_HOLDER = "#total"
+SERVANT_WORLD_OBJECTIVE = "zh_svc_world"
+SERVANT_WORLD_HOLDER = "#world"
+PLAYER_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,16}$")
 
 # Olasılıklar: her CHECK_INTERVAL'da zar atılır (gündüz değerleri)
 P_WHISPER = float(os.environ.get("P_WHISPER", "0.002"))
@@ -87,9 +111,13 @@ def rcon_password() -> str:
     raise RuntimeError(f"RCON parolası bulunamadı: {RCON_ENV_FILE}")
 
 
-def rcon(cmd: str) -> str:
+def rcon_many(commands: list[str]) -> list[str]:
     with MCRcon(RCON_HOST, rcon_password(), port=RCON_PORT) as r:
-        return r.command(cmd)
+        return [r.command(command) for command in commands]
+
+
+def rcon(cmd: str) -> str:
+    return rcon_many([cmd])[0]
 
 
 def online_players() -> list:
@@ -97,7 +125,11 @@ def online_players() -> list:
         out = rcon("list")
         if ":" in out:
             names = out.split(":", 1)[1].strip()
-            return [n.strip() for n in names.split(",") if n.strip()]
+            return [
+                name
+                for raw in names.split(",")
+                if (name := raw.strip()) and PLAYER_NAME_RE.fullmatch(name)
+            ]
     except Exception as e:
         print(f"[heraldor] list hata: {e}")
     return []
@@ -175,24 +207,24 @@ def global_msg() -> None:
         ensure_ascii=False,
     )
     rcon(f"tellraw @a {payload}")
-    rcon("playsound minecraft:ambient.basalt_deltas.mood hostile @a ~ ~ ~ 0.5 0.6")
+    rcon(
+        "execute as @a at @s run playsound "
+        "minecraft:ambient.basalt_deltas.mood hostile @s ~ ~ ~ 0.5 0.6"
+    )
     print(f"[heraldor] global: {line}")
 
 
 def discord_msg() -> None:
     if not WEBHOOK:
-        return
+        raise RuntimeError("Discord webhook is not configured")
     line = llm_line("Discord kanalına yazılmış tekinsiz mesaj") or random.choice(DISCORDS)
-    try:
-        req = urllib.request.Request(
-            WEBHOOK,
-            data=json.dumps({"content": line, "username": "Heraldor"}).encode("utf-8"),
-            headers={"Content-Type": "application/json", "User-Agent": "heraldor/1.0"},
-        )
-        urllib.request.urlopen(req, timeout=15).read()
-        print(f"[heraldor] discord: {line}")
-    except Exception as e:
-        print(f"[heraldor] webhook hata: {e}")
+    req = urllib.request.Request(
+        WEBHOOK,
+        data=json.dumps({"content": line, "username": "Heraldor"}).encode("utf-8"),
+        headers={"Content-Type": "application/json", "User-Agent": "heraldor/2.0"},
+    )
+    urllib.request.urlopen(req, timeout=15).read()
+    print(f"[heraldor] discord: {line}")
 
 
 def shadows(player: str) -> None:
@@ -213,28 +245,168 @@ def shadows(player: str) -> None:
     print(f"[heraldor] shadows -> {player}")
 
 
-def main() -> None:
-    print(
-        f"[heraldor] uyanıyor — interval={CHECK_INTERVAL}s, "
-        f"webhook={'var' if WEBHOOK else 'yok'}, events={EVENTS}, llm={USE_LLM}"
-    )
-    while True:
-        time.sleep(CHECK_INTERVAL)
-        try:
-            players = online_players()
-            night = is_night() if players else False
-            mult = 3.0 if night else 1.0
+def dispatch_ambient(director: DirectorStore, reservation: Reservation) -> None:
+    """Attempt an irreversible side effect once; crashes become ambiguous."""
 
-            if players and random.random() < P_WHISPER * mult:
-                whisper(random.choice(players))
-            if players and random.random() < P_GLOBAL * mult:
-                global_msg()
-            if random.random() < P_DISCORD:
-                discord_msg()  # oyuncu yokken de yazabilir — daha da tekinsiz
-            if EVENTS and players and night and random.random() < P_SHADOWS:
-                shadows(random.choice(players))
-        except Exception as e:
-            print(f"[heraldor] döngü hata: {e}")
+    if not director.mark_attempting(reservation.event_id):
+        return
+    try:
+        if reservation.kind == "whisper" and reservation.subject:
+            whisper(reservation.subject)
+        elif reservation.kind == "global":
+            global_msg()
+        elif reservation.kind == "discord":
+            discord_msg()
+        elif reservation.kind == "shadows" and reservation.subject:
+            shadows(reservation.subject)
+        else:
+            raise RuntimeError(f"geçersiz olay: {reservation.kind}")
+    except Exception as exc:
+        director.finish_attempt(reservation.event_id, delivered=False, error=str(exc))
+        print(f"[heraldor] {reservation.kind} gönderilemedi: {exc}")
+    else:
+        director.finish_attempt(reservation.event_id, delivered=True)
+
+
+def ambient_cycle(director: DirectorStore) -> None:
+    """Roll all rare candidates, but permit at most one event per cycle."""
+
+    players = online_players()
+    night = is_night() if players else False
+    multiplier = 3.0 if night else 1.0
+    candidates: list[tuple[str, str | None]] = []
+
+    if players and random.random() < P_WHISPER * multiplier:
+        candidates.append(("whisper", random.choice(players)))
+    if players and random.random() < P_GLOBAL * multiplier:
+        candidates.append(("global", None))
+    if WEBHOOK and random.random() < P_DISCORD:
+        candidates.append(("discord", None))
+    if EVENTS and players and night and random.random() < P_SHADOWS:
+        candidates.append(("shadows", random.choice(players)))
+
+    if not candidates:
+        return
+    kind, subject = random.choice(candidates)
+    reservation = director.reserve_ambient(kind, subject=subject)
+    if reservation:
+        dispatch_ambient(director, reservation)
+
+
+def poll_servant_score(director: DirectorStore):
+    world_command = (
+        f"scoreboard players get {SERVANT_WORLD_HOLDER} {SERVANT_WORLD_OBJECTIVE}"
+    )
+    world_before_output, score_output, world_after_output = rcon_many(
+        [
+            world_command,
+            f"scoreboard players get {SERVANT_SCORE_HOLDER} {SERVANT_OBJECTIVE}",
+            world_command,
+        ]
+    )
+    world_before = parse_score_output(world_before_output, SERVANT_WORLD_OBJECTIVE)
+    world_after = parse_score_output(world_after_output, SERVANT_WORLD_OBJECTIVE)
+    score = parse_score_output(score_output, SERVANT_OBJECTIVE)
+    if score is None or world_before is None or world_before != world_after:
+        return None
+
+    result = director.ingest_servant_score(score, world_token=world_before)
+    if result.victory_event_ids:
+        print(
+            f"[heraldor] hizmetkâr zaferleri işlendi: "
+            f"{result.previous_high_water} -> {result.high_water}"
+        )
+    if result.story_event_id:
+        print(
+            "[heraldor] hikâye eşiği kaydedildi: "
+            f"{result.story_event_id}; ses kimliği=servants_after_three_v1; "
+            "ses çıkışı henüz bağlı değil"
+        )
+    return result, score, world_before
+
+
+def run_daemon() -> None:
+    print(
+        f"[heraldor] uyanıyor — ambient={CHECK_INTERVAL}s, minion={MINION_POLL_INTERVAL}s, "
+        f"webhook={'var' if WEBHOOK else 'yok'}, events={EVENTS}, llm={USE_LLM}, "
+        f"db={DB_PATH}"
+    )
+    with (
+        DirectorStateLock(Path(str(DB_PATH) + ".lock")),
+        DirectorStore(DB_PATH, snapshot_path=SNAPSHOT_PATH) as director,
+    ):
+        director.backup_snapshot()
+        next_ambient = time.monotonic() + CHECK_INTERVAL
+        next_minion_poll = time.monotonic()
+        last_score_anomaly: tuple[str, int, int] | None = None
+
+        while True:
+            now = time.monotonic()
+            if now >= next_minion_poll:
+                next_minion_poll = now + MINION_POLL_INTERVAL
+                try:
+                    polled = poll_servant_score(director)
+                    if polled and (polled[0].regression or polled[0].quarantined):
+                        result, observed_score, _world_token = polled
+                        kind = "regression" if result.regression else "implausible_jump"
+                        anomaly = (kind, result.high_water, observed_score)
+                        if anomaly != last_score_anomaly:
+                            label = "geriledi" if result.regression else "mantıksız sıçradı"
+                            print(
+                                f"[heraldor] hizmetkâr skoru {label}; güvenli biçimde "
+                                f"karantinaya alındı: kayıt={anomaly[1]}, görülen={anomaly[2]}"
+                            )
+                            last_score_anomaly = anomaly
+                    elif polled:
+                        last_score_anomaly = None
+                except Exception as exc:
+                    print(f"[heraldor] hizmetkâr skoru okunamadı: {exc}")
+
+            now = time.monotonic()
+            if now >= next_ambient:
+                next_ambient = now + CHECK_INTERVAL
+                try:
+                    ambient_cycle(director)
+                except Exception as exc:
+                    print(f"[heraldor] atmosfer döngüsü hata: {exc}")
+
+            delay = min(next_ambient, next_minion_poll) - time.monotonic()
+            time.sleep(max(0.25, min(delay, 5.0)))
+
+
+def run_admin(command: str) -> None:
+    if command == "restore-snapshot":
+        restore_snapshot(DB_PATH, SNAPSHOT_PATH)
+        print(f"[heraldor] tutarlı yedek canlı DB'ye geri yüklendi: {SNAPSHOT_PATH}")
+        return
+
+    # Admin readers may run beside the daemon; they must never classify the
+    # daemon's currently-attempting side effect as a crashed one.
+    with DirectorStore(
+        DB_PATH,
+        snapshot_path=SNAPSHOT_PATH,
+        recover_interrupted_attempts=False,
+    ) as director:
+        if command == "status":
+            print(json.dumps(director.status(), ensure_ascii=False, indent=2))
+        elif command == "snapshot":
+            director.backup_snapshot()
+            print(f"[heraldor] tutarlı yedek yazıldı: {SNAPSHOT_PATH}")
+        else:
+            raise ValueError(f"bilinmeyen admin komutu: {command}")
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Heraldor persistent director")
+    subparsers = parser.add_subparsers(dest="mode")
+    admin = subparsers.add_parser("admin", help="host-only state inspection")
+    admin.add_argument("command", choices=("status", "snapshot", "restore-snapshot"))
+    args = parser.parse_args(argv)
+
+    if args.mode == "admin":
+        run_admin(args.command)
+    else:
+        run_daemon()
 
 
 if __name__ == "__main__":

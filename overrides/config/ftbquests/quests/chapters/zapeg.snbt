@@ -171,7 +171,7 @@
 		}
 		{
 			description: [
-				"MertOnal'ın araba modu gelene kadarki ulaşım planı: minecart ile toplam 5 kilometre yol yap. Tek seferde olması gerekmez."
+				"Araba modu sonunda geldi. MertOnal eski minecart dönemini kapatmak için toplam 5 kilometre yol yapar. Tek seferde olması gerekmez."
 				""
 				"&aSunucu doğrular:&r &7vanilla minecart mesafe istatistiği 5 km'ye ulaşınca otomatik tamamlanır.&r"
 			]
@@ -185,7 +185,7 @@
 				title: "Raylarda 5 km"
 				type: "advancement"
 			}]
-			title: "&6Mert: Araba Modu Gelene Kadar"
+			title: "&6Mert: Garaja Giden Son 5 km"
 				x: 0.0d
 				y: 4.5d
 		}

@@ -28,7 +28,7 @@ const WELCOME_LINES = {
     'köy çanları ve evcil hayvanlar tetikte.',
   ],
   'MertOnal': [                        // Mert — arabalar, ev + ray; Salih'in yaktığı eski ev
-    'garaj hazır, araba modu hâlâ yok.',
+    'garaj açıldı, araba modu sonunda geldi.',
     'minecart\'ı araba saymayı hâlâ reddediyor.',
     'bu ev için yangın sigortası yaptırdı.',
     'Salih\'e çakmak teslim formu imzalatıldı.',

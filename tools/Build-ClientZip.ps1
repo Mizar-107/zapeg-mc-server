@@ -3,8 +3,8 @@
 # Lisanslı oyuncular için önerilen çıktı:
 #   .\Build-ClientZip.ps1 -PatchOnly  # repodaki incelenmiş lock ile üret
 #   -> ZapeG-Kurulum-Yamasi-ATM9-1.1.1-YYYYMMDD.zip
-#   Oyuncu bu TEK zip'i ATM9 profil köküne açar. mods/, shader ayarı ve
-#   PackMenu logosu doğru klasör yapısıyla birlikte gelir. Kişisel
+#   Oyuncu bu TEK zip'i ATM9 profil köküne açar. mods/, shader/Entity Culling
+#   uyumluluk ayarları ve PackMenu logosu doğru klasör yapısıyla gelir. Kişisel
 #   options.txt dosyasına dokunulmaz.
 #
 # Offline oyuncular için oyun-dizini payload'ı:
@@ -47,6 +47,9 @@ $extraMods = @(
     [pscustomobject]@{ Name = 'Ice and Fire';        Prefix = 'iceandfire';           FileName = 'iceandfire-2.1.13-1.20.1-beta-5.jar';               FileId = '5633453'; Pin = 'CurseForge file 5633453' },
     [pscustomobject]@{ Name = 'Citadel';             Prefix = 'citadel';              FileName = 'citadel-2.6.3-1.20.1.jar';                          FileId = '7476570'; Pin = 'CurseForge file 7476570' },
     [pscustomobject]@{ Name = 'Immersive Petroleum'; Prefix = 'ImmersivePetroleum';    FileName = 'ImmersivePetroleum-1.20.1-4.3.1-36b.jar';           FileId = '8499079'; Pin = 'CurseForge file 8499079' },
+    [pscustomobject]@{ Name = 'Immersive Vehicles';  Prefix = 'Immersive Vehicles-1.20.1-'; FileName = 'Immersive Vehicles-1.20.1-24.0.0.jar';           FileId = '7926604'; Pin = 'CurseForge file 7926604' },
+    [pscustomobject]@{ Name = 'IV Official Content Pack'; Prefix = 'MTS Official Pack-1.20.1-'; FileName = 'MTS Official Pack-1.20.1-V29.jar';              FileId = '7933733'; Pin = 'CurseForge file 7933733' },
+    [pscustomobject]@{ Name = 'IV Official Automobile Pack'; Prefix = 'OAmP-1.20.1-'; FileName = 'OAmP-1.20.1-V3.jar';                                 FileId = '7933540'; Pin = 'CurseForge file 7933540' },
     [pscustomobject]@{ Name = "Alex's Caves";       Prefix = 'alexscaves';            FileName = 'alexscaves-2.0.2.jar';                              FileId = '5848216'; Pin = 'CurseForge file 5848216' },
     [pscustomobject]@{ Name = "Mowzie's Mobs";      Prefix = 'mowziesmobs';           FileName = 'mowziesmobs-1.8.2.jar';                             FileId = '7815705'; Pin = 'CurseForge file 7815705' },
     [pscustomobject]@{ Name = 'Easy NPC Bundle';     Prefix = 'easy_npc_bundle';       FileName = 'easy_npc_bundle-forge-1.20.1-7.7.7.jar';            FileId = '8644040'; Pin = 'CurseForge file 8644040' },
@@ -421,9 +424,30 @@ function Add-ZapeGClientLayer {
     $defaults = Join-Path $repoRoot 'client\defaults'
     $options = Join-Path $defaults 'options.txt'
     $oculus = Join-Path $defaults 'config\oculus.properties'
+    $entityCulling = Join-Path $defaults 'config\entityculling.json'
     if (-not (Test-Path -LiteralPath $oculus) -or
+        -not (Test-Path -LiteralPath $entityCulling) -or
         ($Mode -eq 'offline' -and -not (Test-Path -LiteralPath $options))) {
-        throw 'Repo içindeki ZapeG görsel varsayılanları eksik.'
+        throw 'Repo içindeki ZapeG istemci varsayılanları eksik.'
+    }
+
+    try {
+        $entityCullingConfig = Get-Content -Raw -LiteralPath $entityCulling | ConvertFrom-Json
+    }
+    catch {
+        throw "Entity Culling uyumluluk ayarı geçerli JSON değil: $entityCulling"
+    }
+    $requiredMtsEntities = @(
+        'mts:builder_existing',
+        'mts:builder_rendering',
+        'mts:builder_seat'
+    )
+    $missingMtsEntities = @(
+        $requiredMtsEntities |
+            Where-Object { $_ -notin @($entityCullingConfig.entityWhitelist) }
+    )
+    if ($missingMtsEntities.Count -gt 0) {
+        throw "Entity Culling ayarı Immersive Vehicles render whitelist'ini içermiyor: $($missingMtsEntities -join ', ')"
     }
 
     # options.txt oyuncunun tüm tuş, dil, ses, video ve erişilebilirlik
@@ -435,6 +459,9 @@ function Add-ZapeGClientLayer {
     $configDir = Join-Path $Staging 'config'
     New-Item -ItemType Directory -Path $configDir -Force | Out-Null
     Copy-Item -LiteralPath $oculus -Destination (Join-Path $configDir 'oculus.properties') -Force
+    # ATM9's Entity Culling otherwise hides IV's linked render/seat entities.
+    # Both patch and offline outputs carry the reviewed whitelist.
+    Copy-Item -LiteralPath $entityCulling -Destination (Join-Path $configDir 'entityculling.json') -Force
 
     $packMenu = Join-Path $repoRoot 'client\packmenu'
     if (Test-Path -LiteralPath $packMenu -PathType Container) {
@@ -470,7 +497,7 @@ function Add-ZapeGClientLayer {
              '4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile Citizens 0.2.0/0.2.1 jarları silinmiş olmalı.',
              '5. Bu zip içeriğini O KLASÖRÜN KÖKÜNE çıkar.',
              '6. ZapeG dosyaları için üzerine yazma sorulursa onayla. Kişisel options.txt ayarların bu yamada yoktur ve korunur.',
-             '7. Bu iki mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.3.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar da doğrudan görünmeli.',
+             '7. Bu iki mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.3.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar ile üç resmi IV jarı da doğrudan görünmeli.',
              '8. Oyunu başlat. Kullanıcı adını değiştirme; envanter, claim ve kişisel lore o ada bağlıdır.',
             '',
             'Zip içinde yeniden bir ZapeG klasörü oluşturma. mods klasörü profil kökünde olmalı.'
@@ -484,7 +511,7 @@ function Add-ZapeGClientLayer {
              '2. Launcher sorarsa Java 17 seç. Profili bir kez açıp kapat.',
              '3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar ve zapeg-citizens-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile Citizens 0.2.0/0.2.1 jarları silinmiş olmalı.',
              '4. Bu zip içeriğini o profilin OYUN KLASÖRÜNE çıkar.',
-             '5. Bu iki mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.3.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar da doğrudan görünmeli ve iç içe ZapeG klasörü olmamalı.',
+             '5. Bu iki mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar ve zapeg-citizens-forge-1.20.1-0.3.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar ile üç resmi IV jarı da doğrudan görünmeli ve iç içe ZapeG klasörü olmamalı.',
              '6. Sabit bir kullanıcı adı seç. Sonradan değiştirme; envanter ve claim kimliğin bu addır.'
          )
     }
@@ -637,6 +664,18 @@ try {
     try {
         if ($archive.Entries.Count -eq 0) {
             throw 'Oluşturulan zip boş; mevcut paket korunuyor.'
+        }
+        $requiredClientEntries = @(
+            'config/oculus.properties',
+            'config/entityculling.json'
+        )
+        $archivedEntryNames = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })
+        $missingClientEntries = @(
+            $requiredClientEntries |
+                Where-Object { $_ -notin $archivedEntryNames }
+        )
+        if ($missingClientEntries.Count -gt 0) {
+            throw "Oluşturulan zip gerekli istemci ayarlarını içermiyor: $($missingClientEntries -join ', ')"
         }
         $archivedCcTweaked = @(
             $archive.Entries |

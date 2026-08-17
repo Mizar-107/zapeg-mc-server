@@ -223,6 +223,13 @@ services:
     command: ["python", "-u", "heraldor.py"]
     profiles: ["heraldor"]
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
     depends_on:
       mc:
         condition: service_healthy
@@ -231,10 +238,14 @@ services:
       RCON_HOST: mc
       RCON_PORT: "25575"
       RCON_ENV_FILE: /run/secrets/mc-rcon.env
+      PYTHONDONTWRITEBYTECODE: "1"
       HERALDOR_WEBHOOK: ${HERALDOR_WEBHOOK:-}
       HERALDOR_EVENTS: ${HERALDOR_EVENTS:-false}
       HERALDOR_LLM: ${HERALDOR_LLM:-false}
       CHECK_INTERVAL: ${HERALDOR_CHECK_INTERVAL:-300}
+      MINION_POLL_INTERVAL: ${HERALDOR_MINION_POLL_INTERVAL:-10}
+      HERALDOR_DB_PATH: /state/heraldor.sqlite3
+      HERALDOR_SNAPSHOT_PATH: /state/backup/heraldor.sqlite3
       P_WHISPER: ${HERALDOR_P_WHISPER:-0.002}
       P_GLOBAL: ${HERALDOR_P_GLOBAL:-0.0005}
       P_DISCORD: ${HERALDOR_P_DISCORD:-0.0003}
@@ -243,6 +254,9 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
     volumes:
+      - type: bind
+        source: ./data/heraldor
+        target: /state
       - type: bind
         source: ./data/.rcon-cli.env
         target: /run/secrets/mc-rcon.env

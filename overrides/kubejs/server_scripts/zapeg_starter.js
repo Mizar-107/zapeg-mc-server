@@ -13,7 +13,7 @@ const PERSONAL_GIFTS = {
   'kralxlarge': { item: 'minecraft:compass',        name: 'Acele Etme Pusulası' },   // Emir
   'Mizar__107': { item: 'minecraft:stick',          name: 'Admin Sopası' },          // Recep
   'eminomi12':  { item: 'minecraft:lead',           name: 'Hayvanat Bahçesi Ruhsatı' }, // Emin Taha
-  'MertOnal':   { item: 'minecraft:minecart',       name: 'Araba Modu Gelene Kadar' },  // Mert
+  'MertOnal':   { item: 'minecraft:minecart',       name: 'Araba Modu Geldi — Hatıra Vagonu' }, // Mert
   'Enes':       { item: 'minecraft:feather',        name: 'Jetpack Ruhu' },          // Iron Jetpacks pakette, gerisi sende
   'SalihKarahan': { item: 'minecraft:flint_and_steel', name: 'Salih\'in Çakmağı (Ev Yakmak Yasak)' }, // Salih
   'Yusuf':      { item: 'minecraft:cake',           name: 'Hoş Geldin Pastası' },
@@ -32,7 +32,7 @@ PlayerEvents.loggedIn(event => {
       const gift = PERSONAL_GIFTS[username]
       p.give(Item.of(gift.item).withName(Text.of(gift.name).gold().italic(false)))
       p.stages.add(MERT_GIFT_STAGE)
-      p.tell(Text.of('Düzeltilen nick hediyen teslim edildi: Araba Modu Gelene Kadar').gold())
+      p.tell(Text.of('Düzeltilen nick hediyen teslim edildi: Araba Modu Geldi — Hatıra Vagonu').gold())
     }
     if (username === 'SalihKarahan' && !p.stages.has(SALIH_GIFT_STAGE)) {
       const gift = PERSONAL_GIFTS[username]
