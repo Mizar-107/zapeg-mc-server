@@ -14,6 +14,7 @@ The pack is meant to evolve (brief §8–9). This is the playbook for doing that
 | Update Numen or ZapeG Citizens | Low–medium — snapshot first and test citizen save/stop/remove behavior | Rebuild and distribute the matching client patch before reconnecting |
 | Update only the private Citizens brain | None to world data; SQLite/protocol migration still needs backup + compatibility review | None when the Forge protocol remains compatible |
 | Add the pinned Immersive Vehicles official trio | Low — no worldgen; existing chunks are unchanged. Removal becomes **high risk** after vehicles/items exist | Rebuild and distribute the same three exact jars before reconnecting |
+| Add the experimental Nifty Ships core | Medium — unfinished hulls generate only in new chunks, and known unload/mooring defects require a copied-world test. Removal becomes **high risk** after ships, cargo/items or generated structures exist | Rebuild and distribute the same exact core jar before reconnecting |
 | **Add a content mod** (e.g. Alex's Caves, Mowzie's later) | Low — new worldgen appears only in **newly generated chunks**; existing chunks unchanged. Fine, just explore outward for the new stuff | Same jar, same version, before reconnecting |
 | Update a mod to a newer build | Low–medium — read its changelog for world-format notes | Match the version |
 | Bump ATM9 pack version (1.1.1 → 1.1.x) | Medium — configs/scripts/quests churn; read the ATM changelog | Update pack version in launcher |
@@ -98,7 +99,7 @@ docker compose --profile citizens up -d mc backup citizen-brain
 ## Immersive Vehicles rollout
 
 Treat core `24.0.0`, MTS Official Pack `V29` and Official Automobile Pack `V3`
-as one dependency set. Snapshot first, rebuild the 21-jar client patch, and use a
+as one dependency set. Snapshot first, rebuild the 22-jar client patch, and use a
 throwaway world before promotion. With 2–3 clients, create a vehicle from each
 pack, fuel/drive it on normal terrain, unload its chunk, restart/reconnect and
 verify persistence while watching Spark/TPS and host network use. Do not use IV
@@ -112,33 +113,32 @@ public redistribution. Do not add community packs until this baseline passes;
 removing any chosen pack after its content enters the world is a destructive
 content removal, not a routine rollback.
 
-## Aleki's Nifty Ships decision (deferred)
+## Aleki's Nifty Ships experimental inclusion (owner waiver)
 
 Core `1.0.14` (`alekiNiftyShips-FORGE-1.20.1-1.0.14.jar`, CurseForge file
 `5963449`) passes the static loader/dependency check: client+server, MIT, no
 required library, Minecraft 1.20.1 and Forge 47.1.3+. It also adds no duplicate
-ore, fluid or energy economy. It does **not** pass ZapeG's compatibility gate:
-open upstream reports against this exact line include mooring leads breaking or
+ore, fluid or energy economy. The owner explicitly chose its age-of-sail gameplay
+on 2026-08-17 and accepted an **experimental core-only waiver** for the evidence
+gap below. The exact jar is pinned and hash-locked; the waiver does not call the
+known defects fixed or waive the copied-world promotion test.
+
+Open upstream reports against this exact line include mooring leads breaking or
 disconnecting after chunk unload/reload even with Nifty as the only mod, ships
 drifting/rubber-banding on return, anchors becoming unusable until relog and the
-whole vessel disappearing at some camera angles. Its fixed entity ships would
-also be a third physics stack beside Eureka/VS and Immersive Vehicles.
+whole vessel disappearing at some camera angles. Its fixed entity ships are a
+third physics stack beside Eureka/VS and Immersive Vehicles. ATM9 contains Biomes
+O' Plenty `19.0.0.96`; the official Nifty BOP addon `1.0.4` targets the old
+RegistryObject API and crashes against this version, so the active addition is
+**core only**. MuddyPatch, every-wood and TerraFirmaCraft/Firma addons remain out.
 
-Do not pin Nifty Ships to the supported pack yet. ATM9 contains Biomes O' Plenty
-`19.0.0.96`; the official Nifty BOP addon `1.0.4` targets the old RegistryObject
-API and crashes against this version, so it is not an option. The community
-MuddyPatch `1.0.6` is a possible replacement but remains a separate, low-adoption
-candidate; never install both BOP addons. Skip the registry-mutating every-wood
-addon and the TerraFirmaCraft-only Firma addon.
-
-Reconsider after a fixed core release, or as an explicitly experimental copied-
-world test: core only first; 2–3 clients build, load cargo, fire a cannon, sail,
-anchor and dual-lead moor; travel 16+ chunks away, return, restart and reconnect;
-repeat with Entity Culling and shaders on/off while watching Spark, client FPS
-and network use. Never carry Nifty vessels on Eureka/VS ships, Create
-contraptions or IV vehicles. Adding generates unfinished hulls only in new
-beach/river chunks; removal after ships, cargo or generated structures exist is
-high risk.
+Before promotion, use a copied world with 2–3 clients: build, load cargo, fire a
+cannon, sail, anchor and dual-lead moor; travel 16+ chunks away, return, restart
+and reconnect; repeat with Entity Culling and shaders on/off while watching
+Spark, client FPS and network use. Never carry Nifty vessels on Eureka/VS ships,
+Create contraptions or IV vehicles. Unfinished hulls generate only in new
+beach/river chunks. If the test fails, remove the pin before live-world use;
+removal after ships, cargo or generated structures exist is high risk.
 
 ## KubeJS fast path (zero-risk customization)
 

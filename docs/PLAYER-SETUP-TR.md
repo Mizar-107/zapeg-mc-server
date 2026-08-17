@@ -39,6 +39,7 @@ Adımlar:
    ├─ mods\
    │  ├─ iceandfire-....jar
    │  ├─ Immersive Vehicles-1.20.1-24.0.0.jar
+   │  ├─ alekiNiftyShips-FORGE-1.20.1-1.0.14.jar
    │  └─ ...diğer ZapeG modları
    ├─ config\
    ├─ packmenu\
@@ -53,7 +54,7 @@ Adımlar:
 10. CurseForge ayarlarından Minecraft RAM'ini ayarla: 16 GB RAM'li bilgisayarda **8–10 GB**, 32 GB ve üzerindeyse **10–12 GB**.
 11. Oyunu aç → **Multiplayer → Add Server** → adres: `81.213.77.41`.
 
-Kurulum yaması 21 gerekli ek modu (Numen, ZapeG Citizens ve üç resmi Immersive Vehicles jarı dahil), ZapeG logosunu, shader ayarını ve araçların görünmesini sağlayan Entity Culling uyumluluğunu birlikte getirir. Oyuncuların ayrıca bir LLM anahtarı veya ayrı uygulama kurması gerekmez. Shader varsayılan olarak açıktır; oyun içinde **K** ile kapatabilirsin.
+Kurulum yaması 22 gerekli ek modu (Numen, ZapeG Citizens, üç resmi Immersive Vehicles jarı ve deneysel Nifty Ships çekirdeği dahil), ZapeG logosunu, shader ayarını ve araçların görünmesini sağlayan Entity Culling uyumluluğunu birlikte getirir. Oyuncuların ayrıca bir LLM anahtarı veya ayrı uygulama kurması gerekmez. Shader varsayılan olarak açıktır; oyun içinde **K** ile kapatabilirsin.
 
 ## Yol B — Lisansın yoksa
 
@@ -123,6 +124,11 @@ uygulama gerekmez.
 - Önce güncel ZapeG yamasını yeniden uygula. `config\entityculling.json` içindeki `entityWhitelist` listesinde `mts:builder_existing`, `mts:builder_rendering` ve `mts:builder_seat` bulunmalı.
 - Shader açıkken gösterge/yakıt yazısı görünmüyorsa **P → IV config → Rendering → `LightsTransp=true`** yap; hızlı karşılaştırma için shader'ı **K** ile kapat.
 - IV araçlarını normal zeminde kullan. Hareket eden Eureka/VS gemileri veya Create contraption'ları üzerinde araç çarpışması güvenilir değildir; araç düşerse ya da içinden geçerse mod kurulumu bozuk demek değildir.
+
+### Nifty gemisi kayıyor, bağ çözülüyor veya görünmez oluyor
+
+- Nifty Ships çekirdeği deneysel eklendi; chunk boşaltma/yükleme sonrası bağ, çapa, dönme ve görünürlük sorunları upstream'de hâlâ açık. Düzelene kadar gemide yeri doldurulamaz eşya bırakma.
+- Sorun olursa çıkıp yeniden gir, shader'ı **K** ile açıp kapatarak karşılaştır ve Ertu'ya geminin koordinatıyla birlikte bildir. Nifty gemisini Eureka/VS gemisi, Create contraption'ı veya IV aracı üzerinde taşıma.
 
 ## Güncellemeler
 

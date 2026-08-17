@@ -4,10 +4,11 @@ Format per entry: what changed · world risk · what players must do.
 
 ## Unreleased — target v0.9.0
 
-Player- and server-owned LLM citizens plus the official Immersive Vehicles stack.
-World risk: low on add (IV has no worldgen), but first citizen and vehicle tests
-belong in a disposable unclaimed world; removing IV after vehicles/items exist is
-high risk. Players: install the new 21-jar ZapeG patch before joining.
+Player- and server-owned LLM citizens plus the official Immersive Vehicles stack
+and experimental Nifty Ships core. World risk: low for IV; Nifty adds unfinished
+hulls only to new chunks. First citizen and vehicle/ship tests belong in a
+disposable unclaimed world; removing either vehicle system after content or cargo
+exists is high risk. Players: install the new 22-jar ZapeG patch before joining.
 
 - Added Numen AI 0.1.1 (CurseForge file `8551640`) and the reviewed ZapeG Citizens 0.3.0 Forge jar to both the server and client inventory locks.
 - Replaced ATM9's CC:Tweaked 1.113.1 with the required 1.116.1 on server, patch and offline payload; builders and rollout guides remove older CC/Citizens copies and verify a single exact jar for each mod ID.
@@ -21,9 +22,9 @@ high risk. Players: install the new 21-jar ZapeG patch before joining.
 - Added Immersive Vehicles 24.0.0 (CurseForge file `7926604`), MTS Official Pack V29 (`7933733`) and MTS Official Automobile Pack V3 (`7933540`) as an exact client+server dependency set. IV 24.0.0 is the native Forge 1.20.1 release that fixes the Ad Astra startup crash; broader community-pack expansion is deferred until the official baseline passes playtesting.
 - Added an authoritative Entity Culling client default that render-whitelists IV's three builder entities; both patch and offline builds now require and verify that config. Operator/player guidance covers shader text visibility and the unsupported collision boundary with moving Eureka/VS ships and Create contraptions.
 - Added a fail-closed admission/promotion gate for every future mod and addon: balance, duplicate content, dependency closure, compatibility, world/removal risk and multiplayer persistence must be reviewed before an active pin reaches players or production.
-- Evaluated Aleki's Nifty Ships 1.0.14 and deliberately did not add it. Its loader/dependency/economy checks pass, but unresolved upstream chunk-reload mooring, drift, anchor and rendering defects fail the compatibility gate; the official BOP addon also crashes against ATM9's BOP 19.0.0.96 API. Active mod counts and client actions are unchanged.
+- Added Aleki's Nifty Ships core 1.0.14 (CurseForge file `5963449`) to both server and client under an explicit owner-approved experimental waiver. Its loader/dependency/economy checks pass, but unresolved upstream chunk-reload mooring, drift, anchor and rendering defects remain copied-world promotion gates. The official BOP addon crashes against ATM9's BOP 19.0.0.96 API, so core only is included; MuddyPatch, every-wood and Firma addons remain out. Generated artifacts include the upstream MIT notice omitted from the published jar.
 - Rethemed MertOnal's existing minecart gift, welcome line and 5 km quest as a keepsake/farewell to the pre-car era; task IDs, progress criteria and rewards are unchanged.
-- Manual additions are now 25 total: 21 client+server and 4 server-only. The generated player patch contains exactly 21 reviewed additions.
+- Manual additions are now 26 total: 22 client+server and 4 server-only. The generated player patch contains exactly 22 reviewed additions.
 - Production scope now includes online player-owned workers plus persistent server-owned lore characters. Ordinary mass enemies and boss mechanics should still use deterministic mob AI; the LLM citizen layer is best used for named characters, dialogue and high-level orders.
 - Removed every `checkmark` from all three custom quest pages while preserving existing task IDs. Yol Haritası now requires a real first item/advancement; KubeJS verifies exact-name dragon/diamond/village/tame/fire/chest/minecart objectives; Wither, MineColonies, moon-return, Cataclysm and Chaos Guardian milestones are event-driven; subjective builds require an OP world inspection.
 - Added `MertOnal`'s 5 km minecart quest, persistent tame/chest counters and a Turkish migration/test runbook. Group trophy items are claimable once per team. Enes's crossbow remains deliberately locked until his exact login is confirmed.
