@@ -17,6 +17,10 @@ Scope: what ZapeG's manual content additions do to ATM9's economy. Verified agai
 
 ## Rules for future adds
 
+- Every candidate must pass the admission and promotion checks in
+  `UPDATING.md`'s **Mandatory mod-add gate**. Balance, duplicate-content and
+  compatibility findings are recorded before the mod becomes an active pin;
+  uncertainty means defer, not assume.
 - Any new mod that adds **overworld ores**: check ATO/`forge:ingots/*` tag overlap first; prefer disabling the newcomer's ore gen + a conversion bridge over letting veins double up.
 - Any new mod with **its own energy/fluid system**: fine (Forge tags handle most interop); resist the urge to unify what doesn't ask to be unified.
 - Playtest 1 owns all spawn-rate / drop-rate decisions (TUNING.md density row).

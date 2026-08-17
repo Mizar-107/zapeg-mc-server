@@ -21,6 +21,47 @@ The pack is meant to evolve (brief §8–9). This is the playbook for doing that
 | Swap/major-change worldgen mid-world | **HIGH** — chunk seams/borders. Avoid; new dimension resets are the workaround | — |
 | Downgrade pack or mod versions | **Never** — world data doesn't roll back | — |
 
+## Mandatory mod-add gate
+
+Every new mod, content pack and addon must pass this gate before it becomes an
+active ZapeG pin. This is fail-closed: if balance, duplication or compatibility
+cannot be confirmed, record the evidence gap and keep the candidate deferred.
+Do not add it to `extras/cf-mods.txt`, the client builder/locks or a production
+deployment as a way to discover whether it works.
+
+### Admission — before pinning
+
+1. State the player need and compare it with ATM9 and ZapeG's existing features;
+   reject needless duplicate systems or define a clear coexistence boundary.
+2. Verify Minecraft 1.20.1, Forge 47.4.10 and Java 17 compatibility from the
+   exact upstream file. Record its project/file ID, filename, side, license and
+   complete dependency closure; CurseForge dependencies are not auto-resolved.
+3. Check the ATM9 manifest, manual additions and jar metadata for an existing
+   copy, duplicate mod ID, bundled library or incompatible version range.
+4. Record the `BALANCE.md` audit: ores/materials, fluids/fuels, energy, recipes,
+   loot/progression, mobs/spawns and worldgen/structure density. Prefer config or
+   tag unification over adding another duplicate resource economy.
+5. Audit interaction with the adjacent stack that the feature will touch,
+   including mixins/configs, physics, rendering/shaders, Entity Culling,
+   keybinds, storage/duplication, performance and network behavior.
+6. Classify add-to-world and later-removal risk, define the snapshot/rollback
+   boundary, and list the exact feature and regression tests needed to promote.
+
+### Promotion — before players or production
+
+1. Add exact declarative pins and client-builder entries; review the real jar's
+   SHA-256 in both inventory locks. Sync counts, player docs, changelog and the
+   continuity document.
+2. Run static validation, then boot a copied/throwaway world with the complete
+   server set. Join with both supported client paths and 2–3 clients when the
+   feature is multiplayer-sensitive.
+3. Exercise the candidate's core loop plus relevant adjacent mods. Include
+   chunk unload/reload, restart/reconnect and persistence; check keybinds,
+   rendering/shaders and any storage or damage boundary it introduces.
+4. Watch Spark/TPS, RAM, client FPS and host network where applicable. Promote
+   only when the recorded acceptance checks pass. A waiver must name the owner,
+   rationale and unverified evidence; it is never implicit.
+
 ## The ritual (every change)
 
 1. `scripts/snapshot.sh pre-<change>` on the host
