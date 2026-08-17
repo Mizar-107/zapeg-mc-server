@@ -10,17 +10,8 @@ const ZAPEG_QUEST_PLAYERS = {
   salih: 'SalihKarahan',
   recep: 'Mizar__107',
   mert: 'MertOnal',
-  // Do not guess identity for rewards. Fill this after Enes's exact login is known.
-  enes: null
+  enes: 'Thekingim'
 }
-
-const ZAPEG_RAIL_BLOCKS = [
-  'minecraft:rail',
-  'minecraft:powered_rail',
-  'minecraft:detector_rail',
-  'minecraft:activator_rail',
-  'create:track'
-]
 
 const ZAPEG_DRAGON_TYPES = [
   'iceandfire:fire_dragon',
@@ -36,12 +27,6 @@ const ZAPEG_PERSONAL_REWARDS = {
     item: 'minecraft:brick',
     name: "MertOnal'ın Tapusu",
     lore: 'Kendi elleriyle kurduğu evin resmî hatırası'
-  },
-  merton_rails: {
-    owner: 'MertOnal',
-    item: 'minecraft:minecart',
-    name: 'MertOnal Ekspresi',
-    lore: '64 farklı ray koordinatının hatırası'
   },
   emin_fountain: {
     owner: 'eminomi12',
@@ -169,46 +154,6 @@ function zapegGivePersonalRewards(player) {
   }
 }
 
-function zapegRailPositions(player) {
-  const raw = String(player.persistentData.zapegRailPositions || '[]')
-  try {
-    const positions = JSON.parse(raw)
-    return Array.isArray(positions) ? positions : []
-  } catch (error) {
-    console.error(`[ZapeG] ${player.username} ray defteri okunamadı; güvenli boş liste kullanılacak: ${error}`)
-    return []
-  }
-}
-
-function zapegIsRailBlock(block) {
-  return ZAPEG_RAIL_BLOCKS.indexOf(String(block.id)) !== -1 ||
-    block.hasTag('minecraft:rails') ||
-    block.hasTag('create:girdable_tracks')
-}
-
-function zapegLiveRailPositions(player, positions) {
-  const live = []
-
-  for (const key of positions) {
-    const separator = String(key).lastIndexOf(':')
-    if (separator < 1) continue
-
-    const dimension = String(key).substring(0, separator)
-    const xyz = String(key).substring(separator + 1).split(',').map(Number)
-    if (xyz.length !== 3 || !isFinite(xyz[0]) || !isFinite(xyz[1]) || !isFinite(xyz[2])) continue
-
-    const level = player.server.getLevel(dimension)
-    if (level && zapegIsRailBlock(level.getBlock(xyz[0], xyz[1], xyz[2]))) {
-      live.push(String(key))
-    }
-  }
-
-  if (live.length !== positions.length) {
-    player.persistentData.zapegRailPositions = JSON.stringify(live)
-  }
-  return live
-}
-
 function zapegOwnsMountedDragon(player) {
   const dragon = player.vehicle
   if (!dragon || ZAPEG_DRAGON_TYPES.indexOf(String(dragon.type)) === -1) return false
@@ -231,9 +176,6 @@ ServerEvents.loaded(event => {
   if (!server.scoreboard.getObjective('zapeg_chest_s')) {
     server.runCommandSilent('scoreboard objectives add zapeg_chest_s dummy "§6ZapeG §7— Sandık Nöbeti (sn)"')
   }
-  if (!server.scoreboard.getObjective('zapeg_rails')) {
-    server.runCommandSilent('scoreboard objectives add zapeg_rails dummy "§6ZapeG §7— Farklı Raylar"')
-  }
 })
 
 PlayerEvents.loggedIn(event => {
@@ -253,7 +195,7 @@ PlayerEvents.loggedIn(event => {
     zapegGrantVerified(player, 'mert_minecart', 'Mert — Raylarda 5 km')
   }
 
-  if (ZAPEG_QUEST_PLAYERS.enes && name === ZAPEG_QUEST_PLAYERS.enes) {
+  if (name === ZAPEG_QUEST_PLAYERS.enes) {
     zapegReconcileVanillaAdvancement(player, 'minecraft:adventure/ol_betsy', 'enes_crossbow')
   }
 
@@ -263,14 +205,6 @@ PlayerEvents.loggedIn(event => {
   if (name === ZAPEG_QUEST_PLAYERS.recep) {
     zapegScore(player.server, 'zapeg_chest_s', name, Number(player.persistentData.zapegChestSeconds || 0))
   }
-  if (name === ZAPEG_QUEST_PLAYERS.mert) {
-    const rails = zapegLiveRailPositions(player, zapegRailPositions(player)).length
-    zapegScore(player.server, 'zapeg_rails', name, rails)
-    if (rails >= 64) {
-      zapegGrantVerified(player, 'merton_rails', 'MertOnal — 64 Farklı Ray')
-    }
-  }
-
   zapegGivePersonalRewards(player)
 })
 
@@ -303,7 +237,7 @@ PlayerEvents.advancement(event => {
     return
   }
 
-  if (ZAPEG_QUEST_PLAYERS.enes && advancement === 'minecraft:adventure/ol_betsy' && name === ZAPEG_QUEST_PLAYERS.enes) {
+  if (advancement === 'minecraft:adventure/ol_betsy' && name === ZAPEG_QUEST_PLAYERS.enes) {
     zapegGrantVerified(player, 'enes_crossbow', 'Enes — Arbaletçi')
   }
 })
@@ -313,32 +247,6 @@ PlayerEvents.inventoryChanged('minecraft:diamond', event => {
   if (String(player.username) !== ZAPEG_QUEST_PLAYERS.emir) return
   if (Number(player.inventory.count('minecraft:diamond')) >= 64) {
     zapegGrantVerified(player, 'emir_diamonds', 'Emir — Mavi Servet')
-  }
-})
-
-BlockEvents.placed(event => {
-  const player = event.player
-  if (!player) return
-  const name = String(player.username)
-  if (name !== ZAPEG_QUEST_PLAYERS.mert) return
-
-  const block = event.block
-  if (!zapegIsRailBlock(block)) return
-
-  const positions = zapegLiveRailPositions(player, zapegRailPositions(player))
-  if (positions.length >= 64) return
-
-  const key = `${String(player.level.dimension)}:${Number(block.x)},${Number(block.y)},${Number(block.z)}`
-  if (positions.indexOf(key) !== -1) return
-
-  positions.push(key)
-  player.persistentData.zapegRailPositions = JSON.stringify(positions)
-  zapegScore(player.server, 'zapeg_rails', name, positions.length)
-
-  if (positions.length >= 64) {
-    zapegGrantVerified(player, 'merton_rails', 'MertOnal — 64 Farklı Ray')
-  } else if (positions.length % 16 === 0) {
-    player.tell(Text.of(`Ray ilerlemesi: ${positions.length}/64 farklı koordinat`).gold())
   }
 })
 

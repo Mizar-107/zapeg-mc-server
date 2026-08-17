@@ -61,8 +61,8 @@ Grafana'da **ZapeG — Sunucu** dashboard'unu açın. İlk scrape'ten sonra TPS
 yaklaşık 20 ve `up{job="minecraft"}` değeri 1 olmalıdır.
 
 Offline-mode yüzünden exporter oyuncu etiketini UUID olarak üretir. Prometheus
-şimdilik doğrulanmış beş login'i yeniden adlandırır: `kralxlarge`,
-`Mizar__107`, `eminomi12`, `MertOnal`, `SalihKarahan`. Yeni bir
+şimdilik doğrulanmış altı login'i yeniden adlandırır: `kralxlarge`,
+`Mizar__107`, `eminomi12`, `MertOnal`, `SalihKarahan`, `Thekingim`. Yeni bir
 gerçek nick kesinleşince `metrics/prometheus.yml` içindeki eşleme
 genişletilir; tahminî ad eklenmez.
 

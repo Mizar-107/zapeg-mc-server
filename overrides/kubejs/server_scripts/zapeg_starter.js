@@ -6,6 +6,7 @@
 const KIT_STAGE = 'zapeg_starter_kit'
 const MERT_GIFT_STAGE = 'zapeg_mert_personal_gift_v1'
 const SALIH_GIFT_STAGE = 'zapeg_salih_personal_gift_v1'
+const ENES_GIFT_STAGE = 'zapeg_enes_personal_gift_v1'
 
 // Kişiye özel ilk-giriş hediyeleri (isimli eşyalar; şaka gereği).
 // Anahtar = Minecraft kullanıcı adı — nick'ler netleşince güncelle.
@@ -14,7 +15,7 @@ const PERSONAL_GIFTS = {
   'Mizar__107': { item: 'minecraft:stick',          name: 'Admin Sopası' },          // Recep
   'eminomi12':  { item: 'minecraft:lead',           name: 'Hayvanat Bahçesi Ruhsatı' }, // Emin Taha
   'MertOnal':   { item: 'minecraft:minecart',       name: 'Araba Modu Geldi — Hatıra Vagonu' }, // Mert
-  'Enes':       { item: 'minecraft:feather',        name: 'Jetpack Ruhu' },          // Iron Jetpacks pakette, gerisi sende
+  'Thekingim':  { item: 'minecraft:feather',        name: 'Jetpack Ruhu' },          // Enes — Iron Jetpacks pakette
   'SalihKarahan': { item: 'minecraft:flint_and_steel', name: 'Salih\'in Çakmağı (Ev Yakmak Yasak)' }, // Salih
   'Yusuf':      { item: 'minecraft:cake',           name: 'Hoş Geldin Pastası' },
   'Ali':        { item: 'minecraft:cake',           name: 'Hoş Geldin Pastası' },
@@ -25,8 +26,8 @@ PlayerEvents.loggedIn(event => {
   const p = event.player
   const username = String(p.username)
 
-  // Mert's and Salih's former keys were wrong. If either corrected login already
-  // claimed the generic kit, deliver only the formerly-missed named gift.
+  // Mert's, Salih's and Enes's former keys were wrong/placeholders. If a
+  // corrected login already claimed the generic kit, deliver only its missed gift.
   if (p.stages.has(KIT_STAGE)) {
     if (username === 'MertOnal' && !p.stages.has(MERT_GIFT_STAGE)) {
       const gift = PERSONAL_GIFTS[username]
@@ -39,6 +40,12 @@ PlayerEvents.loggedIn(event => {
       p.give(Item.of(gift.item).withName(Text.of(gift.name).gold().italic(false)))
       p.stages.add(SALIH_GIFT_STAGE)
       p.tell(Text.of('Düzeltilen nick hediyen teslim edildi: Salih\'in Çakmağı').gold())
+    }
+    if (username === 'Thekingim' && !p.stages.has(ENES_GIFT_STAGE)) {
+      const gift = PERSONAL_GIFTS[username]
+      p.give(Item.of(gift.item).withName(Text.of(gift.name).gold().italic(false)))
+      p.stages.add(ENES_GIFT_STAGE)
+      p.tell(Text.of('Exact nick hediyen teslim edildi: Jetpack Ruhu').gold())
     }
     return
   }
@@ -53,6 +60,7 @@ PlayerEvents.loggedIn(event => {
     p.give(Item.of(gift.item).withName(Text.of(gift.name).gold().italic(false)))
     if (username === 'MertOnal') p.stages.add(MERT_GIFT_STAGE)
     if (username === 'SalihKarahan') p.stages.add(SALIH_GIFT_STAGE)
+    if (username === 'Thekingim') p.stages.add(ENES_GIFT_STAGE)
   }
 
   p.tell(Text.of('ZapeG\'e hoş geldin! Başlangıç kitin envanterinde, yol haritası quest book\'ta (sol üst).').gold())

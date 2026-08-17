@@ -1,0 +1,86 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_citizens"
+	group: ""
+	icon: "minecraft:name_tag"
+	id: "A47C3C0BAC82BC43"
+	order_index: 11
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [{
+		description: [
+			"&bZapeG Citizens&r, Numen bedenlerini sunucunun ortak ve özel brain servisine bağlar. Oyuncuya API anahtarı veya ayrı uygulama gerekmez. Servis kapalıysa yeniden denemek yerine yetkiliye haber ver."
+			""
+			"&eOyuncuya atanmış vatandaş:&r &7Sen çevrimiçiyken oyun içindeki bir OP &f/citizen spawn Ad ONLINE_USERNAME&r &7ile bedeni sana atar. Oyuncu bu bedeni kendi başına oluşturmaz.&r"
+			""
+			"&dSunucuya ait lore vatandaşı:&r &7Herkese açık diyalog içindir; bir oyuncuya atanmış işçi değildir. Onunla konuşabilirsin fakat ona fiziksel iş verme yetkin yoktur.&r"
+			""
+			"&6Bu sayfa yalnız referanstır.&r &7Spawn veya sahiplik iddiası değildir ve ödül vermez.&r"
+		]
+		icon: "minecraft:name_tag"
+		id: "A6BEC08AEDDF6619"
+		shape: "circle"
+		size: 1.2d
+		subtitle: "Oyuncuya atanmış beden ile lore vatandaşı aynı şey değildir"
+		tasks: [ ]
+		title: "&bSahiplik ve Kurulum"
+		x: -2.0d
+		y: 0.0d
+	}
+	{
+		dependencies: ["A6BEC08AEDDF6619"]
+		description: [
+			"&eOyuncuya atanmış vatandaşla&r &7slash komutu kullanmadan normal Minecraft sohbetinde konuş:&r"
+			"&f@Ad status&r &8— &7durumunu sor&r"
+			"&f@Ad stop&r &8— &7devam eden işi durdur&r"
+			"&f@Ad <sınırlı doğal dil işi>&r &8— &7yakın, geri alınabilir ve net bitiş koşullu bir iş ver&r"
+			""
+			"&dLore vatandaşları&r &7herkese açık diyalog içindir. Fiziksel &f/citizen task&r &7oyuncu sohbet komutu değildir; yalnız oyun içindeki bir OP, doğru aktörü temsil ederek kullanabilir. Konsol/RCON bu aktörü taklit edemez.&r"
+			""
+			"&cGüvenlik:&r &7İlk işi kısa mesafeli hareketle sınırla. Claim, değerli makine, depo, savaş, lav ve kazıdan uzak; geri alınabilir bir test alanı seç. Beklenmeyen davranışta normal sohbete &f@Ad stop&r &7yaz ve yetkiliye haber ver.&r"
+			""
+			"&6Bu sayfa da yalnız referanstır ve ödül vermez.&r"
+		]
+		icon: "minecraft:writable_book"
+		id: "CF96A3A07E51CD7C"
+		shape: "circle"
+		size: 1.2d
+		subtitle: "@Ad status, @Ad stop ve sınırlı doğal dil işi"
+		tasks: [ ]
+		title: "&eSohbet, İş ve Güvenlik"
+		x: 0.0d
+		y: 0.0d
+	}
+	{
+		dependencies: ["CF96A3A07E51CD7C"]
+		description: [
+			"&aBu son adım bilinçli olarak manuel bir öz kontroldür;&r &7FTB Quests gerçek AI yanıtını veya hareketin güvenliğini otomatik olarak kanıtlayamaz.&r"
+			""
+			"&f1.&r &7OP sana atanmış test vatandaşını kurduktan sonra normal sohbete &f@Ad status&r &7yaz ve hazır bir metin değil, vatandaştan gelen gerçek yanıtı bekle.&r"
+			"&f2.&r &7Claim dışındaki boş bir test alanında tek, kısa ve geri alınabilir hareket işi ver. Örnek: &f@Ad yakındaki işaretli bloğa git, orada dur ve bitince haber ver&r&7. Kazı, kırma, savaş veya değerli eşya taşıma isteme.&r"
+			"&f3.&r &7Yanıtı ve sınırlı işi gerçekten gözlemlediğinde işaretle. Gerekirse normal sohbette &f@Ad stop&r &7ile durdur. Ortak brain sıraya girebilir; kısa bir bekleme tek başına hata değildir.&r"
+			""
+			"&6Checkmark bir otomasyon sonucu değil, senin dürüst doğrulamandır.&r"
+		]
+		icon: "minecraft:lime_dye"
+		id: "E8A575F490E222EB"
+		rewards: [{
+			id: "737C766908CCAC3F"
+			type: "xp"
+			xp: 20
+		}]
+		shape: "gear"
+		size: 1.5d
+		subtitle: "Gerçek yanıt + tek güvenli, sınırlı hareket işi"
+		tasks: [{
+			id: "93C15D97A7912908"
+			title: "Gerçek yanıtı ve tek güvenli işi kendim doğruladım"
+			type: "checkmark"
+		}]
+		title: "&aManuel Gerçeklik Kontrolü"
+		x: 2.0d
+		y: 0.0d
+	}]
+	title: "&bZapeG — Citizens"
+}

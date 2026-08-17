@@ -3,8 +3,8 @@
 //
 // !!! ANAHTARLAR MINECRAFT KULLANICI ADI OLMALI (oyuna girilen adla birebir) !!!
 // kralxlarge (Emir), Mizar__107 (Recep), eminomi12 (Emin Taha),
-// MertOnal (araba meraklısı Mert) ve SalihKarahan (Salih) kesin.
-// Enes/Yusuf/Ali/diğer Mert şimdilik gerçek adla.
+// MertOnal (araba meraklısı Mert), SalihKarahan (Salih) ve
+// Thekingim (Enes) kesin. Yusuf/Ali/diğer Mert şimdilik gerçek adla.
 // Deploy: scripts/apply-overrides.sh ; reload: /kubejs reload server_scripts
 
 const WELCOME_LINES = {
@@ -27,16 +27,14 @@ const WELCOME_LINES = {
     'speedrun yine köy arama simülasyonuna döndü.',
     'köy çanları ve evcil hayvanlar tetikte.',
   ],
-  'MertOnal': [                        // Mert — arabalar, ev + ray; Salih'in yaktığı eski ev
+  'MertOnal': [                        // Mert — arabalar, ev; Salih'in yaktığı eski ev
     'garaj açıldı, araba modu sonunda geldi.',
     'minecart\'ı araba saymayı hâlâ reddediyor.',
     'bu ev için yangın sigortası yaptırdı.',
     'Salih\'e çakmak teslim formu imzalatıldı.',
     'şantiye açıldı, tapu sıraya girdi.',
-    'ray ihalesini tek başına aldı.',
-    'evin önünden tren geçecekmiş.',
   ],
-  'Enes': [                             // jetpack özlemi
+  'Thekingim': [                        // Enes — jetpack özlemi
     'jetpack özlemi bugün bitebilir.',
     'önce jetpack, gerisi detay.',
     'gökyüzü hazırlıklara başladı.',

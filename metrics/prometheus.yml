@@ -31,3 +31,7 @@ scrape_configs:
         regex: "4376391e-f698-382c-997f-4e0c530343c7"
         target_label: player
         replacement: "MertOnal"
+      - source_labels: [player]
+        regex: "d73d23dd-becf-32fc-a4ce-5b42b95d067d"
+        target_label: player
+        replacement: "Thekingim"

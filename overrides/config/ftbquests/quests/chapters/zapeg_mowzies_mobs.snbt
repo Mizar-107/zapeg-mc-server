@@ -1,0 +1,160 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_mowzies_mobs"
+	group: ""
+	icon: "mowziesmobs:wrought_helmet"
+	id: "D87ACFCDC8311D60"
+	order_index: 7
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Mowzie's Mobs, sıradan can havuzu şişirilmiş yaratıklar değil; okunması gereken animasyon, saldırı penceresi ve arena mekaniği olan karşılaşmalar ekler."
+				""
+				"&eKural:&r &7ilk temasta saldırmak yerine hareket setini izle. Kalkan, menzilli silah, kaçış alanı ve mezar dönüşü hazır olsun.&r"
+				""
+				"Boss'lar bağımsızdır; istediğin sırayla ilerleyebilirsin."
+			]
+			icon: "mowziesmobs:wrought_helmet"
+			id: "7B0B261CD2C3568D"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Her yaratığın ayrı bir kuralı var"
+			tasks: [{
+				id: "06FB70360A4B60F2"
+				title: "Boss hazırlığını oku"
+				type: "checkmark"
+			}]
+			title: "&4Mowzie'nin Avları"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["7B0B261CD2C3568D"]
+			description: [
+				"Foliaath, Grottol ve Naga modun hareket okuma dersleridir. Foliaath'ın menzilini, Grottol'un kaçışını ve Naga'nın hava saldırılarını gözle."
+				""
+				"&6Structure Compass&r büyük yapılarda yardımcıdır; küçük yaratıklar için biyom keşfi ve sesleri takip etmek gerekir."
+			]
+			icon: "mowziesmobs:foliaath_seed"
+			id: "C33CF56B0CC3FD57"
+			subtitle: "Üç farklı av biçimi"
+			tasks: [
+				{
+					advancement: "mowziesmobs:kill_foliaath"
+					criterion: ""
+					id: "1726569EAD74F1E2"
+					title: "Foliaath öldür"
+					type: "advancement"
+				}
+				{
+					advancement: "mowziesmobs:kill_grottol"
+					criterion: ""
+					id: "8FBFC05299AF0D85"
+					title: "Grottol öldür"
+					type: "advancement"
+				}
+				{
+					advancement: "mowziesmobs:kill_naga"
+					criterion: ""
+					id: "2273B07732A6E13B"
+					title: "Naga öldür"
+					type: "advancement"
+				}
+			]
+			title: "&2İlk Avlar"
+			x: 3.0d
+			y: -2.0d
+		}
+		{
+			dependencies: ["7B0B261CD2C3568D"]
+			description: [
+				"Ferrous Wroughtnaut ağır zırhlıdır; hasar penceresini açmadan vurmak işe yaramaz. Frostmaw ise uyandırıldığında geniş alanı kontrol eder."
+				""
+				"İki dövüşte de arena temizliği ve saldırı animasyonunu beklemek, ham hasardan daha önemlidir."
+			]
+			icon: "mowziesmobs:ice_crystal"
+			id: "72ECD0DED8E9F8E9"
+			subtitle: "Zırh ve buz mekaniğini çöz"
+			tasks: [
+				{
+					advancement: "mowziesmobs:kill_ferrous_wroughtnaut"
+					criterion: ""
+					id: "9155B3441A8EC3DD"
+					title: "Ferrous Wroughtnaut'u yen"
+					type: "advancement"
+				}
+				{
+					advancement: "mowziesmobs:kill_frostmaw"
+					criterion: ""
+					id: "E0A674F31CA2DC4C"
+					title: "Frostmaw'ı yen"
+					type: "advancement"
+				}
+			]
+			title: "&8Kadim Muhafızlar"
+			x: 3.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["7B0B261CD2C3568D"]
+			description: [
+				"Umvuthi ve halkı güneş gücünün kaynağıdır. Kampı rastgele dağıtmak yerine karşılaşmanın akışını öğren; ödül yalnız dövüşten değil, doğru etkileşimden de gelir."
+			]
+			icon: "mowziesmobs:sol_visage"
+			id: "70D873007C47F3E0"
+			subtitle: "Umvuthi ve güneşin lütfu"
+			tasks: [
+				{
+					advancement: "mowziesmobs:kill_umvuthi"
+					criterion: ""
+					id: "52D51E1549A799CD"
+					title: "Umvuthi'yi yen"
+					type: "advancement"
+				}
+				{
+					advancement: "mowziesmobs:suns_blessing"
+					criterion: ""
+					id: "A56F94F4FB798E0C"
+					title: "Sun's Blessing edin"
+					type: "advancement"
+				}
+			]
+			title: "&6Güneşin Sınavı"
+			x: 3.0d
+			y: 2.0d
+		}
+		{
+			dependencies: [
+				"C33CF56B0CC3FD57"
+				"72ECD0DED8E9F8E9"
+				"70D873007C47F3E0"
+			]
+			description: [
+				"Sculptor karşılaşması bir hasar yarışı değil, hareket ve parkur sınavıdır. Hafif ekipman, düşüş önlemi ve boş envanterle git."
+			]
+			icon: "mowziesmobs:earthrend_gauntlet"
+			id: "23CB8AE0D9069721"
+			rewards: [{
+				id: "85695913A4CD2B78"
+				type: "xp"
+				xp: 75
+			}]
+			shape: "gear"
+			subtitle: "Dövüşten çok hareket sınavı"
+			tasks: [{
+				advancement: "mowziesmobs:sculptor_challenge"
+				criterion: ""
+				id: "06EA31C94BCC4BB9"
+				title: "Sculptor sınavını tamamla"
+				type: "advancement"
+			}]
+			title: "&bSculptor'un Sınavı"
+			x: 6.0d
+			y: 0.0d
+		}
+	]
+	title: "&4ZapeG — Mowzie's Mobs"
+}

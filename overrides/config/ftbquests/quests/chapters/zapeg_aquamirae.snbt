@@ -1,0 +1,155 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_aquamirae"
+	group: ""
+	icon: "aquamirae:shell_horn"
+	id: "D2BF8E8E17D9FCF5"
+	order_index: 6
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Aquamirae, buzlu okyanuslarda Ship Graveyard, Ice Maze, özel ekipman ve Shipbreaker karşılaşmasını ekler. Bu normal bir tekne gezisi değildir."
+				""
+				"&eHazırlık:&r &7su altında görüş/nefes, soğuk ve yakın dövüş koruması, yedek tekne, uzaktan dönüş noktası ve boş envanter.&r"
+				""
+				"Yapıları yağmalarken ortak sandıkları işaretle; grubun geri kalanı için giriş yolunu kapatma."
+			]
+			icon: "aquamirae:shell_horn"
+			id: "91C5554EDE74C6DD"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Buzun altında bir mezarlık"
+			tasks: [{
+				id: "53EEF027CBEFC4D3"
+				title: "Sefer hazırlığını oku"
+				type: "checkmark"
+			}]
+			title: "&3Donmuş Deniz Seferi"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["91C5554EDE74C6DD"]
+			description: [
+				"Ice Maze'i bul ve içindeki yolu dikkatle aç. Frozen Key, sonraki Ship Graveyard ilerlemesinin temel anahtarıdır; rastgele harcama."
+				""
+				"&aİpucu:&r &7gece görüşü, su altında nefes ve minimap işaretleri geri dönüşü ciddi biçimde kolaylaştırır.&r"
+			]
+			icon: "aquamirae:frozen_key"
+			id: "CEE8633CCCE4FB73"
+			subtitle: "Labirenti bul, anahtarı koru"
+			tasks: [
+				{
+					advancement: "aquamirae:adventure/find_ice_maze"
+					criterion: ""
+					id: "6F055C19FB234F07"
+					title: "Ice Maze'i bul"
+					type: "advancement"
+				}
+				{
+					advancement: "aquamirae:adventure/obtain_frozen_key"
+					criterion: ""
+					id: "D60B2F1C8D95547C"
+					title: "Frozen Key edin"
+					type: "advancement"
+				}
+			]
+			title: "&bBuz Labirenti"
+			x: 3.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["CEE8633CCCE4FB73"]
+			description: [
+				"Shipbreaker ağır bir alan karşılaşmasıdır. Dövüş alanını önce temizle, kaçış yönünü belirle ve mezar dönüşünün su altında olacağını unutma."
+				""
+				"Ship Graveyard Echo, bölgenin ana ilerleme kanıtlarından biridir; görevin sayması için gerçekten elde et."
+			]
+			icon: "aquamirae:fin"
+			id: "463E2ABF6E83E62C"
+			subtitle: "Mezarlığın bekçisi"
+			tasks: [
+				{
+					advancement: "aquamirae:adventure/encounter_the_shipbreaker"
+					criterion: ""
+					id: "3459342270485475"
+					title: "Shipbreaker ile karşılaş"
+					type: "advancement"
+				}
+				{
+					advancement: "aquamirae:adventure/obtain_ship_graveyard_echo"
+					criterion: ""
+					id: "BF2E80DC8C5D3817"
+					title: "Ship Graveyard Echo edin"
+					type: "advancement"
+				}
+			]
+			title: "&4Shipbreaker"
+			x: 6.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["463E2ABF6E83E62C"]
+			description: [
+				"Tidepiercer güçlü ama nadir bir silahtır. Abyssal smithing template ise son oyun ekipman ağacına giriş yapar."
+				""
+				"&eŞablonu kullanmadan önce çoğaltma tarifini kontrol et.&r Nadir tek kopyayı yanlış yükseltmede kaybetme."
+			]
+			icon: "aquamirae:tidepiercer"
+			id: "5A4A043062D15274"
+			rewards: [{
+				id: "9FD865A2661D42EF"
+				type: "xp"
+				xp: 75
+			}]
+			subtitle: "Mezarlıktan son oyun ekipmanına"
+			tasks: [
+				{
+					advancement: "aquamirae:adventure/obtain_tidepiercer"
+					criterion: ""
+					id: "9803B8F99811402A"
+					title: "Tidepiercer edin"
+					type: "advancement"
+				}
+				{
+					advancement: "aquamirae:adventure/obtain_abyssal_upgrade_smithing_template"
+					criterion: ""
+					id: "B602B618A2E5860F"
+					title: "Abyssal Upgrade Template edin"
+					type: "advancement"
+				}
+			]
+			title: "&5Abyssal Cephanelik"
+			x: 9.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["91C5554EDE74C6DD"]
+			description: [
+				"Shellback yalnız ganimet değildir; doğru yöntemle evcilleştirilebilen dayanıklı bir yoldaştır. Türün davranışını gözle ve saldırmadan önce evcilleştirme malzemesini hazırla."
+			]
+			icon: "aquamirae:shell_horn"
+			id: "9C2B3EA24562A69E"
+			rewards: [{
+				id: "1C52794BBAFE34E9"
+				type: "xp"
+				xp: 25
+			}]
+			subtitle: "Donmuş denizde bir yoldaş"
+			tasks: [{
+				advancement: "aquamirae:adventure/tame_shellback"
+				criterion: ""
+				id: "7CB521F8343B49D2"
+				title: "Shellback evcilleştir"
+				type: "advancement"
+			}]
+			title: "&aShellback Yoldaşı"
+			x: 3.0d
+			y: 3.0d
+		}
+	]
+	title: "&3ZapeG — Aquamirae"
+}

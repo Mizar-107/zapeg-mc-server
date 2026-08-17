@@ -4,12 +4,12 @@
     author:"ZapeG",
     category:"ZapeG",
     created:1L,
-    description:"Stateless quest-path guide for the ZapeG server.",
+    description:"Legacy shortcut layout with the safe ZapeG quest bridge.",
     entityTypeId:"easy_npc:humanoid",
-    modified:1L,
+    modified:2L,
     name:"Muhtar v1",
     variantType:"PROFESSOR_01",
-    version:"1.0.0"
+    version:"1.0.1"
   },
   data:{
     ActionData:{
@@ -18,7 +18,7 @@
           Type:"OPEN_DEFAULT_DIALOG"
         }]
       },
-      ActionPermissionLevel:2
+      ActionPermissionLevel:0
     },
     Attributes:[{
       Base:1.0d,Name:"minecraft:generic.attack_damage"
@@ -34,19 +34,35 @@
       DialogDataSet:[{
         Buttons:[{
           Actions:[{
-            Cmd:"ftbquests open_book 8129D7094B2D7000",ExecAsUser:1b,PermLevel:2,Type:"COMMAND"
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open new_player",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
           }],Label:"first_night",Name:"Yeni başladım."
         },{
           Actions:[{
-            Cmd:"ftbquests open_book 5061F687C93750E0",ExecAsUser:1b,PermLevel:2,Type:"COMMAND"
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open technology",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
           }],Label:"technology",Name:"Makine ve otomasyon."
         },{
           Actions:[{
-            Cmd:"ftbquests open_book E81A3ADBB5F701B7",ExecAsUser:1b,PermLevel:2,Type:"COMMAND"
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open magic",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
           }],Label:"magic",Name:"Büyü öğrenmek."
         },{
           Actions:[{
-            Cmd:"ftbquests open_book 69B229ED4B037D62",ExecAsUser:1b,PermLevel:2,Type:"COMMAND"
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open town",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
           }],Label:"town",Name:"Kasaba kurmak."
         },{
           Actions:[{
@@ -54,7 +70,11 @@
           }],Label:"distant",Name:"Uzaklara gitmek."
         },{
           Actions:[{
-            Cmd:"ftbquests open_book E3BD6E35F91448B4",ExecAsUser:1b,PermLevel:2,Type:"COMMAND"
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open all_paths",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
           }],Label:"all_paths",Name:"Bana tüm yolları göster."
         }],
         Label:"default",
@@ -65,15 +85,27 @@
       },{
         Buttons:[{
           Actions:[{
-            Cmd:"ftbquests open_book D5E7D3BA9C25ECCD",ExecAsUser:1b,PermLevel:2,Type:"COMMAND"
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open space",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
           }],Label:"space",Name:"Uzay programı."
         },{
           Actions:[{
-            Cmd:"ftbquests open_book E6AD87C0417C62B7",ExecAsUser:1b,PermLevel:2,Type:"COMMAND"
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open ice_and_fire",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
           }],Label:"dragons",Name:"Ejderha peşindeyim."
         },{
           Actions:[{
-            Cmd:"ftbquests open_book 821E9FAD62271BBF",ExecAsUser:1b,PermLevel:2,Type:"COMMAND"
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open bosses",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
           }],Label:"bosses",Name:"Boss avı."
         },{
           Actions:[{

@@ -1,0 +1,219 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_alexs_caves"
+	group: ""
+	icon: "alexscaves:cave_book"
+	id: "B2EF953C81C4FDB4"
+	order_index: 5
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Alex's Caves, Overworld'ün altında altı büyük biyom ve her biri için ayrı kaynak, canlı, teknoloji ve boss zinciri ekler. Rastgele düz kazmak yerine harita zincirini kullan."
+				""
+				"&eAkış:&r &7Cave Tablet → Cave Codex/Book → Cave Map → hedef mağara.&r"
+				""
+				"Bu chapter keşfi düzenler; Cave Book her biyomun gerçek kullanım kılavuzudur."
+			]
+			icon: "alexscaves:cave_book"
+			id: "F797B1DC12120B19"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Haritayla bul, kitaptan öğren"
+			tasks: [{
+				id: "5A131819EC55C188"
+				title: "Mağara keşif planını oku"
+				type: "checkmark"
+			}]
+			title: "&3Bilinmeyen Mağaralar"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["F797B1DC12120B19"]
+			description: [
+				"Underground Cabin ve benzeri yapılarda Cave Tablet ara. Tableti ilerleterek Cave Book ve harita zincirini aç."
+				""
+				"Harita hedefe götürür; &6Structure Compass&r yardımcı olabilir ama her biyomun üretim kurallarını ve tehlikelerini Cave Book'tan kontrol et."
+			]
+			icon: "alexscaves:cave_map"
+			id: "C4E459666CA61C60"
+			subtitle: "Tabletten hedef haritaya"
+			tasks: [
+				{
+					advancement: "alexscaves:alexscaves/cave_tablet"
+					criterion: ""
+					id: "3050385740FED4DE"
+					title: "Cave Tablet bul"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/cave_book"
+					criterion: ""
+					id: "F7033993C4C97538"
+					title: "Cave Book edin"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/cave_map"
+					criterion: ""
+					id: "22DCF85227A729B9"
+					title: "Bir Cave Map edin"
+					type: "advancement"
+				}
+			]
+			title: "&bSaha Araştırması"
+			x: 3.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["C4E459666CA61C60"]
+			description: [
+				"&dMagnetic Caves&r teknoloji ve mıknatıslar; &2Primordial Caves&r dinozorlar; &aToxic Caves&r radyasyon; &3Abyssal Chasm&r derin deniz; &8Forlorn Hollows&r karanlık; &6Candy Cavity&r şeker biyomudur."
+				""
+				"Her biri farklı hazırlık ister. Özellikle Toxic için koruyucu ekipman, Abyssal için su altı planı olmadan derine inmeyin."
+			]
+			icon: "alexscaves:cave_map"
+			id: "85C54DB99CE6A7E7"
+			rewards: [{
+				id: "E1FC778E9D51306B"
+				type: "xp"
+				xp: 50
+			}]
+			subtitle: "Altı ayrı ekosistemi keşfet"
+			tasks: [
+				{
+					advancement: "alexscaves:alexscaves/discover_magnetic_caves"
+					criterion: ""
+					id: "9B0FB9F5A1015825"
+					title: "Magnetic Caves'i keşfet"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/discover_primordial_caves"
+					criterion: ""
+					id: "3D709AFE718ACE5A"
+					title: "Primordial Caves'i keşfet"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/discover_toxic_caves"
+					criterion: ""
+					id: "66A70974B6E0D858"
+					title: "Toxic Caves'i keşfet"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/discover_abyssal_chasm"
+					criterion: ""
+					id: "EE3C363DDE56FFB9"
+					title: "Abyssal Chasm'ı keşfet"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/discover_forlorn_hollows"
+					criterion: ""
+					id: "53B64C68C4139772"
+					title: "Forlorn Hollows'u keşfet"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/discover_candy_cavity"
+					criterion: ""
+					id: "8B65E5BA8CD9F4BC"
+					title: "Candy Cavity'yi keşfet"
+					type: "advancement"
+				}
+			]
+			title: "&5Altı Mağara"
+			x: 6.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["85C54DB99CE6A7E7"]
+			description: [
+				"Her mağaranın boss'u kendi mekaniğini ve ekipman hazırlığını ister. Bu uzun vadeli görev, altı biyomun başlıca karşılaşmalarını gerçekten tamamladığını doğrular."
+				""
+				"&eÖnce Cave Book bölümünü oku.&r &7Boss alanına yatak/waystone koy, ortak tüneli kapatma ve patlayıcıları kasabadan uzak tut.&r"
+			]
+			icon: "alexscaves:tectonic_shard"
+			id: "3D035487E0745032"
+			rewards: [{
+				id: "8B19B881570A280E"
+				type: "xp"
+				xp: 100
+			}]
+			shape: "gear"
+			subtitle: "Her biyomdan bir büyük zafer"
+			tasks: [
+				{
+					advancement: "alexscaves:alexscaves/defeat_magnetron"
+					criterion: ""
+					id: "483D84F164B0730C"
+					title: "Magnetron'u yen"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/defeat_luxtructosaurus"
+					criterion: ""
+					id: "432CC93840E81A66"
+					title: "Luxtructosaurus'u yen"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/defeat_brainiac"
+					criterion: ""
+					id: "D88BB3850F8090B4"
+					title: "Brainiac'ı yen"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/defeat_mine_guardian"
+					criterion: ""
+					id: "C75353CBA61B6225"
+					title: "Mine Guardian'ı yen"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/defeat_forsaken"
+					criterion: ""
+					id: "68536420D4C1B5A8"
+					title: "Forsaken'ı yen"
+					type: "advancement"
+				}
+				{
+					advancement: "alexscaves:alexscaves/defeat_gum_worm"
+					criterion: ""
+					id: "F13AB7C27BA0BC2F"
+					title: "Gum Worm'u yen"
+					type: "advancement"
+				}
+			]
+			title: "&4Mağara Ustası"
+			x: 9.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["F797B1DC12120B19"]
+			description: [
+				"Alex's Caves nükleer bomba ve büyük arazi dönüştürme araçları içerir. Bunlar görev ilerlemesi için zorunlu değildir."
+				""
+				"&cKasaba, claim, ortak yol, oyuncu üssü veya üretim tesisi yakınında nükleer deneme yapılmaz.&r Kopya dünya ya da uzak, açıkça işaretlenmiş test alanı kullan."
+			]
+			icon: "minecraft:barrier"
+			id: "DE8CE6F73BF25785"
+			subtitle: "Nükleer oyuncaklar ilerleme şartı değil"
+			tasks: [{
+				id: "322E6CBFCCD4DBB0"
+				title: "Yerleşim güvenliği kuralını kabul et"
+				type: "checkmark"
+			}]
+			title: "&cYerleşim Güvenliği"
+			x: 3.0d
+			y: 3.0d
+		}
+	]
+	title: "&3ZapeG — Alex's Caves"
+}
