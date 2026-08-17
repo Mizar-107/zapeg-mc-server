@@ -173,6 +173,15 @@ damage only its selected real player, and expires after 120 seconds. Three
 explicit live `/zapeg-lore servant awaken <player>` victories create one durable
 story event; rehearsal victories never advance it. Inspect state with
 `docker compose --profile heraldor exec heraldor python heraldor.py admin status`.
+
+Runtime 0.2 scenes are also manual until their two-client gate passes. Every
+world begins with the Director at `dormant`; a level-2 player or authenticated
+RCON can use `/zapeg-lore director status`, the phase/pause controls, and the
+allowlisted `event rehearse|trigger apparition ...` subtree documented in the
+[Runtime runbook](docs/ZAPEG-RUNTIME-RUNBOOK.md). The high-level command queues
+one short-lived request and never means “already executed”; raw `/zapegscene`
+remains a low-level effects-only test that does not alter campaign state.
+
 The optional `heraldor-voice` sidecar now maps the allowlisted clip ID
 `servants_after_three_v1` to the supplied hash-pinned audio. It is a separate,
 self-deafened, output-only relay process that can join only fixed voice channels,

@@ -27,14 +27,21 @@ import random
 import re
 import time
 import urllib.request
+from dataclasses import dataclass
 from pathlib import Path
 
 from mcrcon import MCRcon
 
 from heraldor_director import (
+    CONTROL_PHASES,
+    CONTROL_SCENE_PROFILE_PHASES,
+    CONTROL_TOKEN_MAX_FUTURE_SECONDS,
+    ControlRequest,
     DirectorStateLock,
     DirectorStore,
     Reservation,
+    extract_control_request_token,
+    parse_control_request,
     parse_score_output,
     restore_snapshot,
 )
@@ -49,6 +56,7 @@ USE_LLM = os.environ.get("HERALDOR_LLM", "false").lower() == "true"
 VOICE_ENABLED = os.environ.get("HERALDOR_VOICE_ENABLED", "false").lower() == "true"
 CHECK_INTERVAL = max(10, int(os.environ.get("CHECK_INTERVAL", "300")))
 MINION_POLL_INTERVAL = max(5, int(os.environ.get("MINION_POLL_INTERVAL", "10")))
+CONTROL_POLL_INTERVAL = max(1, int(os.environ.get("CONTROL_POLL_INTERVAL", "2")))
 DB_PATH = Path(os.environ.get("HERALDOR_DB_PATH", "/state/heraldor.sqlite3"))
 SNAPSHOT_PATH = Path(
     os.environ.get("HERALDOR_SNAPSHOT_PATH", "/state/backup/heraldor.sqlite3")
@@ -58,6 +66,14 @@ SERVANT_SCORE_HOLDER = "#total"
 SERVANT_WORLD_OBJECTIVE = "zh_svc_world"
 SERVANT_WORLD_HOLDER = "#world"
 PLAYER_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,16}$")
+CONTROL_STORAGE = "zapeg:heraldor"
+
+
+@dataclass(frozen=True)
+class ControlOutcome:
+    event_id: str
+    status: str
+    message: str
 
 # Olasılıklar: her CHECK_INTERVAL'da zar atılır (gündüz değerleri)
 P_WHISPER = float(os.environ.get("P_WHISPER", "0.002"))
@@ -143,6 +159,345 @@ def is_night() -> bool:
         return 13000 <= t <= 23000
     except Exception:
         return False
+
+
+def _control_event_shape(request: ControlRequest) -> tuple[str, str, bool]:
+    if request.action in {"phase_start", "phase_advance"}:
+        return "director_phase", "campaign", False
+    if request.action == "pause":
+        return "director_pause", "campaign", False
+    if request.action == "resume":
+        return "director_resume", "campaign", False
+    if request.action in {"scene_rehearse", "scene_trigger"}:
+        return "director_scene", "directed", request.action == "scene_rehearse"
+    if request.action == "cancel":
+        return "director_cancel", "operator", False
+    return "director_status", "operator", False
+
+
+def _reject_control(
+    director: DirectorStore,
+    request: ControlRequest,
+    reason: str,
+    *,
+    status: str = "rejected",
+    now: int,
+) -> ControlOutcome:
+    kind, category, rehearsal = _control_event_shape(request)
+    existing = director.control_event_status(request.event_id)
+    if existing == "reserved":
+        director.finish_reserved_control(
+            request.event_id, status=status, error=reason, now=now
+        )
+    elif existing is None:
+        director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status=status,
+            subject=request.target,
+            rehearsal=rehearsal,
+            error=reason,
+            now=now,
+        )
+    terminal = director.control_event_status(request.event_id) or status
+    return ControlOutcome(request.event_id, terminal, reason)
+
+
+def process_control_request(
+    director: DirectorStore,
+    request: ControlRequest,
+    *,
+    observed_world_token: int | str,
+    now: int | None = None,
+) -> ControlOutcome:
+    """Validate, persist and execute one strict high-level Director request."""
+
+    timestamp = int(director.clock() if now is None else now)
+    existing = director.control_event_status(request.event_id)
+    if existing == "attempting":
+        # A single daemon owns the state lock, so an attempt found at the start
+        # of a later mailbox poll is an unresolved prior call, never concurrent.
+        director.finish_attempt(
+            request.event_id,
+            delivered=None,
+            error="prior control attempt ended without a terminal result",
+            now=timestamp,
+        )
+        existing = director.control_event_status(request.event_id)
+    if existing and existing != "reserved":
+        # Retry a previously failed snapshot write before acknowledging and
+        # removing the exact mailbox value.
+        director.backup_snapshot()
+        return ControlOutcome(
+            request.event_id,
+            existing,
+            f"request already {existing}; it was not replayed",
+        )
+    if request.expires_at <= timestamp:
+        return _reject_control(
+            director,
+            request,
+            "request expired before the Director accepted it",
+            status="suppressed_expired",
+            now=timestamp,
+        )
+    if request.expires_at > timestamp + CONTROL_TOKEN_MAX_FUTURE_SECONDS:
+        return _reject_control(
+            director,
+            request,
+            "request expiry is outside the allowed window",
+            now=timestamp,
+        )
+    if str(observed_world_token) != request.world_token:
+        return _reject_control(
+            director,
+            request,
+            "request belongs to a different Minecraft world",
+            now=timestamp,
+        )
+
+    state = director.campaign_state(request.world_token)
+    kind, category, rehearsal = _control_event_shape(request)
+
+    if request.action == "status":
+        message = (
+            f"phase={state.phase}, paused={'yes' if state.paused else 'no'}, "
+            f"world={state.world_token}"
+        )
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="delivered",
+            payload={"phase": state.phase, "paused": state.paused},
+            now=timestamp,
+        )
+        return ControlOutcome(record.event_id, record.status, message)
+
+    if request.action == "pause":
+        if state.paused:
+            return _reject_control(
+                director, request, "campaign is already paused", now=timestamp
+            )
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="delivered",
+            payload={"phase": state.phase},
+            now=timestamp,
+        )
+        return ControlOutcome(record.event_id, record.status, "campaign paused")
+
+    if request.action == "resume":
+        if not state.paused:
+            return _reject_control(
+                director, request, "campaign is not paused", now=timestamp
+            )
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="delivered",
+            payload={"phase": state.phase},
+            now=timestamp,
+        )
+        return ControlOutcome(record.event_id, record.status, "campaign resumed")
+
+    if request.action in {"phase_start", "phase_advance"}:
+        current_index = CONTROL_PHASES.index(state.phase)
+        if request.action == "phase_advance":
+            if current_index == len(CONTROL_PHASES) - 1:
+                return _reject_control(
+                    director,
+                    request,
+                    "manifestation is already the highest released phase",
+                    now=timestamp,
+                )
+            desired = CONTROL_PHASES[current_index + 1]
+        else:
+            desired = request.argument
+            desired_index = CONTROL_PHASES.index(desired)
+            if desired_index == current_index:
+                return _reject_control(
+                    director,
+                    request,
+                    f"campaign is already in phase {desired}",
+                    now=timestamp,
+                )
+            if desired_index < current_index:
+                return _reject_control(
+                    director,
+                    request,
+                    f"phase cannot move backward from {state.phase} to {desired}",
+                    now=timestamp,
+                )
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="delivered",
+            payload={"previous_phase": state.phase, "phase": desired},
+            now=timestamp,
+        )
+        return ControlOutcome(
+            record.event_id, record.status, f"campaign phase is now {desired}"
+        )
+
+    if request.action in {"scene_rehearse", "scene_trigger"}:
+        minimum = CONTROL_SCENE_PROFILE_PHASES[request.argument]
+        if not state.allows_profile(request.argument):
+            return _reject_control(
+                director,
+                request,
+                f"{request.argument} requires campaign phase {minimum} or later",
+                now=timestamp,
+            )
+        if request.action == "scene_trigger" and state.paused:
+            return _reject_control(
+                director,
+                request,
+                "campaign is paused; new live scenes are suppressed",
+                now=timestamp,
+            )
+
+    payload: dict[str, object] = {}
+    if request.action in {"scene_rehearse", "scene_trigger"}:
+        payload = {
+            "profile": request.argument,
+            "target": request.target,
+        }
+        if request.action == "scene_trigger":
+            payload["runtime_event_id"] = request.event_id
+        else:
+            payload["runtime_event_id_policy"] = "runtime_generated"
+    record = director.record_control_event(
+        request,
+        kind=kind,
+        category=category,
+        status="reserved",
+        payload=payload,
+        subject=request.target,
+        rehearsal=rehearsal,
+        now=timestamp,
+    )
+    if record.status != "reserved":
+        return ControlOutcome(
+            record.event_id,
+            record.status,
+            f"request already {record.status}; it was not replayed",
+        )
+    if not director.mark_attempting(record.event_id, now=timestamp):
+        terminal = director.control_event_status(record.event_id) or "ambiguous"
+        return ControlOutcome(record.event_id, terminal, "request could not be claimed")
+
+    if request.action == "cancel":
+        command = "zapegscene cancel-all"
+    elif request.action == "scene_rehearse":
+        command = f"zapegscene rehearse {request.target} {request.argument}"
+    else:
+        command = (
+            f"zapegscene trigger {request.target} {request.event_id} {request.argument}"
+        )
+
+    try:
+        output = str(rcon(command)).strip()
+    except Exception as exc:
+        error = f"runtime response was uncertain: {exc}"
+        director.finish_attempt(record.event_id, delivered=None, error=error)
+        return ControlOutcome(record.event_id, "ambiguous", error)
+
+    success = (
+        output.startswith("scene dispatched event=")
+        if request.action != "cancel"
+        else output in {"scene cancelled", "active=0"}
+    )
+    director.finish_attempt(
+        record.event_id,
+        delivered=success,
+        error=None if success else f"runtime rejected request: {output}",
+    )
+    if success:
+        message = output
+        return ControlOutcome(record.event_id, "delivered", message)
+    return ControlOutcome(
+        record.event_id, "failed", f"runtime rejected request: {output[:180]}"
+    )
+
+
+def _clear_control_request(request: ControlRequest) -> None:
+    encoded = json.dumps(request.token, ensure_ascii=True)
+    rcon(
+        f"execute if data storage {CONTROL_STORAGE} "
+        f"{{control_request:{encoded}}} run data remove storage "
+        f"{CONTROL_STORAGE} control_request"
+    )
+
+
+def _reply_to_control_operator(request: ControlRequest, outcome: ControlOutcome) -> None:
+    text = f"[Heraldor Director] {outcome.message} ({outcome.status})"
+    if request.operator == "console":
+        print(f"[heraldor] {text}")
+        return
+    if not PLAYER_NAME_RE.fullmatch(request.operator):
+        return
+    color = (
+        "red"
+        if outcome.status in {"failed", "rejected", "ambiguous", "suppressed_expired"}
+        else "gray"
+    )
+    payload = json.dumps({"text": text, "color": color}, ensure_ascii=False)
+    try:
+        rcon(f"tellraw {request.operator} {payload}")
+    except Exception as exc:
+        print(f"[heraldor] Director yanıtı oyuncuya iletilemedi: {exc}")
+
+
+def poll_control_request(director: DirectorStore) -> ControlOutcome | None:
+    world_command = (
+        f"scoreboard players get {SERVANT_WORLD_HOLDER} {SERVANT_WORLD_OBJECTIVE}"
+    )
+    world_before_output, storage_output, world_after_output = rcon_many(
+        [
+            world_command,
+            f"data get storage {CONTROL_STORAGE} control_request",
+            world_command,
+        ]
+    )
+    world_before = parse_score_output(world_before_output, SERVANT_WORLD_OBJECTIVE)
+    world_after = parse_score_output(world_after_output, SERVANT_WORLD_OBJECTIVE)
+    if world_before is None or world_before != world_after:
+        return None
+
+    token = extract_control_request_token(storage_output)
+    if token is None:
+        return None
+    try:
+        request = parse_control_request(token)
+    except ValueError as exc:
+        # Never remove a value we cannot parse and audit exactly. The host can
+        # inspect and conditionally clear this one slot using the runbook.
+        print(f"[heraldor] Director posta kutusu geçersiz; güvenli kapandı: {exc}")
+        return None
+
+    outcome = process_control_request(
+        director,
+        request,
+        observed_world_token=world_before,
+    )
+    try:
+        _clear_control_request(request)
+    except Exception as exc:
+        # The deterministic SQLite row is the replay barrier. If the exact
+        # mailbox value remains, the next poll acknowledges it without replay.
+        print(f"[heraldor] Director isteği onay kutusundan silinemedi: {exc}")
+    _reply_to_control_operator(request, outcome)
+    print(
+        f"[heraldor] Director request={request.event_id} action={request.action} "
+        f"operator={request.operator} status={outcome.status}"
+    )
+    return outcome
 
 
 def llm_line(kind: str) -> str | None:
@@ -263,14 +618,22 @@ def dispatch_ambient(director: DirectorStore, reservation: Reservation) -> None:
         else:
             raise RuntimeError(f"geçersiz olay: {reservation.kind}")
     except Exception as exc:
-        director.finish_attempt(reservation.event_id, delivered=False, error=str(exc))
+        director.finish_attempt(reservation.event_id, delivered=None, error=str(exc))
         print(f"[heraldor] {reservation.kind} gönderilemedi: {exc}")
     else:
         director.finish_attempt(reservation.event_id, delivered=True)
 
 
-def ambient_cycle(director: DirectorStore) -> None:
+def ambient_cycle(
+    director: DirectorStore, world_token: int | str | None = None
+) -> None:
     """Roll all rare candidates, but permit at most one event per cycle."""
+
+    if world_token is None:
+        return
+    campaign = director.campaign_state(world_token)
+    if campaign.phase == "dormant" or campaign.paused:
+        return
 
     players = online_players()
     night = is_night() if players else False
@@ -289,7 +652,9 @@ def ambient_cycle(director: DirectorStore) -> None:
     if not candidates:
         return
     kind, subject = random.choice(candidates)
-    reservation = director.reserve_ambient(kind, subject=subject)
+    reservation = director.reserve_ambient(
+        kind, subject=subject, world_token=world_token
+    )
     if reservation:
         dispatch_ambient(director, reservation)
 
@@ -318,11 +683,7 @@ def poll_servant_score(director: DirectorStore):
             f"{result.previous_high_water} -> {result.high_water}"
         )
     if result.story_event_id:
-        output_state = (
-            "ses çıkışı bekleyen kuyruğa alındı"
-            if VOICE_ENABLED
-            else "ses çıkışı bağlı değil; olay bastırıldı"
-        )
+        output_state = result.story_output_status or "çıkış durumu bilinmiyor"
         print(
             "[heraldor] hikâye eşiği kaydedildi: "
             f"{result.story_event_id}; ses kimliği=servants_after_three_v1; "
@@ -331,9 +692,16 @@ def poll_servant_score(director: DirectorStore):
     return result, score, world_before
 
 
+def _world_token_from_servant_poll(polled) -> int | None:
+    """Never carry a prior world's token through an unstable/failed poll."""
+
+    return int(polled[2]) if polled else None
+
+
 def run_daemon() -> None:
     print(
         f"[heraldor] uyanıyor — ambient={CHECK_INTERVAL}s, minion={MINION_POLL_INTERVAL}s, "
+        f"director={CONTROL_POLL_INTERVAL}s, "
         f"webhook={'var' if WEBHOOK else 'yok'}, events={EVENTS}, llm={USE_LLM}, "
         f"voice={VOICE_ENABLED}, db={DB_PATH}"
     )
@@ -348,14 +716,27 @@ def run_daemon() -> None:
         director.backup_snapshot()
         next_ambient = time.monotonic() + CHECK_INTERVAL
         next_minion_poll = time.monotonic()
+        next_control_poll = time.monotonic()
+        active_world_token: int | None = None
         last_score_anomaly: tuple[str, int, int] | None = None
 
         while True:
+            # Control has priority when schedules coincide, so a queued pause
+            # cannot be overtaken by threshold output during startup/recovery.
+            now = time.monotonic()
+            if now >= next_control_poll:
+                next_control_poll = now + CONTROL_POLL_INTERVAL
+                try:
+                    poll_control_request(director)
+                except Exception as exc:
+                    print(f"[heraldor] Director posta kutusu okunamadı: {exc}")
+
             now = time.monotonic()
             if now >= next_minion_poll:
                 next_minion_poll = now + MINION_POLL_INTERVAL
                 try:
                     polled = poll_servant_score(director)
+                    active_world_token = _world_token_from_servant_poll(polled)
                     if polled and (polled[0].regression or polled[0].quarantined):
                         result, observed_score, _world_token = polled
                         kind = "regression" if result.regression else "implausible_jump"
@@ -370,17 +751,21 @@ def run_daemon() -> None:
                     elif polled:
                         last_score_anomaly = None
                 except Exception as exc:
+                    active_world_token = _world_token_from_servant_poll(None)
                     print(f"[heraldor] hizmetkâr skoru okunamadı: {exc}")
 
             now = time.monotonic()
             if now >= next_ambient:
                 next_ambient = now + CHECK_INTERVAL
                 try:
-                    ambient_cycle(director)
+                    ambient_cycle(director, active_world_token)
                 except Exception as exc:
                     print(f"[heraldor] atmosfer döngüsü hata: {exc}")
 
-            delay = min(next_ambient, next_minion_poll) - time.monotonic()
+            delay = (
+                min(next_ambient, next_minion_poll, next_control_poll)
+                - time.monotonic()
+            )
             time.sleep(max(0.25, min(delay, 5.0)))
 
 

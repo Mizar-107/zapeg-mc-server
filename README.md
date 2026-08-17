@@ -29,7 +29,7 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + 27 additions** (23 c
 | Numen AI | 0.1.1 | CF file `8551640` | Client+server; managed citizen body and tool engine; embeds its matching Numen API |
 | CC:Tweaked | 1.116.1 | Modrinth pin | Client+server re-pin; ATM9's CurseForge resolution does not reliably provide the version required by the Numen/Advanced Peripherals integration |
 | ZapeG Citizens | 0.3.0 | owned jar + reviewed SHA-256 lock | Client+server controller for player-owned workers and persistent server-owned lore citizens; all 32 server-executable Numen tools enabled; installed from `overrides/mods`, not represented as CurseForge content |
-| ZapeG Runtime | 0.1.0 | owned jar + reviewed SHA-256 lock | Mandatory client+server renderer for target-private, camera-aware horror scenes; installed from `overrides/mods`, not represented as CurseForge content |
+| ZapeG Runtime | 0.2.0 | owned jar + reviewed SHA-256 lock | Mandatory client+server renderer for target-private, camera-aware apparitions, motion echoes and bounded reality faults; installed from `overrides/mods`, not represented as CurseForge content |
 | Incendium | 5.3.1 | Modrinth pin | **Server-only**; nether overhaul (Stardust, pairs with pack's Terralith) |
 | BlueMap | 5.3-forge-1.20 | Modrinth (`MODRINTH_PROJECTS`) | Server-only web map on `:8100`. Pinned to 5.3 — 5.12+ needs Java 21, we're on 17 |
 | Discord Integration | 3.0.7.1 (2024-05) | CF file `5332465` | Server-only; token wired post-boot (HOSTING) |

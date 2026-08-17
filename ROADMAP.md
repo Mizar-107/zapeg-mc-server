@@ -17,7 +17,7 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 - **Muhtar v1 quest router:** one stateless Easy NPC in the town square opens the existing ZapeG path cards for non-OP players. It owns no rewards, scores, path locks or quest progress; a fixed entity UUID plus versioned presets make update, rollback and permanent deletion explicit. Specialist mentors and the personal Nemesis remain later experiments.
 - **Immersive Vehicles baseline:** core 24.0.0 + MTS Official Pack V29 + Official Automobile Pack V3 bring the native Forge 1.20.1 official vehicle set. Entity Culling compatibility is shipped in the patch; community packs wait until persistence, client FPS, TPS/network use and normal-terrain driving pass a multiplayer smoke test. IV vehicles and moving Eureka/VS/Create constructs remain separate physics systems.
 - **Nifty Ships experimental core:** the owner chose core 1.0.14 (`5963449`) for its fixed-hull age-of-sail/cannon loop after reviewing its clean material economy and known chunk-reload/mooring, drift, anchor and rendering defects. It is exact-pinned on both sides under an explicit waiver, but copied-world multiplayer persistence still gates promotion. The official BOP addon crashes against ATM9's BOP 19.0.0.96 API; MuddyPatch, every-wood and Firma addons are not included.
-- **Heraldor Director v2:** SQLite-backed pacing prevents clustered random events and persists a one-shot story ledger. An OP-only KubeJS rehearsal summons one target-bound, no-loot/no-XP vanilla servant named `Heraldor'un Hizmetkârı`; the third legitimate victory emits a typed request for an opt-in, self-deafened Discord voice cameo. The first hash-pinned clip and isolated relay are built; private live-Discord acceptance still gates activation.
+- **Heraldor Director v2:** SQLite-backed pacing prevents clustered random events and persists a one-shot story ledger. Permission-level-2 players and RCON can control monotonic campaign phases, pause/resume, phase-gated private visual events and cancellation through the fail-closed `/zapeg-lore director` mailbox. An OP-only rehearsal summons one target-bound, no-loot/no-XP vanilla servant named `Heraldor'un Hizmetkârı`; the third legitimate victory emits a typed request for an opt-in, self-deafened Discord voice cameo. The first hash-pinned clip and isolated relay are built; host two-client rendering and private live-Discord acceptance still gate activation.
 
 ## ✅ v0.8.1 — one-patch onboarding + overlap audit
 
@@ -42,9 +42,9 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 
 ### Heraldor arc (the long game)
 
-1. **Presence** (shipped) — whispers, sightings-by-sound, Discord intrusions. Nobody's told; let them figure it out.
-2. **Servants** (first rehearsal + voice relay built) — deterministic tagged minions and sparse victory-triggered, allowlisted Discord audio. It stays manually triggered until copied-world and private-channel acceptance pass.
-3. **Manifestation** — a fleeting, gaze-aware, target-private apparition only after the mystery earns a coordinated client update.
+1. **Presence** (shipped) — whispers, sightings-by-sound, Discord intrusions, the original peripheral `echo_01` and the partial `threshold_01` silhouette.
+2. **Servants** (shipped, manually gated) — deterministic tagged minions, the delayed-player `motion_echo_01`, and sparse victory-triggered, allowlisted Discord audio. It stays manually triggered until copied-world and private-channel acceptance pass.
+3. **Manifestation** (visual slice shipped, manually gated) — `light_fault_01` adds an impossible camera-bound lighting failure without changing blocks or exposing a scene to observers. Runtime 0.2's four profiles and Director bridge require coordinated client update and two-client/shader acceptance before live use.
 4. **Confrontation** — fight guards/echoes with deterministic mechanics. Heraldor remains unresolved unless a one-time narrative finale justifies a custom entity; never turn him into a farmable boss.
 
 ## ✅ v0.4.0 (now) — pre-world content + presence layer

@@ -12,7 +12,7 @@ The pack is meant to evolve (brief §8–9). This is the playbook for doing that
 | Mod config / `server.properties` / gamerules | None | None |
 | Add a server-side util (Chunky, profilers) | None | None |
 | Update Numen or ZapeG Citizens | Low–medium — snapshot first and test citizen save/stop/remove behavior | Rebuild and distribute the matching client patch before reconnecting |
-| Update ZapeG Runtime | Low for v0.1 scene-only builds; snapshot first because the network handshake is exact | Rebuild and distribute the exact matching client patch; pass the two-client privacy/render gate before live use |
+| Update ZapeG Runtime | Low for visual-only builds; snapshot first because the network handshake is exact | Rebuild and distribute the exact matching client patch; rehearse every profile through the two-client privacy/render gate before live use |
 | Update only the private Citizens brain | None to world data; SQLite/protocol migration still needs backup + compatibility review | None when the Forge protocol remains compatible |
 | Add the pinned Immersive Vehicles official trio | Low — no worldgen; existing chunks are unchanged. Removal becomes **high risk** after vehicles/items exist | Rebuild and distribute the same three exact jars before reconnecting |
 | Add the experimental Nifty Ships core | Medium — unfinished hulls generate only in new chunks, and known unload/mooring defects require a copied-world test. Removal becomes **high risk** after ships, cargo/items or generated structures exist | Rebuild and distribute the same exact core jar before reconnecting |

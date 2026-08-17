@@ -15,11 +15,14 @@ if "mcrcon" not in sys.modules:
     sys.modules["mcrcon"] = mcrcon_stub
 
 from heraldor_director import (  # noqa: E402
+    CampaignState,
     DirectorPolicy,
     DirectorStateLock,
     DirectorStore,
     SERVANT_AUDIO_CLIP_ID,
     ServantIngestResult,
+    extract_control_request_token,
+    parse_control_request,
     parse_score_output,
     restore_snapshot,
     servant_story_event_id,
@@ -30,8 +33,24 @@ WORLD_TOKEN = 17082026
 STORY_EVENT_ID = servant_story_event_id(WORLD_TOKEN)
 
 
+def control_request(
+    action: str,
+    argument: str = "-",
+    target: str = "-",
+    *,
+    nonce: int,
+    world_token: int = WORLD_TOKEN,
+    expires_at: int = 1_780_000_090,
+    operator: str = "Mizar__107",
+):
+    return parse_control_request(
+        f"zhctl1:{world_token}:{nonce:020x}:{expires_at}:"
+        f"{action}:{argument}:{target}:{operator}"
+    )
+
+
 class FakeClock:
-    def __init__(self, value: int = 1_000) -> None:
+    def __init__(self, value: int = 1_780_000_000) -> None:
         self.value = value
 
     def __call__(self) -> int:
@@ -185,7 +204,7 @@ class DirectorStoreTest(unittest.TestCase):
             self.assertFalse(accepted.quarantined)
             self.assertEqual(accepted.high_water, 3)
 
-    def test_threshold_records_allowlisted_audio_but_does_not_play_later(self) -> None:
+    def test_dormant_threshold_is_terminally_suppressed_and_never_banked(self) -> None:
         with self.open_store() as store:
             store.ingest_servant_score(3, world_token=WORLD_TOKEN)
             row = store.connection.execute(
@@ -194,11 +213,40 @@ class DirectorStoreTest(unittest.TestCase):
             ).fetchone()
 
         payload = json.loads(row["payload_json"])
-        self.assertEqual(row["status"], "suppressed_no_sink")
+        self.assertEqual(row["status"], "suppressed_campaign_dormant")
         self.assertEqual(payload["type"], "heraldor.audio.requested")
         self.assertEqual(payload["clip_id"], SERVANT_AUDIO_CLIP_ID)
         self.assertNotIn("url", payload)
         self.assertNotIn("path", payload)
+
+        with self.open_store(audio_sink_enabled=True) as store:
+            heraldor_service.process_control_request(
+                store,
+                control_request("phase_start", "presence", nonce=1),
+                observed_world_token=WORLD_TOKEN,
+            )
+            self.assertIsNone(store.claim_next_audio(now=self.clock.value + 1))
+
+    def test_paused_threshold_is_observed_but_never_delivered_after_resume(self) -> None:
+        with self.open_store(audio_sink_enabled=True) as store:
+            heraldor_service.process_control_request(
+                store,
+                control_request("phase_start", "presence", nonce=2),
+                observed_world_token=WORLD_TOKEN,
+            )
+            heraldor_service.process_control_request(
+                store,
+                control_request("pause", nonce=3),
+                observed_world_token=WORLD_TOKEN,
+            )
+            result = store.ingest_servant_score(3, world_token=WORLD_TOKEN)
+            self.assertEqual(result.story_output_status, "suppressed_campaign_paused")
+            heraldor_service.process_control_request(
+                store,
+                control_request("resume", nonce=4),
+                observed_world_token=WORLD_TOKEN,
+            )
+            self.assertIsNone(store.claim_next_audio(now=self.clock.value + 1))
 
     def test_pacing_cooldowns_budget_and_rehearsal(self) -> None:
         policy = DirectorPolicy(
@@ -211,17 +259,36 @@ class DirectorStoreTest(unittest.TestCase):
             shadows_cooldown_seconds=50,
         )
         with self.open_store(policy=policy) as store:
-            self.assertIsNotNone(store.reserve_ambient("whisper", subject="Alice"))
+            heraldor_service.process_control_request(
+                store,
+                control_request("phase_start", "presence", nonce=10),
+                observed_world_token=WORLD_TOKEN,
+            )
+            self.assertIsNotNone(
+                store.reserve_ambient(
+                    "whisper", subject="Alice", world_token=WORLD_TOKEN
+                )
+            )
             self.clock.value += 9
-            self.assertIsNone(store.reserve_ambient("global"))
+            self.assertIsNone(
+                store.reserve_ambient("global", world_token=WORLD_TOKEN)
+            )
 
             # The exact boundary opens; names are compared case-insensitively.
             self.clock.value += 1
-            self.assertIsNone(store.reserve_ambient("whisper", subject="ALICE"))
-            self.assertIsNotNone(store.reserve_ambient("global"))
+            self.assertIsNone(
+                store.reserve_ambient(
+                    "whisper", subject="ALICE", world_token=WORLD_TOKEN
+                )
+            )
+            self.assertIsNotNone(
+                store.reserve_ambient("global", world_token=WORLD_TOKEN)
+            )
 
             self.clock.value += 11
-            self.assertIsNone(store.reserve_ambient("global"))  # rolling budget
+            self.assertIsNone(
+                store.reserve_ambient("global", world_token=WORLD_TOKEN)
+            )  # rolling budget
             self.assertIsNotNone(
                 store.reserve_ambient("shadows", subject="Alice", rehearsal=True)
             )
@@ -237,11 +304,44 @@ class DirectorStoreTest(unittest.TestCase):
             shadows_cooldown_seconds=0,
         )
         with self.open_store(policy=policy) as store:
+            heraldor_service.process_control_request(
+                store,
+                control_request("phase_start", "presence", nonce=11),
+                observed_world_token=WORLD_TOKEN,
+            )
             store.ingest_servant_score(3, world_token=WORLD_TOKEN)
             self.clock.value += 39
-            self.assertIsNone(store.reserve_ambient("global"))
+            self.assertIsNone(
+                store.reserve_ambient("global", world_token=WORLD_TOKEN)
+            )
             self.clock.value += 1
-            self.assertIsNotNone(store.reserve_ambient("global"))
+            self.assertIsNotNone(
+                store.reserve_ambient("global", world_token=WORLD_TOKEN)
+            )
+
+    def test_live_ambient_requires_an_active_unpaused_world(self) -> None:
+        with self.open_store() as store:
+            with self.assertRaisesRegex(ValueError, "requires a world token"):
+                store.reserve_ambient("global")
+            self.assertIsNone(
+                store.reserve_ambient("global", world_token=WORLD_TOKEN)
+            )
+            heraldor_service.process_control_request(
+                store,
+                control_request("phase_start", "presence", nonce=12),
+                observed_world_token=WORLD_TOKEN,
+            )
+            self.assertIsNotNone(
+                store.reserve_ambient("global", world_token=WORLD_TOKEN)
+            )
+            heraldor_service.process_control_request(
+                store,
+                control_request("pause", nonce=13),
+                observed_world_token=WORLD_TOKEN,
+            )
+            self.assertIsNone(
+                store.reserve_ambient("whisper", world_token=WORLD_TOKEN)
+            )
 
     def test_interrupted_side_effect_becomes_ambiguous_after_restart(self) -> None:
         with self.open_store() as store:
@@ -270,6 +370,324 @@ class DirectorStoreTest(unittest.TestCase):
             self.assertIsNone(second)
 
 
+class ControlProtocolTest(unittest.TestCase):
+    def test_strict_token_parser_and_localized_output_extractor(self) -> None:
+        request = control_request(
+            "scene_trigger", "motion_echo_01", "Alice_7", nonce=20
+        )
+        self.assertEqual(request.world_token, str(WORLD_TOKEN))
+        self.assertEqual(request.target, "Alice_7")
+        self.assertEqual(request.argument, "motion_echo_01")
+        output = f'Depolama içeriği: "{request.token}"'
+        self.assertEqual(extract_control_request_token(output), request.token)
+        self.assertIsNone(
+            extract_control_request_token(
+                f'Data: "prefix {request.token} suffix"'
+            )
+        )
+        self.assertIsNone(
+            extract_control_request_token(f'Data: {{wrapped:"{request.token}"}}')
+        )
+
+    def test_token_rejects_free_form_actions_profiles_names_and_trailing_fields(self) -> None:
+        bad_tokens = [
+            f"zhctl1:{WORLD_TOKEN}:{21:020x}:1780000090:run_command:-:-:Mizar__107",
+            f"zhctl1:{WORLD_TOKEN}:{22:020x}:1780000090:scene_trigger:custom:Alice:Mizar__107",
+            f"zhctl1:{WORLD_TOKEN}:{23:020x}:1780000090:scene_trigger:echo_01:Bad-Name:Mizar__107",
+            f"zhctl1:{WORLD_TOKEN}:{24:020x}:1780000090:pause:-:Alice:Mizar__107",
+            f"zhctl1:{WORLD_TOKEN}:{25:020x}:1780000090:status:-:-:Mizar__107:extra",
+        ]
+        for token in bad_tokens:
+            with self.subTest(token=token), self.assertRaises(ValueError):
+                parse_control_request(token)
+
+
+class DirectorControlBridgeTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.db_path = self.root / "heraldor.sqlite3"
+        self.clock = FakeClock()
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def open_store(self, **kwargs) -> DirectorStore:
+        return DirectorStore(self.db_path, clock=self.clock, **kwargs)
+
+    def process(self, store, request):
+        return heraldor_service.process_control_request(
+            store, request, observed_world_token=WORLD_TOKEN
+        )
+
+    def test_phase_pause_gates_and_world_separation(self) -> None:
+        with self.open_store() as store:
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "dormant")
+            presence = self.process(
+                store, control_request("phase_start", "presence", nonce=30)
+            )
+            self.assertEqual(presence.status, "delivered")
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "presence")
+
+            pause = self.process(store, control_request("pause", nonce=31))
+            self.assertEqual(pause.status, "delivered")
+            with patch.object(heraldor_service, "rcon") as runtime:
+                live = self.process(
+                    store,
+                    control_request("scene_trigger", "echo_01", "Alice", nonce=32),
+                )
+            self.assertEqual(live.status, "rejected")
+            runtime.assert_not_called()
+
+            advanced_while_paused = self.process(
+                store, control_request("phase_advance", nonce=37)
+            )
+            self.assertEqual(advanced_while_paused.status, "delivered")
+            self.assertEqual(
+                store.campaign_state(WORLD_TOKEN),
+                CampaignState(str(WORLD_TOKEN), "servants", True),
+            )
+
+            with patch.object(
+                heraldor_service,
+                "rcon",
+                return_value="scene dispatched event=00000000-0000-0000-0000-000000000001",
+            ):
+                rehearsal = self.process(
+                    store,
+                    control_request("scene_rehearse", "echo_01", "Alice", nonce=33),
+                )
+            self.assertEqual(rehearsal.status, "delivered")
+
+            self.process(store, control_request("resume", nonce=34))
+            jumped = self.process(
+                store, control_request("phase_start", "manifestation", nonce=35)
+            )
+            self.assertEqual(jumped.status, "delivered")
+            backwards = self.process(
+                store, control_request("phase_start", "servants", nonce=36)
+            )
+            self.assertEqual(backwards.status, "rejected")
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "manifestation")
+            self.assertEqual(
+                store.campaign_state(WORLD_TOKEN + 1),
+                CampaignState(str(WORLD_TOKEN + 1), "dormant", False),
+            )
+
+    def test_profile_phase_gates_are_hard_boundaries(self) -> None:
+        with self.open_store() as store:
+            self.process(store, control_request("phase_advance", nonce=40))
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "presence")
+            with patch.object(heraldor_service, "rcon") as runtime:
+                motion = self.process(
+                    store,
+                    control_request(
+                        "scene_trigger", "motion_echo_01", "Alice", nonce=41
+                    ),
+                )
+            self.assertEqual(motion.status, "rejected")
+            runtime.assert_not_called()
+
+            self.process(store, control_request("phase_advance", nonce=42))
+            with patch.object(
+                heraldor_service,
+                "rcon",
+                return_value="scene dispatched event=00000000-0000-0000-0000-000000000002",
+            ) as runtime:
+                motion = self.process(
+                    store,
+                    control_request(
+                        "scene_trigger", "motion_echo_01", "Alice", nonce=43
+                    ),
+                )
+            self.assertEqual(motion.status, "delivered")
+            runtime.assert_called_once()
+
+            with patch.object(heraldor_service, "rcon") as runtime:
+                light = self.process(
+                    store,
+                    control_request(
+                        "scene_rehearse", "light_fault_01", "Alice", nonce=44
+                    ),
+                )
+            self.assertEqual(light.status, "rejected")
+            runtime.assert_not_called()
+
+    def test_live_dispatch_is_at_most_once_and_uncertain_transport_is_ambiguous(self) -> None:
+        with self.open_store() as store:
+            self.process(
+                store, control_request("phase_start", "presence", nonce=50)
+            )
+            request = control_request(
+                "scene_trigger", "echo_01", "Alice", nonce=51
+            )
+            with patch.object(
+                heraldor_service,
+                "rcon",
+                return_value=f"scene dispatched event={request.event_id}",
+            ) as runtime:
+                first = self.process(store, request)
+                duplicate = self.process(store, request)
+            self.assertEqual(first.status, "delivered")
+            self.assertEqual(duplicate.status, "delivered")
+            runtime.assert_called_once()
+
+            uncertain = control_request(
+                "scene_trigger", "threshold_01", "Alice", nonce=52
+            )
+            with patch.object(
+                heraldor_service, "rcon", side_effect=OSError("connection reset")
+            ) as runtime:
+                result = self.process(store, uncertain)
+            self.assertEqual(result.status, "ambiguous")
+            runtime.assert_called_once()
+            with patch.object(heraldor_service, "rcon") as runtime:
+                replay = self.process(store, uncertain)
+            self.assertEqual(replay.status, "ambiguous")
+            runtime.assert_not_called()
+
+    def test_restart_turns_claimed_control_into_non_replayable_ambiguous(self) -> None:
+        request = control_request(
+            "scene_rehearse", "echo_01", "Alice", nonce=60
+        )
+        with self.open_store() as store:
+            store.record_control_event(
+                request,
+                kind="director_scene",
+                category="directed",
+                status="reserved",
+                subject="Alice",
+                rehearsal=True,
+            )
+            self.assertTrue(store.mark_attempting(request.event_id))
+
+        with self.open_store() as reopened:
+            self.assertEqual(
+                reopened.control_event_status(request.event_id), "ambiguous"
+            )
+            with patch.object(heraldor_service, "rcon") as runtime:
+                replay = self.process(reopened, request)
+            self.assertEqual(replay.status, "ambiguous")
+            runtime.assert_not_called()
+
+    def test_wrong_world_and_expired_requests_are_terminal_without_runtime(self) -> None:
+        with self.open_store() as store, patch.object(heraldor_service, "rcon") as runtime:
+            wrong_world = self.process(
+                store,
+                control_request("scene_trigger", "echo_01", "Alice", nonce=70),
+            )
+            # Still dormant, so establish that the earlier rejection was a phase gate.
+            self.assertEqual(wrong_world.status, "rejected")
+            mismatch = heraldor_service.process_control_request(
+                store,
+                control_request(
+                    "status", nonce=71, world_token=WORLD_TOKEN + 1
+                ),
+                observed_world_token=WORLD_TOKEN,
+            )
+            expired = self.process(
+                store,
+                control_request("status", nonce=72, expires_at=self.clock.value),
+            )
+        self.assertEqual(mismatch.status, "rejected")
+        self.assertEqual(expired.status, "suppressed_expired")
+        runtime.assert_not_called()
+
+    def test_rejected_and_failed_scenes_do_not_spend_targeted_ambient_cooldown(self) -> None:
+        policy = DirectorPolicy(
+            ambient_gap_seconds=0,
+            targeted_gap_seconds=100,
+            ambient_window_seconds=100,
+            ambient_budget=10,
+            major_quiet_seconds=0,
+            discord_cooldown_seconds=0,
+            shadows_cooldown_seconds=0,
+        )
+        with self.open_store(policy=policy) as store:
+            self.process(
+                store, control_request("phase_start", "presence", nonce=73)
+            )
+            self.process(store, control_request("pause", nonce=74))
+            rejected = self.process(
+                store,
+                control_request("scene_trigger", "echo_01", "Alice", nonce=75),
+            )
+            self.assertEqual(rejected.status, "rejected")
+            self.process(store, control_request("resume", nonce=76))
+            self.assertIsNotNone(
+                store.reserve_ambient(
+                    "whisper", subject="Alice", world_token=WORLD_TOKEN
+                )
+            )
+
+            failed_request = control_request(
+                "scene_trigger", "echo_01", "Bob", nonce=77
+            )
+            with patch.object(
+                heraldor_service, "rcon", return_value="another scene is active"
+            ):
+                failed = self.process(store, failed_request)
+            self.assertEqual(failed.status, "failed")
+            self.assertIsNotNone(
+                store.reserve_ambient(
+                    "whisper", subject="Bob", world_token=WORLD_TOKEN
+                )
+            )
+
+            delivered_request = control_request(
+                "scene_trigger", "echo_01", "Charlie", nonce=78
+            )
+            with patch.object(
+                heraldor_service,
+                "rcon",
+                return_value=f"scene dispatched event={delivered_request.event_id}",
+            ):
+                delivered = self.process(store, delivered_request)
+            self.assertEqual(delivered.status, "delivered")
+            self.assertIsNone(
+                store.reserve_ambient(
+                    "whisper", subject="Charlie", world_token=WORLD_TOKEN
+                )
+            )
+
+    def test_cancel_does_not_change_phase_or_pause_state(self) -> None:
+        with self.open_store() as store:
+            self.process(
+                store, control_request("phase_start", "servants", nonce=80)
+            )
+            self.process(store, control_request("pause", nonce=81))
+            with patch.object(
+                heraldor_service, "rcon", return_value="active=0"
+            ) as runtime:
+                cancelled = self.process(store, control_request("cancel", nonce=82))
+            self.assertEqual(cancelled.status, "delivered")
+            runtime.assert_called_once_with("zapegscene cancel-all")
+            self.assertEqual(
+                store.campaign_state(WORLD_TOKEN),
+                CampaignState(str(WORLD_TOKEN), "servants", True),
+            )
+
+    def test_mailbox_poll_uses_stable_world_and_conditional_exact_clear(self) -> None:
+        request = control_request("status", nonce=90, operator="console")
+        outputs = [
+            f"#world has {WORLD_TOKEN} [zh_svc_world]",
+            f'Data: "{request.token}"',
+            f"#world has {WORLD_TOKEN} [zh_svc_world]",
+        ]
+        with (
+            self.open_store() as store,
+            patch.object(heraldor_service, "rcon_many", return_value=outputs),
+            patch.object(heraldor_service, "rcon", return_value="1") as command,
+        ):
+            result = heraldor_service.poll_control_request(store)
+        self.assertEqual(result.status, "delivered")
+        self.assertEqual(command.call_count, 1)
+        clear = command.call_args.args[0]
+        self.assertIn("execute if data storage zapeg:heraldor", clear)
+        self.assertIn(request.token, clear)
+        self.assertIn("run data remove storage zapeg:heraldor control_request", clear)
+
+
 class ScoreParserTest(unittest.TestCase):
     def test_parses_value_after_has_not_username_digits(self) -> None:
         self.assertEqual(parse_score_output("Mizar__107 has 12 [zapeg_hsvc]"), 12)
@@ -281,6 +699,18 @@ class ScoreParserTest(unittest.TestCase):
 
 
 class PresenceServiceTest(unittest.TestCase):
+    def test_failed_or_unstable_poll_cannot_retain_an_old_world_token(self) -> None:
+        old_world_poll = (
+            ServantIngestResult(0, 0, (), None),
+            0,
+            WORLD_TOKEN,
+        )
+        self.assertEqual(
+            heraldor_service._world_token_from_servant_poll(old_world_poll),
+            WORLD_TOKEN,
+        )
+        self.assertIsNone(heraldor_service._world_token_from_servant_poll(None))
+
     def test_poll_pairs_score_with_stable_world_token(self) -> None:
         class CapturingDirector:
             call = None
@@ -317,8 +747,11 @@ class PresenceServiceTest(unittest.TestCase):
         class CapturingDirector:
             calls = []
 
-            def reserve_ambient(self, kind, *, subject=None):
-                self.calls.append((kind, subject))
+            def campaign_state(self, world_token):
+                return CampaignState(str(world_token), "presence", False)
+
+            def reserve_ambient(self, kind, *, subject=None, world_token=None):
+                self.calls.append((kind, subject, world_token))
                 return None
 
         director = CapturingDirector()
@@ -334,9 +767,40 @@ class PresenceServiceTest(unittest.TestCase):
             patch.object(heraldor_service.random, "random", return_value=0.0),
             patch.object(heraldor_service.random, "choice", side_effect=lambda values: values[0]),
         ):
-            heraldor_service.ambient_cycle(director)
+            heraldor_service.ambient_cycle(director, WORLD_TOKEN)
 
         self.assertEqual(len(director.calls), 1)
+
+    def test_dormant_and_paused_campaigns_do_not_roll_ambient(self) -> None:
+        class SuppressedDirector:
+            def __init__(self, state):
+                self.state = state
+
+            def campaign_state(self, _world_token):
+                return self.state
+
+            def reserve_ambient(self, *_args, **_kwargs):
+                raise AssertionError("suppressed ambient must never reserve")
+
+        for state in (
+            CampaignState(str(WORLD_TOKEN), "dormant", False),
+            CampaignState(str(WORLD_TOKEN), "presence", True),
+        ):
+            with (
+                self.subTest(state=state),
+                patch.object(heraldor_service, "online_players") as players,
+            ):
+                heraldor_service.ambient_cycle(SuppressedDirector(state), WORLD_TOKEN)
+                players.assert_not_called()
+
+        with patch.object(heraldor_service, "online_players") as players:
+            heraldor_service.ambient_cycle(
+                SuppressedDirector(
+                    CampaignState(str(WORLD_TOKEN), "manifestation", False)
+                ),
+                None,
+            )
+            players.assert_not_called()
 
 
 class ServantScriptContractTest(unittest.TestCase):
@@ -384,6 +848,37 @@ class ServantScriptContractTest(unittest.TestCase):
         self.assertIn("servant.kill()", self.script)
         self.assertIn("/^[A-Za-z0-9_]{1,16}$/.test(name)", self.script)
         self.assertIn("server.runCommandSilent(\n      `execute in ${dimension}", self.script)
+
+    def test_director_bridge_is_allowlisted_queued_and_never_calls_runtime(self) -> None:
+        self.assertIn("Commands.literal('director')", self.script)
+        self.assertIn("zhDirectorSourceAllowed", self.script)
+        self.assertIn("net.minecraft.server.rcon.RconConsoleSource", self.script)
+        self.assertIn("net.minecraft.server.level.ServerPlayer", self.script)
+        self.assertIn(
+            "String(rawSource.getUUID()) === String(player.uuid)", self.script
+        )
+        self.assertIn("const ZH_CONTROL_TTL_SECONDS = 90", self.script)
+        self.assertIn("control_request", self.script)
+        queue = self.script[
+            self.script.index("function zhQueueDirectorRequest") :
+            self.script.index("function zhDirectorApparitionBranch")
+        ]
+        self.assertIn(
+            "run scoreboard players get #world ${ZH_WORLD_OBJECTIVE}", queue
+        )
+        self.assertNotIn(
+            "run data get storage ${ZH_CONTROL_STORAGE} control_request", queue
+        )
+        self.assertIn("this is not an execution receipt", self.script)
+        for public_name, profile in (
+            ("echo", "echo_01"),
+            ("threshold", "threshold_01"),
+            ("motion-echo", "motion_echo_01"),
+            ("light-fault", "light_fault_01"),
+        ):
+            self.assertIn(f"['{public_name}', '{profile}']", self.script)
+        self.assertNotIn("zapegscene ", self.script)
+        self.assertNotIn("Commands.argument('profile'", self.script)
 
 
 if __name__ == "__main__":

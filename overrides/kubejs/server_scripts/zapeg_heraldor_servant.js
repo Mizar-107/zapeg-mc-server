@@ -10,6 +10,9 @@ const ZH_EXPIRY_OBJECTIVE = 'zh_svc_exp'
 const ZH_KILL_OBJECTIVE = 'zapeg_hsvc'
 const ZH_WORLD_OBJECTIVE = 'zh_svc_world'
 const ZH_INSTANCE_OBJECTIVE = 'zh_svc_id'
+const ZH_CONTROL_STORAGE = 'zapeg:heraldor'
+const ZH_CONTROL_TOKEN_VERSION = 'zhctl1'
+const ZH_CONTROL_TTL_SECONDS = 90
 const ZH_LIFETIME_TICKS = 2400
 const ZH_MAX_DISTANCE = 48
 const ZH_NUMEN_CLASS = 'com.dwinovo.numen.entity.NumenPlayer'
@@ -39,6 +42,149 @@ function zhSafePlayerName(player) {
   if (!player) return null
   const name = String(player.username)
   return /^[A-Za-z0-9_]{1,16}$/.test(name) ? name : null
+}
+
+function zhDirectorSourceAllowed(source) {
+  if (!source.hasPermission(2)) return false
+  try {
+    const player = source.player
+    if (player && zhSafePlayerName(player)) {
+      // `execute as <op>` changes the effective player but retains the command
+      // block/function as source.source. Admit only a command typed by this
+      // exact real ServerPlayer.
+      const rawSource = source.source
+      return Boolean(
+        rawSource &&
+        String(rawSource.getClass().getName()) ===
+          'net.minecraft.server.level.ServerPlayer' &&
+        String(rawSource.getUUID()) === String(player.uuid)
+      )
+    }
+  } catch (_) {
+    // Console-like sources do not expose a player.
+  }
+  try {
+    // This exact class check admits RCON but rejects command blocks. The local
+    // server console is intentionally left to host-side admin/raw commands;
+    // KubeJS cannot reliably distinguish it from every function context.
+    return String(source.source.getClass().getName()) ===
+      'net.minecraft.server.rcon.RconConsoleSource'
+  } catch (_) {
+    return false
+  }
+}
+
+function zhDirectorOperatorName(source) {
+  try {
+    return zhSafePlayerName(source.player) || 'console'
+  } catch (_) {
+    return 'console'
+  }
+}
+
+function zhControlNonce() {
+  let milliseconds = Date.now().toString(16)
+  let random = Math.floor(Math.random() * 0x100000000).toString(16)
+  while (milliseconds.length < 12) milliseconds = '0' + milliseconds
+  while (random.length < 8) random = '0' + random
+  return milliseconds + random
+}
+
+function zhQueueDirectorRequest(source, action, argument, target) {
+  const server = source.server
+  zhEnsureObjectives(server)
+  const allowedActions = [
+    'status', 'pause', 'resume', 'phase_start', 'phase_advance',
+    'scene_rehearse', 'scene_trigger', 'cancel'
+  ]
+  const allowedArguments = [
+    '-', 'presence', 'servants', 'manifestation',
+    'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01'
+  ]
+  if (allowedActions.indexOf(action) < 0 || allowedArguments.indexOf(argument) < 0) {
+    zhReply(source, 'The Director request was not allowlisted.', true)
+    return 0
+  }
+  const noArgumentActions = ['status', 'pause', 'resume', 'phase_advance', 'cancel']
+  const phases = ['presence', 'servants', 'manifestation']
+  const profiles = ['echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01']
+  const sceneAction = action === 'scene_rehearse' || action === 'scene_trigger'
+  const validShape =
+    (noArgumentActions.indexOf(action) >= 0 && argument === '-' && !target) ||
+    (action === 'phase_start' && phases.indexOf(argument) >= 0 && !target) ||
+    (sceneAction && profiles.indexOf(argument) >= 0 && Boolean(target))
+  if (!validShape) {
+    zhReply(source, 'The Director request arguments were not allowlisted.', true)
+    return 0
+  }
+
+  const targetName = target ? zhSafePlayerName(target) : '-'
+  if (!targetName) {
+    zhReply(source, 'The target has a command-unsafe username.', true)
+    return 0
+  }
+  const operatorName = zhDirectorOperatorName(source)
+  const occupied = server.runCommandSilent(
+    `execute if data storage ${ZH_CONTROL_STORAGE} control_request ` +
+    `run scoreboard players get #world ${ZH_WORLD_OBJECTIVE}`
+  ) > 0
+  if (occupied) {
+    zhReply(source, 'The Director already has one request waiting for acknowledgement.', true)
+    return 0
+  }
+
+  const worldToken = Number(server.runCommandSilent(
+    `scoreboard players get #world ${ZH_WORLD_OBJECTIVE}`
+  ))
+  if (worldToken !== Math.floor(worldToken) || worldToken < 1 || worldToken > 2000000000) {
+    zhReply(source, 'The Director world token is unavailable.', true)
+    return 0
+  }
+
+  const expiresAt = Math.floor(Date.now() / 1000) + ZH_CONTROL_TTL_SECONDS
+  const token = [
+    ZH_CONTROL_TOKEN_VERSION,
+    String(worldToken),
+    zhControlNonce(),
+    String(expiresAt),
+    action,
+    argument,
+    targetName,
+    operatorName
+  ].join(':')
+  const changed = server.runCommandSilent(
+    `data modify storage ${ZH_CONTROL_STORAGE} control_request ` +
+    `set value ${JSON.stringify(token)}`
+  )
+  if (changed < 1) {
+    zhReply(source, 'The Director request could not be queued.', true)
+    return 0
+  }
+  zhReply(source, `Director request queued for ${action}; this is not an execution receipt.`, false)
+  return 1
+}
+
+function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
+  const apparition = Commands.literal('apparition')
+  const profiles = [
+    ['echo', 'echo_01'],
+    ['threshold', 'threshold_01'],
+    ['motion-echo', 'motion_echo_01'],
+    ['light-fault', 'light_fault_01']
+  ]
+  profiles.forEach(profile => {
+    apparition.then(Commands.literal(profile[0])
+      .then(Commands.argument('target', Arguments.PLAYER.create(event))
+        .executes(ctx => zhQueueDirectorRequest(
+          ctx.source,
+          action,
+          profile[1],
+          Arguments.PLAYER.getResult(ctx, 'target')
+        ))
+      )
+    )
+  })
+  return apparition
 }
 
 function zhEnsureObjectives(server) {
@@ -345,6 +491,57 @@ ServerEvents.commandRegistry(event => {
         )
         .then(Commands.literal('cleanup')
           .executes(ctx => zhCleanupServants(ctx.source))
+        )
+      )
+      .then(Commands.literal('director')
+        .requires(source => zhDirectorSourceAllowed(source))
+        .then(Commands.literal('status')
+          .executes(ctx => zhQueueDirectorRequest(ctx.source, 'status', '-', null))
+        )
+        .then(Commands.literal('pause')
+          .executes(ctx => zhQueueDirectorRequest(ctx.source, 'pause', '-', null))
+        )
+        .then(Commands.literal('resume')
+          .executes(ctx => zhQueueDirectorRequest(ctx.source, 'resume', '-', null))
+        )
+        .then(Commands.literal('phase')
+          .then(Commands.literal('start')
+            .then(Commands.literal('presence')
+              .executes(ctx => zhQueueDirectorRequest(
+                ctx.source, 'phase_start', 'presence', null
+              ))
+            )
+            .then(Commands.literal('servants')
+              .executes(ctx => zhQueueDirectorRequest(
+                ctx.source, 'phase_start', 'servants', null
+              ))
+            )
+            .then(Commands.literal('manifestation')
+              .executes(ctx => zhQueueDirectorRequest(
+                ctx.source, 'phase_start', 'manifestation', null
+              ))
+            )
+          )
+          .then(Commands.literal('advance')
+            .executes(ctx => zhQueueDirectorRequest(
+              ctx.source, 'phase_advance', '-', null
+            ))
+          )
+        )
+        .then(Commands.literal('event')
+          .then(Commands.literal('rehearse')
+            .then(zhDirectorApparitionBranch(
+              Commands, Arguments, event, 'scene_rehearse'
+            ))
+          )
+          .then(Commands.literal('trigger')
+            .then(zhDirectorApparitionBranch(
+              Commands, Arguments, event, 'scene_trigger'
+            ))
+          )
+        )
+        .then(Commands.literal('cancel')
+          .executes(ctx => zhQueueDirectorRequest(ctx.source, 'cancel', '-', null))
         )
       )
   )

@@ -78,9 +78,9 @@ $ownedMods = @(
     [pscustomobject]@{
         Name = 'ZapeG Runtime'
         Prefix = 'zapeg-runtime-forge-1.20.1-'
-        FileName = 'zapeg-runtime-forge-1.20.1-0.1.0.jar'
-        RelativePath = 'overrides\mods\zapeg-runtime-forge-1.20.1-0.1.0.jar'
-        Pin = 'ZapeG owned release 0.1.0 (not CurseForge)'
+        FileName = 'zapeg-runtime-forge-1.20.1-0.2.0.jar'
+        RelativePath = 'overrides\mods\zapeg-runtime-forge-1.20.1-0.2.0.jar'
+        Pin = 'ZapeG owned release 0.2.0 (not CurseForge)'
     }
 )
 
@@ -513,7 +513,7 @@ function Add-ZapeGClientLayer {
              '4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar, zapeg-citizens-forge-1.20.1-*.jar ve zapeg-runtime-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile eski Citizens/Runtime jarları silinmiş olmalı.',
              '5. Bu zip içeriğini O KLASÖRÜN KÖKÜNE çıkar.',
              '6. ZapeG dosyaları için üzerine yazma sorulursa onayla. Kişisel options.txt ayarların bu yamada yoktur ve korunur.',
-             '7. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, zapeg-citizens-forge-1.20.1-0.3.0.jar ve zapeg-runtime-forge-1.20.1-0.1.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli.',
+             '7. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, zapeg-citizens-forge-1.20.1-0.3.0.jar ve zapeg-runtime-forge-1.20.1-0.2.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli.',
              '8. Oyunu başlat. Kullanıcı adını değiştirme; envanter, claim ve kişisel lore o ada bağlıdır.',
             '',
             'Zip içinde yeniden bir ZapeG klasörü oluşturma. mods klasörü profil kökünde olmalı.'
@@ -527,7 +527,7 @@ function Add-ZapeGClientLayer {
              '2. Launcher sorarsa Java 17 seç. Profili bir kez açıp kapat.',
              '3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar, zapeg-citizens-forge-1.20.1-*.jar ve zapeg-runtime-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile eski Citizens/Runtime jarları silinmiş olmalı.',
              '4. Bu zip içeriğini o profilin OYUN KLASÖRÜNE çıkar.',
-             '5. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, zapeg-citizens-forge-1.20.1-0.3.0.jar ve zapeg-runtime-forge-1.20.1-0.1.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli; iç içe ZapeG klasörü olmamalı.',
+             '5. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, zapeg-citizens-forge-1.20.1-0.3.0.jar ve zapeg-runtime-forge-1.20.1-0.2.0.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli; iç içe ZapeG klasörü olmamalı.',
              '6. Sabit bir kullanıcı adı seç. Sonradan değiştirme; envanter ve claim kimliğin bu addır.'
          )
     }

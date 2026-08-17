@@ -32,6 +32,38 @@ AUDIO_LIVE_GAP_SECONDS = 6 * 60 * 60
 AUDIO_REHEARSAL_GAP_SECONDS = 30
 ALLOWED_AUDIO_CLIPS = frozenset({SERVANT_AUDIO_CLIP_ID})
 AMBIENT_KINDS = frozenset({"whisper", "global", "discord", "shadows"})
+CONTROL_TOKEN_VERSION = "zhctl1"
+CONTROL_TOKEN_MAX_FUTURE_SECONDS = 2 * 60
+CONTROL_PHASES = ("dormant", "presence", "servants", "manifestation")
+CONTROL_START_PHASES = frozenset(CONTROL_PHASES[1:])
+CONTROL_SCENE_PROFILE_PHASES = {
+    "echo_01": "presence",
+    "threshold_01": "presence",
+    "motion_echo_01": "servants",
+    "light_fault_01": "manifestation",
+}
+CONTROL_ACTIONS = frozenset(
+    {
+        "status",
+        "pause",
+        "resume",
+        "phase_start",
+        "phase_advance",
+        "scene_rehearse",
+        "scene_trigger",
+        "cancel",
+    }
+)
+CONTROL_EVENT_NAMESPACE = uuid.UUID("da548502-11dd-5b05-886a-650c4b74596c")
+CONTROL_TOKEN_RE = re.compile(
+    r"^zhctl1:(?P<world>[1-9]\d{0,9}):(?P<nonce>[0-9a-f]{16,32}):"
+    r"(?P<expires>[1-9]\d{9}):(?P<action>[a-z_]+):"
+    r"(?P<argument>[a-z0-9_-]+):(?P<target>[A-Za-z0-9_-]+):"
+    r"(?P<operator>[A-Za-z0-9_]{1,16})$"
+)
+CONTROL_OUTPUT_TOKEN_RE = re.compile(
+    r'^[^"\r\n]*"(zhctl1(?::[A-Za-z0-9_-]+){7})"\s*$'
+)
 
 
 @dataclass(frozen=True)
@@ -63,6 +95,7 @@ class ServantIngestResult:
     story_event_id: str | None
     regression: bool = False
     quarantined: bool = False
+    story_output_status: str | None = None
 
 
 @dataclass(frozen=True)
@@ -70,6 +103,42 @@ class AudioDelivery:
     event_id: str
     payload: dict[str, object]
     rehearsal: bool
+
+
+@dataclass(frozen=True)
+class ControlRequest:
+    token: str
+    world_token: str
+    nonce: str
+    expires_at: int
+    action: str
+    argument: str
+    target: str | None
+    operator: str
+
+    @property
+    def event_id(self) -> str:
+        return str(uuid.uuid5(CONTROL_EVENT_NAMESPACE, self.token))
+
+
+@dataclass(frozen=True)
+class ControlEventRecord:
+    event_id: str
+    status: str
+    created: bool
+
+
+@dataclass(frozen=True)
+class CampaignState:
+    world_token: str
+    phase: str = "dormant"
+    paused: bool = False
+
+    def allows_profile(self, profile: str) -> bool:
+        minimum = CONTROL_SCENE_PROFILE_PHASES.get(profile)
+        if minimum is None:
+            return False
+        return CONTROL_PHASES.index(self.phase) >= CONTROL_PHASES.index(minimum)
 
 
 def compact_json(value: object) -> str:
@@ -81,6 +150,59 @@ def normalize_world_token(value: int | str) -> str:
     if not re.fullmatch(r"[1-9]\d{0,9}", token) or int(token) > 2_000_000_000:
         raise ValueError(f"invalid Heraldor world token: {value!r}")
     return token
+
+
+def parse_control_request(token: str) -> ControlRequest:
+    """Parse the complete, allowlisted Minecraft-to-Director control token."""
+
+    match = CONTROL_TOKEN_RE.fullmatch(token)
+    if not match:
+        raise ValueError("invalid Heraldor control token")
+    values = match.groupdict()
+    world_token = normalize_world_token(values["world"])
+    action = values["action"]
+    argument = values["argument"]
+    raw_target = values["target"]
+    operator = values["operator"]
+
+    if action not in CONTROL_ACTIONS:
+        raise ValueError("unsupported Heraldor control action")
+    if operator != "console" and not re.fullmatch(r"[A-Za-z0-9_]{1,16}", operator):
+        raise ValueError("invalid Heraldor control operator")
+
+    no_argument_actions = {"status", "pause", "resume", "phase_advance", "cancel"}
+    if action in no_argument_actions:
+        if argument != "-" or raw_target != "-":
+            raise ValueError("unexpected Heraldor control arguments")
+        target = None
+    elif action == "phase_start":
+        if argument not in CONTROL_START_PHASES or raw_target != "-":
+            raise ValueError("invalid Heraldor campaign phase")
+        target = None
+    else:
+        if argument not in CONTROL_SCENE_PROFILE_PHASES:
+            raise ValueError("invalid Heraldor scene profile")
+        if not re.fullmatch(r"[A-Za-z0-9_]{1,16}", raw_target):
+            raise ValueError("invalid Heraldor scene target")
+        target = raw_target
+
+    return ControlRequest(
+        token=token,
+        world_token=world_token,
+        nonce=values["nonce"],
+        expires_at=int(values["expires"]),
+        action=action,
+        argument=argument,
+        target=target,
+        operator=operator,
+    )
+
+
+def extract_control_request_token(output: str) -> str | None:
+    """Accept only one exact quoted token value after localized output text."""
+
+    match = CONTROL_OUTPUT_TOKEN_RE.fullmatch(output)
+    return match.group(1) if match else None
 
 
 def servant_story_event_id(world_token: int | str) -> str:
@@ -317,7 +439,7 @@ class DirectorStore:
             db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
 
     def _recover_interrupted_attempts(self) -> None:
-        """Recover Director-owned ambient attempts only.
+        """Recover Director-owned ambient/directed attempts only.
 
         Audio attempts belong to the separately locked voice worker. Opening or
         restarting the Director must never alter an in-progress playback.
@@ -360,6 +482,135 @@ class DirectorStore:
             finally:
                 temporary.unlink(missing_ok=True)
 
+    @staticmethod
+    def _campaign_state(db: sqlite3.Connection, world_token: str) -> CampaignState:
+        phase = "dormant"
+        paused = False
+        rows = db.execute(
+            """
+            SELECT kind, payload_json FROM events
+             WHERE category = 'campaign' AND status = 'delivered'
+             ORDER BY created_at, rowid
+            """
+        )
+        for row in rows:
+            try:
+                payload = json.loads(str(row["payload_json"]))
+                control = payload["control"]
+                if str(control["world_token"]) != world_token:
+                    continue
+            except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                continue
+
+            kind = str(row["kind"])
+            if kind == "director_phase":
+                candidate = payload.get("phase")
+                if candidate in CONTROL_PHASES:
+                    # Corrupt or hand-edited rows cannot rewind the campaign.
+                    phase = CONTROL_PHASES[
+                        max(CONTROL_PHASES.index(phase), CONTROL_PHASES.index(candidate))
+                    ]
+            elif kind == "director_pause":
+                paused = True
+            elif kind == "director_resume":
+                paused = False
+        return CampaignState(world_token, phase, paused)
+
+    def campaign_state(self, world_token: int | str) -> CampaignState:
+        token = normalize_world_token(world_token)
+        return self._campaign_state(self.connection, token)
+
+    def record_control_event(
+        self,
+        request: ControlRequest,
+        *,
+        kind: str,
+        category: str,
+        status: str,
+        payload: dict[str, object] | None = None,
+        subject: str | None = None,
+        rehearsal: bool = False,
+        error: str | None = None,
+        now: int | None = None,
+    ) -> ControlEventRecord:
+        """Insert one canonical request row, or return its existing terminal state."""
+
+        if category not in {"campaign", "operator", "directed"}:
+            raise ValueError(f"invalid control event category: {category}")
+        if status not in {"reserved", "delivered", "rejected", "suppressed_expired"}:
+            raise ValueError(f"invalid initial control event status: {status}")
+        timestamp = int(self.clock() if now is None else now)
+        body = dict(payload or {})
+        if "control" in body:
+            raise ValueError("control payload is reserved")
+        body["control"] = {
+            "version": CONTROL_TOKEN_VERSION,
+            "world_token": request.world_token,
+            "nonce": request.nonce,
+            "expires_at": request.expires_at,
+            "action": request.action,
+            "argument": request.argument,
+            "target": request.target,
+            "operator": request.operator,
+        }
+        finished_at = timestamp if status != "reserved" else None
+        with self._transaction() as db:
+            changed = db.execute(
+                """
+                INSERT OR IGNORE INTO events
+                    (event_id, kind, category, subject, rehearsal, payload_json,
+                     status, created_at, finished_at, error)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    request.event_id,
+                    kind,
+                    category,
+                    subject.casefold() if subject else None,
+                    int(rehearsal),
+                    compact_json(body),
+                    status,
+                    timestamp,
+                    finished_at,
+                    error[:500] if error else None,
+                ),
+            ).rowcount
+            row = db.execute(
+                "SELECT status FROM events WHERE event_id = ?", (request.event_id,)
+            ).fetchone()
+        if changed:
+            self.backup_snapshot()
+        return ControlEventRecord(request.event_id, str(row["status"]), bool(changed))
+
+    def control_event_status(self, event_id: str) -> str | None:
+        row = self.connection.execute(
+            "SELECT status FROM events WHERE event_id = ?", (event_id,)
+        ).fetchone()
+        return str(row["status"]) if row else None
+
+    def finish_reserved_control(
+        self,
+        event_id: str,
+        *,
+        status: str,
+        error: str,
+        now: int | None = None,
+    ) -> bool:
+        if status not in {"rejected", "suppressed_expired"}:
+            raise ValueError(f"invalid reserved control terminal status: {status}")
+        timestamp = int(self.clock() if now is None else now)
+        with self._transaction() as db:
+            changed = db.execute(
+                """
+                UPDATE events SET status = ?, finished_at = ?, error = ?
+                 WHERE event_id = ? AND status = 'reserved'
+                """,
+                (status, timestamp, error[:500], event_id),
+            ).rowcount
+        if changed:
+            self.backup_snapshot()
+        return bool(changed)
+
     def reserve_ambient(
         self,
         kind: str,
@@ -367,15 +618,30 @@ class DirectorStore:
         subject: str | None = None,
         payload: dict[str, object] | None = None,
         rehearsal: bool = False,
+        world_token: int | str | None = None,
         now: int | None = None,
         event_id: str | None = None,
     ) -> Reservation | None:
         if kind not in AMBIENT_KINDS:
             raise ValueError(f"unsupported ambient kind: {kind}")
+        if not rehearsal and world_token is None:
+            raise ValueError("live ambient reservation requires a world token")
         timestamp = int(self.clock() if now is None else now)
         identifier = event_id or f"ambient:{kind}:{timestamp}:{uuid.uuid4().hex}"
+        token = normalize_world_token(world_token) if world_token is not None else None
+        event_payload = dict(payload or {})
+        if token:
+            supplied_token = event_payload.get("world_token")
+            if supplied_token is not None and str(supplied_token) != token:
+                raise ValueError("ambient payload has a different world token")
+            event_payload["world_token"] = token
 
         with self._transaction() as db:
+            if not rehearsal:
+                assert token is not None
+                state = self._campaign_state(db, token)
+                if state.phase == "dormant" or state.paused:
+                    return None
             if not rehearsal and not self._ambient_allowed(db, kind, subject, timestamp):
                 return None
             try:
@@ -390,7 +656,7 @@ class DirectorStore:
                         kind,
                         subject.casefold() if subject else None,
                         int(rehearsal),
-                        compact_json(payload or {}),
+                        compact_json(event_payload),
                         timestamp,
                     ),
                 )
@@ -455,6 +721,7 @@ class DirectorStore:
             """
             SELECT 1 FROM events
              WHERE rehearsal = 0 AND subject = ? AND created_at > ?
+               AND status IN ('reserved', 'attempting', 'delivered', 'ambiguous')
              LIMIT 1
             """,
             (subject.casefold(), now - policy.targeted_gap_seconds),
@@ -480,12 +747,16 @@ class DirectorStore:
         self,
         event_id: str,
         *,
-        delivered: bool,
+        delivered: bool | None,
         error: str | None = None,
         now: int | None = None,
     ) -> bool:
         timestamp = int(self.clock() if now is None else now)
-        status = "delivered" if delivered else "failed"
+        status = (
+            "ambiguous"
+            if delivered is None
+            else ("delivered" if delivered else "failed")
+        )
         with self._transaction() as db:
             changed = db.execute(
                 """
@@ -515,6 +786,7 @@ class DirectorStore:
         timestamp = int(self.clock() if now is None else now)
         victories: list[str] = []
         story_event_id: str | None = None
+        story_output_status: str | None = None
         changed = False
 
         with self._transaction() as db:
@@ -591,6 +863,15 @@ class DirectorStore:
                                 "world_token": token,
                             },
                         }
+                        campaign = self._campaign_state(db, token)
+                        if campaign.phase == "dormant":
+                            story_output_status = "suppressed_campaign_dormant"
+                        elif campaign.paused:
+                            story_output_status = "suppressed_campaign_paused"
+                        elif self.audio_sink_enabled:
+                            story_output_status = "pending"
+                        else:
+                            story_output_status = "suppressed_no_sink"
                         db.execute(
                             """
                             INSERT INTO outbox
@@ -602,11 +883,7 @@ class DirectorStore:
                                 AUDIO_SINK,
                                 AUDIO_EVENT_TYPE,
                                 compact_json(audio_payload),
-                                (
-                                    "pending"
-                                    if self.audio_sink_enabled
-                                    else "suppressed_no_sink"
-                                ),
+                                story_output_status,
                                 timestamp,
                             ),
                         )
@@ -622,7 +899,13 @@ class DirectorStore:
                     (source, score, timestamp),
                 )
                 changed = True
-                result = ServantIngestResult(previous, score, tuple(victories), story_event_id)
+                result = ServantIngestResult(
+                    previous,
+                    score,
+                    tuple(victories),
+                    story_event_id,
+                    story_output_status=story_output_status,
+                )
 
         if changed:
             self.backup_snapshot()
@@ -834,6 +1117,10 @@ class DirectorStore:
             """,
             (SERVANT_SOURCE_PREFIX + "%",),
         ).fetchone()
+        servant_world_token = (
+            str(row["source"])[len(SERVANT_SOURCE_PREFIX) :] if row else None
+        )
+        campaign = self.campaign_state(servant_world_token) if servant_world_token else None
         counts = {
             str(item["status"]): int(item["total"])
             for item in self.connection.execute(
@@ -861,11 +1148,14 @@ class DirectorStore:
         ]
         return {
             "schema_version": SCHEMA_VERSION,
-            "servant_world_token": (
-                str(row["source"])[len(SERVANT_SOURCE_PREFIX) :] if row else None
-            ),
+            "servant_world_token": servant_world_token,
             "servant_high_water": int(row["high_water"]) if row else 0,
             "servant_updated_at": int(row["updated_at"]) if row else None,
+            "campaign": (
+                {"phase": campaign.phase, "paused": campaign.paused}
+                if campaign
+                else {"phase": "dormant", "paused": False}
+            ),
             "event_status_counts": counts,
             "recent_events": recent_events,
             "outbox": outbox,

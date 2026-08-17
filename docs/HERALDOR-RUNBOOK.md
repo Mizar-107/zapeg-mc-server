@@ -20,18 +20,105 @@ or explain the command, tags, counters, thresholds, or audio trigger.
   `servants_after_three_v1`. When explicitly enabled, the isolated Discord
   voice relay resolves that ID to a hash-pinned 23.6-second Opus clip, joins one
   fixed voice channel self-deafened, plays once and immediately leaves.
+- A permission-level-2 Director bridge with a persistent campaign phase,
+  orthogonal pause state and hardcoded apparition profiles. Minecraft only
+  writes one short-lived request; the Python Director is the authority that
+  validates, records and dispatches it to the client/server runtime.
 
 There is no automatic servant schedule, custom Heraldor body, boss fight or
-LLM-driven combat in this slice. With voice disabled, the audio request is
-recorded as `suppressed_no_sink`; enabling the relay later never revives an old
-event. Pending live requests expire after five minutes rather than ambushing a
+LLM-driven combat in this slice. In an active, unpaused campaign with voice
+disabled, the audio request is recorded as `suppressed_no_sink`; enabling the
+relay later never revives an old event. Dormant/paused suppression is described
+below. Pending live requests expire after five minutes rather than ambushing a
 channel hours later.
+
+## Operate the campaign Director
+
+Every new Minecraft world starts implicitly at `dormant`. In that phase the
+old ambient whisper/global/Discord/shadow roll is suppressed. Phases only move
+forward through `presence`, `servants` and `manifestation`; an explicit
+`phase start` may intentionally skip forward, while `phase advance` moves one
+step. Neither interface can rewind a phase, and `confrontation` is not released.
+
+```text
+/zapeg-lore director status
+/zapeg-lore director phase start presence
+/zapeg-lore director phase start servants
+/zapeg-lore director phase start manifestation
+/zapeg-lore director phase advance
+/zapeg-lore director pause
+/zapeg-lore director resume
+/zapeg-lore director cancel
+```
+
+`pause` does not alter the phase. It suppresses ambient rolls and new live
+Director scenes. Rehearsals and `cancel` remain available; `cancel` only stops
+the runtime's current scene and never resets, pauses or rewinds the campaign.
+
+The apparition names are command literals, not user-controlled runtime profile
+strings:
+
+```text
+/zapeg-lore director event rehearse apparition echo <player>
+/zapeg-lore director event rehearse apparition threshold <player>
+/zapeg-lore director event rehearse apparition motion-echo <player>
+/zapeg-lore director event rehearse apparition light-fault <player>
+
+/zapeg-lore director event trigger apparition echo <player>
+/zapeg-lore director event trigger apparition threshold <player>
+/zapeg-lore director event trigger apparition motion-echo <player>
+/zapeg-lore director event trigger apparition light-fault <player>
+```
+
+`echo` and `threshold` require `presence`; `motion-echo` requires `servants`;
+`light-fault` requires `manifestation`. These phase gates apply to both the
+high-level rehearsal and live forms. Raw OP `/zapegscene` commands remain an
+effects-only manual test/override: they consume only the runtime UUID ledger
+and never mutate the Python campaign phase or pause state.
+
+The high-level command is asynchronous. Its immediate response says **queued**,
+not executed. KubeJS writes one allowlisted token tied to the current hidden
+world ID and expiring after 90 seconds. It refuses a second request until the
+Director conditionally removes the exact first value. The Director validates
+the token again, writes a deterministic SQLite event and only then invokes
+`/zapegscene`. A duplicate terminal token is acknowledged without replay;
+anything interrupted after the replay barrier is `ambiguous` and is never
+retried automatically. Issue a fresh command if an `ambiguous` cancel or scene
+must be attempted again.
+
+The Director subtree accepts an actual permission-level-2 player command source
+or the exact RCON console source. Command-block sources fail closed. The local
+server console is intentionally not admitted through KubeJS because its source
+cannot be separated reliably from every function context; use authenticated
+RCON for the high-level bridge and `admin status` for host inspection.
+
+Servant scores are still ingested while `dormant` or paused, so high-water and
+story observations remain correct. If the third-victory threshold is crossed
+then, its voice output is born terminally as `suppressed_campaign_dormant` or
+`suppressed_campaign_paused`. Starting/resuming later cannot bank and surprise-
+deliver that old audio.
+
+Normally an occupied slot clears within a few seconds. If a hand-edited or
+malformed value fails strict parsing, the Director deliberately leaves it for
+inspection instead of deleting unknown state. Inspect it, then clear only this
+exact path after confirming no valid request is pending:
+
+```text
+/data get storage zapeg:heraldor control_request
+/data remove storage zapeg:heraldor control_request
+```
 
 ## Deploy
 
 Apply the tracked overrides using the normal deployment workflow, then restart
 Minecraft so the new server script registers cleanly. Rebuild the optional
 Director service because its image now contains `heraldor_director.py`:
+
+The high-level apparition commands also require the matching ZapeG runtime on
+the server and every participating client. Confirm raw `/zapegscene status`
+through authenticated RCON before accepting a live Director scene; an
+unavailable runtime is stored as a terminal failed/ambiguous attempt, never
+silently retried.
 
 `apply-overrides.sh` synchronizes the entire tracked override tree, not only
 Heraldor. Finish and commit any concurrent quest/NPC/mod work first; deploy only
@@ -119,8 +206,9 @@ At the first transition to three victories, status should show the same
 `servant_world_token` as the hidden world score, `servant_high_water: 3`, a
 recent `servant_threshold` event and an outbox row named
 `story:heraldor-servants:defeated:3:v1:world:<token>` with status
-`suppressed_no_sink` while voice is disabled, or `pending` followed by one
-terminal relay result while it is enabled.
+`suppressed_campaign_dormant`/`suppressed_campaign_paused` when gated,
+`suppressed_no_sink` while active with voice disabled, or `pending` followed by
+one terminal relay result while active with voice enabled.
 
 ## Configure and rehearse Discord voice
 
@@ -254,6 +342,18 @@ Before using it in the story, verify all of these in a copied/disposable world:
 11. Stop the relay during a mocked/private playback, restart it and verify the
     uncertain row becomes `ambiguous` without replay. Verify restore refuses
     while the voice relay lock is held.
+12. On a fresh copied world, `director status` reports `dormant` and no ambient
+    output is rolled until `phase start presence` is acknowledged.
+13. Verify each hardcoded scene profile opens only at its documented phase.
+    Pause the campaign: live triggers and ambient stop, rehearsal remains
+    available, and `cancel` leaves both phase and pause unchanged.
+14. Stop the Director, queue one request and confirm a second is refused. Start
+    it after the first token expires and verify terminal suppression. Interrupt
+    one mocked scene after its SQLite claim and confirm restart reports
+    `ambiguous` without a second `/zapegscene` dispatch.
+15. Cross the third-servant threshold once while paused in the copy, resume and
+    verify the story observation remains but its terminally suppressed audio is
+    never delivered later.
 
 Use `/zapeg-lore servant cleanup` immediately if any targeting or drop invariant
 fails. Keep the feature manual until this gate passes.

@@ -18,6 +18,7 @@ from heraldor_director import (  # noqa: E402
     DirectorStateLock,
     DirectorStore,
     SERVANT_AUDIO_CLIP_ID,
+    parse_control_request,
     restore_snapshot,
     snapshot_lock_path,
     voice_lock_path,
@@ -41,6 +42,20 @@ class FakeClock:
         return self.value
 
 
+def activate_campaign(store: DirectorStore, world_token: int) -> None:
+    request = parse_control_request(
+        f"zhctl1:{world_token}:{world_token:020x}:1999999999:"
+        "phase_start:presence:-:console"
+    )
+    store.record_control_event(
+        request,
+        kind="director_phase",
+        category="campaign",
+        status="delivered",
+        payload={"previous_phase": "dormant", "phase": "presence"},
+    )
+
+
 class VoiceOutboxTest(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
@@ -62,6 +77,7 @@ class VoiceOutboxTest(unittest.TestCase):
 
     def test_live_audio_is_pending_only_when_sink_was_enabled_at_creation(self) -> None:
         with self.open_store() as store:
+            activate_campaign(store, 111111)
             store.ingest_servant_score(3, world_token=111111)
             status = store.connection.execute(
                 "SELECT status FROM outbox"
@@ -77,6 +93,7 @@ class VoiceOutboxTest(unittest.TestCase):
                 ).fetchone()[0],
                 "suppressed_no_sink",
             )
+            activate_campaign(store, 222222)
             store.ingest_servant_score(3, world_token=222222)
             rows = store.connection.execute(
                 "SELECT status FROM outbox ORDER BY created_at, event_id"
