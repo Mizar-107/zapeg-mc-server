@@ -180,10 +180,12 @@ disconnect must pass `docs/HERALDOR-RUNBOOK.md` first.
 Muhtar is intentionally separate from quest authority. Use the fixed UUID and
 versioned preset flow in `docs/MUHTAR-QUEST-GUIDE-TR.md`; never use
 `preset import_new`. A dialogue-only revision can be applied and re-imported
-without restarting Minecraft. Security allowlist changes do require a restart.
-For permanent removal use `scripts/muhtar-npc.sh remove` while his chunk is
-loaded; `despawn` is not deletion and removing only the source preset does not
-remove the live entity.
+without restarting Minecraft. Quest chapter, KubeJS bridge or Easy NPC config
+changes require a full restart. Apply v2 with
+`scripts/muhtar-npc.sh apply v2 <X> <Y> <Z>`; v1 is the safe legacy-layout
+rollback. For permanent removal use `scripts/muhtar-npc.sh remove` while his
+chunk is loaded; `despawn` is not deletion and removing only the source preset
+does not remove the live entity.
 
 ## Endgame policy state
 

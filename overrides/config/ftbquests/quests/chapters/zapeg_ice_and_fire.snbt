@@ -1,0 +1,172 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_ice_and_fire"
+	group: ""
+	icon: "iceandfire:bestiary"
+	id: "9B22EB6AB9A96377"
+	order_index: 3
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"&6Ice and Fire&r yalnız ejderha eklemiyor: Bestiary ile öğrenilen yaratıklar, evcilleştirme, ejderha bakımı ve uzun bir Dragonsteel son oyunu getiriyor."
+				""
+				"&eBaşlangıç sırası:&r &7Bestiary → vahşi ejderha → yumurta → bakım araçları → Dragon Forge.&r"
+				""
+				"&cHazırlıksız mağara ejderhasına girmeyin.&r &7Uzakta savaşın, yatağınızı ve waystone'unuzu güvenli mesafeye koyun; yuva çevresinde ortak yapılar kurmayın.&r"
+			]
+			icon: "iceandfire:bestiary"
+			id: "429426FD4B5915C7"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Avcı mı, yetiştirici mi? Önce kitabı oku"
+			tasks: [{
+				id: "4B6CBF46FAD15F7B"
+				title: "Ejderha yolunu oku"
+				type: "checkmark"
+			}]
+			title: "&6Ejderhalar ve Kadim Yaratıklar"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["429426FD4B5915C7"]
+			description: [
+				"&eBestiary&r modun gerçek rehberidir. Yazmalık kitap üret, Bestiary'yi aç ve yaratıklardan düşen manuscript'lerle yeni bölümleri ekle."
+				""
+				"JEI tarifleri gösterir; yaratık davranışı, evcilleştirme ve Dragon Forge ayrıntıları için Bestiary'yi kullan."
+			]
+			icon: "iceandfire:bestiary"
+			id: "62A78692DE4E1670"
+			subtitle: "Önce bilgi, sonra ateş"
+			tasks: [{
+				advancement: "iceandfire:iceandfire/bestiary"
+				criterion: ""
+				id: "912F702289575C2D"
+				title: "Bestiary edin"
+				type: "advancement"
+			}]
+			title: "&eSaha El Kitabı"
+			x: 3.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["62A78692DE4E1670"]
+			description: [
+				"Önce yüzeydeki küçük ejderhaları uzaktan gözle. Stage 4–5 ejderhalar yeraltı mağaralarında yaşar ve yumurta arayanların asıl hedefidir."
+				""
+				"&aSomut hazırlık:&r &7iyi zırh, menzilli silah, blok, yemek, mezar dönüş planı ve kaçış waystone'u.&r"
+			]
+			icon: "iceandfire:dragonbone"
+			id: "61195D3D64726B09"
+			subtitle: "Bir vahşi ejderhayı gerçekten düşür"
+			tasks: [{
+				advancement: "iceandfire:iceandfire/kill_if_dragon"
+				criterion: ""
+				id: "7FAFD41BA50D034D"
+				title: "Ateş, buz veya yıldırım ejderhası öldür"
+				type: "advancement"
+			}]
+			title: "&cEjderha Avı"
+			x: 6.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["61195D3D64726B09"]
+			description: [
+				"Yumurta yalnız uygun büyük dişi mağara ejderhalarından gelir. Yumurtayı türüne uygun biçimde çıkar, yavruyu Dragon Meal ile büyüt ve komut araçlarını hazırla."
+				""
+				"&eDragon Staff&r otur/kalk ve ev ayarını; &eFlute&r havadaki ejderhayı indirmeyi; &eHorn&r güvenli taşımayı sağlar. Bunları bilmeden şehir üstünde uçma."
+			]
+			icon: "iceandfire:dragonegg_red"
+			id: "F391711AC5261571"
+			subtitle: "Yumurtadan güvenli bineğe"
+			tasks: [
+				{
+					advancement: "iceandfire:iceandfire/dragon_egg"
+					criterion: ""
+					id: "5E491C1C1E967C67"
+					title: "Bir ejderha yumurtası edin"
+					type: "advancement"
+				}
+				{
+					advancement: "iceandfire:iceandfire/dragon_meal"
+					criterion: ""
+					id: "1CC8310A62E6C075"
+					title: "Dragon Meal hazırla"
+					type: "advancement"
+				}
+				{
+					advancement: "iceandfire:iceandfire/dragon_staff"
+					criterion: ""
+					id: "48B097185AA2A557"
+					title: "Dragon Staff hazırla"
+					type: "advancement"
+				}
+				{
+					advancement: "iceandfire:iceandfire/dragon_flute"
+					criterion: ""
+					id: "8C0EC770FAB29843"
+					title: "Dragon Flute hazırla"
+					type: "advancement"
+				}
+				{
+					advancement: "iceandfire:iceandfire/dragon_horn"
+					criterion: ""
+					id: "700F990A79B53F45"
+					title: "Dragon Horn hazırla"
+					type: "advancement"
+				}
+			]
+			title: "&5Ejderha Yetiştiricisi"
+			x: 9.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["F391711AC5261571"]
+			description: [
+				"Dragon Forge tek blok değildir. Türüne uygun brick ve core ile çok bloklu ocağı kur; yetişkin ejderhanın nefesi ocağı çalıştırır."
+				""
+				"&cBu son oyun hedefidir.&r &7Ocağı kasabadan uzakta, yangına dayanıklı ve sahipli ejderhanın güvenle sabitlenebileceği bir tesiste kur.&r"
+			]
+			icon: "iceandfire:dragonsteel_fire_ingot"
+			id: "940124BC044CDA4A"
+			rewards: [{
+				id: "E46EC003F191BB83"
+				type: "xp"
+				xp: 100
+			}]
+			shape: "gear"
+			subtitle: "Nefesle çalışan son oyun ocağı"
+			tasks: [
+				{
+					advancement: "iceandfire:iceandfire/dragon_forge_brick"
+					criterion: ""
+					id: "9AAA8B3B939B0AA0"
+					title: "Dragon Forge brick üret"
+					type: "advancement"
+				}
+				{
+					advancement: "iceandfire:iceandfire/dragon_forge_core"
+					criterion: ""
+					id: "392016995295884E"
+					title: "Dragon Forge core üret"
+					type: "advancement"
+				}
+				{
+					advancement: "iceandfire:iceandfire/dragonsteel"
+					criterion: ""
+					id: "63581D81043E36D6"
+					title: "İlk Dragonsteel külçeni üret"
+					type: "advancement"
+				}
+			]
+			title: "&4Dragonsteel Ocağı"
+			x: 12.0d
+			y: 0.0d
+		}
+	]
+	title: "&6ZapeG — Ice and Fire"
+}

@@ -109,19 +109,22 @@ Then apply the repo's custom layer (quest chapters, kubejs scripts, server icon)
 scripts/apply-overrides.sh && docker compose restart mc
 ```
 
-Open the FTB Quests book and verify all three custom pages load: **ZapeG — Yol
-Haritası**, **ZapeG — Kilometre Taşları**, and the separate personal-lore page
-**ZapeG**. Achievement tasks are non-clickable and server-authoritative; exact
-checks, migration/reset commands and the few OP-reviewed milestones are in
+Open the FTB Quests book and verify the three original custom pages plus all ten
+added-mod guides load. The new chapters cover Ice and Fire, Immersive Petroleum,
+Alex's Caves, Aquamirae, Mowzie's Mobs, Born in Chaos, Simply Swords/Better
+Combat, vehicles/ships, Citizens and Incendium. Measurable tasks use real item
+or advancement evidence; exact checks, migration/reset commands and the few
+honestly manual milestones are in
 [docs/QUEST-VALIDATION-TR.md](docs/QUEST-VALIDATION-TR.md).
 
-The custom layer also ships a dormant, versioned Muhtar preset. After choosing
-his overworld town-square coordinates, follow
+The custom layer also ships a dormant, versioned Muhtar v2 consultant. After
+choosing his overworld town-square coordinates, follow
 [the Muhtar runbook](docs/MUHTAR-QUEST-GUIDE-TR.md): snapshot, apply overrides,
-restart once for the narrow Easy NPC security allowlist, then run
-`bash scripts/muhtar-npc.sh apply v1 <X> <Y> <Z>`. Test every button as a non-OP.
-Muhtar only opens existing quest cards; removing him cannot reset or complete a
-quest.
+restart once for the FTB chapters and fixed `zapeg-guide` bridge, then run
+`bash scripts/muhtar-npc.sh apply v2 <X> <Y> <Z>`. Test every branch and repeat
+the same quest open/close cycle three times as a non-OP. Muhtar explains mod
+choices before the optional handoff; removing him cannot reset or complete a
+quest. The older v1 layout remains an independently importable rollback.
 
 ## One-time service wiring (after first boot)
 

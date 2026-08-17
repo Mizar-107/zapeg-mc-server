@@ -1,0 +1,344 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_transport"
+	group: ""
+	icon: "minecraft:compass"
+	id: "D0D37E0668EA584D"
+	order_index: 10
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"ZapeG'de üç ayrı taşıt sistemi var ve birbirinin parçası değiller:"
+				""
+				"&6Immersive Vehicles:&r &7normal arazide otomobil, kamyon, uçak ve helikopter.&r"
+				"&bEureka + Valkyrien Skies:&r &7bloklardan kurulan fizik gemileri.&r"
+				"&eAleki's Nifty Ships:&r &7sabit gövdeli kürekli/yelkenli tekneler ve toplar.&r"
+				""
+				"&cIV aracını Eureka/VS gemisine, Nifty gemisine veya hareketli Create contraption'ına koyma.&r Fizik sistemleri araç taşıma uyumluluğu vaat etmiyor."
+			]
+			icon: "minecraft:compass"
+			id: "6E58166666B15922"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Üç sistem, üç ayrı kullanım alanı"
+			tasks: [{
+				id: "25D9DD8C590900E0"
+				title: "Taşıt sınırlarını oku"
+				type: "checkmark"
+			}]
+			title: "&6Araçlar ve Gemiler"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["6E58166666B15922"]
+			description: [
+				"Immersive Vehicles çekirdeği aracı tek başına vermez; resmi MTS ve Automobile Pack modelleri sağlar. Önce Car Handbook'u oku."
+				""
+				"Araç parçaları NBT'li dinamik öğelerdir. Bu yüzden quest belirli bir araba modelini dayatmaz; resmi pack içinden amacına uygun olanı seç."
+			]
+			icon: "mts:mts.handbook_car"
+			id: "59C4F147FABAE74C"
+			subtitle: "Resmi araç paketinin kullanım kitabı"
+			tasks: [{
+				id: "9D528067684C2366"
+				item: "mts:mts.handbook_car"
+				title: "Car Handbook edin"
+				type: "item"
+			}]
+			title: "&6IV: Önce El Kitabı"
+			x: 3.0d
+			y: -4.0d
+		}
+		{
+			dependencies: ["59C4F147FABAE74C"]
+			description: [
+				"Drafting Bench araç gövdelerini; Engine Hoist motorları; Wheel Workbench tekerlekleri üretir. Seçtiğin modelin parça ve malzeme listesini bench arayüzünde doğrula."
+				""
+				"&eÖnce küçük ve ucuz bir araç yap.&r Büyük uçak veya tankla başlamak, kontrolleri öğrenmeden çok kaynak kilitler."
+			]
+			icon: "mts:mts.vehiclebench"
+			id: "82E182F54100A7A5"
+			subtitle: "Gövde, motor ve tekerlek hattı"
+			tasks: [
+				{
+					id: "900A4767D527A03C"
+					item: "mts:mts.vehiclebench"
+					title: "Drafting Bench edin"
+					type: "item"
+				}
+				{
+					id: "C6BE12CC193006E9"
+					item: "mts:mts.enginebench"
+					title: "Engine Hoist edin"
+					type: "item"
+				}
+				{
+					id: "9B46A278F582A27A"
+					item: "mts:mts.wheelbench"
+					title: "Wheel Workbench edin"
+					type: "item"
+				}
+			]
+			title: "&eIV: Atölyeler"
+			x: 6.0d
+			y: -4.0d
+		}
+		{
+			dependencies: ["82E182F54100A7A5"]
+			description: [
+				"Fuel Pump ve Jerrycan yakıt lojistiği; Fuel Hose aktarım; Key sahiplik; Wrench bakım içindir. Hepsini garajda erişilebilir tut."
+				""
+				"&cYakıt adını tahmin etme.&r Immersive Petroleum sıvılarından hangisinin IV motorunda kabul edildiğini aracın motor bilgisi, JEI ve canlı IV fuel config'iyle doğrula."
+			]
+			icon: "mts:mts.fuelpump"
+			id: "EE1FF8B3B265CED7"
+			subtitle: "Yakıt, anahtar ve bakım"
+			tasks: [
+				{
+					id: "C976528605F26783"
+					item: "mts:mts.fuelpump"
+					title: "Fuel Pump edin"
+					type: "item"
+				}
+				{
+					id: "2771D4C4E2A3603C"
+					item: "mts:mts.jerrycan"
+					title: "Jerrycan edin"
+					type: "item"
+				}
+				{
+					id: "F8DFD4D031F7C6A1"
+					item: "mts:mts.fuelhose"
+					title: "Fuel Hose edin"
+					type: "item"
+				}
+				{
+					id: "422E3499AE60D4D0"
+					item: "mts:mts.key"
+					title: "Vehicle Key edin"
+					type: "item"
+				}
+				{
+					id: "6E63B8CC7C024B72"
+					item: "mts:mts.wrench"
+					title: "Wrench edin"
+					type: "item"
+				}
+			]
+			title: "&cIV: Yakıt ve Bakım"
+			x: 9.0d
+			y: -4.0d
+		}
+		{
+			dependencies: ["EE1FF8B3B265CED7"]
+			description: [
+				"Resmi pack'ten küçük bir araç üret, uygun yakıtı koy, düz arazide kontrol et ve garaja park et. Sonra chunk'tan ayrılıp geri dönerek aracın ve parçalarının kaldığını doğrula."
+				""
+				"Bu manuel checkmark bilinçlidir: IV 24.0.0'ın çoğu kendi advancement dosyası hatalıdır; yanlış otomatik ilerleme yerine gerçek kullanım testi istiyoruz."
+			]
+			icon: "minecraft:minecart"
+			id: "789BAC10AED08403"
+			rewards: [{
+				id: "0203D803BD530694"
+				type: "xp"
+				xp: 25
+			}]
+			subtitle: "Üret, sür, park et, geri dön"
+			tasks: [{
+				id: "21311A80E4F5ECE8"
+				title: "Araç ve chunk dönüş testini tamamla"
+				type: "checkmark"
+			}]
+			title: "&aIV: İlk Yol Testi"
+			x: 12.0d
+			y: -4.0d
+		}
+		{
+			dependencies: ["6E58166666B15922"]
+			description: [
+				"Eureka, blok yapıyı Valkyrien Skies fizik gemisine dönüştürür. Küçük, simetrik ve ucuz bir prototiple başla. Oak Ship Helm kontrol merkezidir."
+				""
+				"İlk gemiyi kasabadan ve değerli yapılardan uzakta, açık suda kur."
+			]
+			icon: "vs_eureka:oak_ship_helm"
+			id: "16FA9D97DB812F69"
+			subtitle: "Blok yapıyı fizik gemisine çevir"
+			tasks: [{
+				id: "67E5676CBED72281"
+				item: "vs_eureka:oak_ship_helm"
+				title: "Oak Ship Helm edin"
+				type: "item"
+			}]
+			title: "&bEureka: Dümen"
+			x: 3.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["16FA9D97DB812F69"]
+			description: [
+				"Floater kaldırma gücü, Engine hareket, Anchor güvenli sabitleme sağlar. Ağırlığı iki yana dağıt; ağır makineyi tek köşeye yığma."
+				""
+				"Balonlar hava gemisi içindir; ilk testte su gemisini öğrenmeden göğe çıkma."
+			]
+			icon: "vs_eureka:engine"
+			id: "6B552801507E64EE"
+			subtitle: "Kaldırma, itki ve sabitleme"
+			tasks: [
+				{
+					id: "CA847493DBB29943"
+					item: "vs_eureka:floater"
+					title: "Floater edin"
+					type: "item"
+				}
+				{
+					id: "5CF49122A4C19D4B"
+					item: "vs_eureka:engine"
+					title: "Ship Engine edin"
+					type: "item"
+				}
+				{
+					id: "17279299920810C0"
+					item: "vs_eureka:anchor"
+					title: "Anchor edin"
+					type: "item"
+				}
+			]
+			title: "&3Eureka: Mühendislik"
+			x: 6.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["6B552801507E64EE"]
+			description: [
+				"Küçük gemiyi assemble et, kısa mesafe götür, anchor ile sabitle, chunk'tan ayrılıp dön ve sonra kontrollü disassemble et."
+				""
+				"Test sırasında sandık, kritik makine, evcil hayvan veya IV aracı taşıma. Önce yalnız ucuz bloklarla kalıcılığı doğrula."
+			]
+			icon: "vs_eureka:anchor"
+			id: "2A5FF9FF52705416"
+			rewards: [{
+				id: "57CF0060EB786CB4"
+				type: "xp"
+				xp: 25
+			}]
+			subtitle: "Hareket, anchor, unload ve dönüş"
+			tasks: [{
+				id: "68C371DC27299279"
+				title: "Küçük gemi kalıcılık testini tamamla"
+				type: "checkmark"
+			}]
+			title: "&aEureka: Güvenli Test"
+			x: 9.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["6E58166666B15922"]
+			description: [
+				"Nifty Ships sabit gövdeli ayrı bir sistemdir. Shipwright's Scaffolding, oar ve oarlock ile küçük Rowboat yaparak kontrolleri öğren."
+			]
+			icon: "minecraft:oak_boat"
+			id: "5010701C9917C1E9"
+			subtitle: "Kürek ve iskeleyle başlangıç"
+			tasks: [{
+				advancement: "alekiships:rowboat_completed"
+				criterion: ""
+				id: "7879BD6AEF6FD2F6"
+				title: "Rowboat tamamla"
+				type: "advancement"
+			}]
+			title: "&eNifty: Rowboat"
+			x: 3.0d
+			y: 4.0d
+		}
+		{
+			dependencies: ["5010701C9917C1E9"]
+			description: [
+				"Sloop daha büyük yelkenli gövdedir. Açık suda, kıyıya ve diğer yapılara geniş mesafe bırakarak tamamla."
+			]
+			icon: "minecraft:spruce_boat"
+			id: "849BFBA4656F9F9A"
+			subtitle: "İlk yelkenli gövde"
+			tasks: [{
+				advancement: "alekiships:sloop_completed"
+				criterion: ""
+				id: "7BCAB297E9E99C51"
+				title: "Sloop tamamla"
+				type: "advancement"
+			}]
+			title: "&6Nifty: Sloop"
+			x: 6.0d
+			y: 4.0d
+		}
+		{
+			dependencies: ["849BFBA4656F9F9A"]
+			description: [
+				"Nifty 1.0.14'te chunk reload, drift, anchor ve mooring kusurları biliniyor. Değerli yük koymadan önce anchor ve iki uçtan cleat/lead ile sabitle."
+				""
+				"Gemiden uzaklaş, chunk'ı unload et, geri dön; konum, gövde ve yük durumunu kontrol et. Sorun varsa üretim gemisine terfi ettirme."
+			]
+			icon: "alekiships:anchor"
+			id: "2E4D9808891D89EF"
+			subtitle: "Anchor + çift uç mooring + reload"
+			tasks: [{
+				id: "E947E2905A628C8A"
+				title: "Mooring ve chunk dönüş testini tamamla"
+				type: "checkmark"
+			}]
+			title: "&cNifty: Güvenli Bağlama"
+			x: 9.0d
+			y: 4.0d
+		}
+		{
+			dependencies: ["849BFBA4656F9F9A"]
+			description: [
+				"Cannon ve cannonball gemi savaşını açar. İlk atışı yalnız açık denizde, oyuncu yapılarından ve evcil canlılardan uzağa yap."
+			]
+			icon: "alekiships:cannon"
+			id: "B375D14AD0AD06FE"
+			subtitle: "Açık denizde güvenli top denemesi"
+			tasks: [{
+				advancement: "alekiships:cannon"
+				criterion: ""
+				id: "670AA86850131495"
+				title: "Cannon kullan"
+				type: "advancement"
+			}]
+			title: "&4Nifty: İlk Top"
+			x: 9.0d
+			y: 6.0d
+		}
+		{
+			dependencies: [
+				"2E4D9808891D89EF"
+				"B375D14AD0AD06FE"
+			]
+			description: [
+				"Full Broadside, top hattını iki yandan gerçekten kurup kullanmayı doğrular. Kalıcı savaş gemisine geçmeden önce reload testini de tamamlamış ol."
+			]
+			icon: "alekiships:cannonball"
+			id: "19CDDAF735C9B883"
+			rewards: [{
+				id: "CE8E05007ABE3A6A"
+				type: "xp"
+				xp: 50
+			}]
+			shape: "gear"
+			subtitle: "İki borda, kontrollü salvo"
+			tasks: [{
+				advancement: "alekiships:full_broadside"
+				criterion: ""
+				id: "97961E3ABD96BFB9"
+				title: "Full Broadside tamamla"
+				type: "advancement"
+			}]
+			title: "&5Nifty: Tam Borda"
+			x: 12.0d
+			y: 5.0d
+		}
+	]
+	title: "&6ZapeG — Araçlar ve Gemiler"
+}

@@ -11,7 +11,7 @@
 	quests: [
 		{
 			description: [
-				"Kendi paketimiz: &bATM9&r + ejderhalar (&3Ice and Fire&r) + petrol (&3Immersive Petroleum&r)."
+				"Kendi paketimiz: &bATM9&r + ZapeG'in eklediği ejderhalar, petrol, mağaralar, yaratıklar, silahlar, araçlar, gemiler ve vatandaşlar."
 				""
 				"Bu quest book bir &erehber&r, zorunluluk değil — hiçbir şey kilitli değil. Aşağıdaki yollardan birini seç ya da hepsine bulaş. Her kart, o yolun ilk somut adımı sunucu tarafından görülünce açılır."
 				""
@@ -54,7 +54,7 @@
 				""
 				"Sonrası: &3Mekanism&r (fabrika + fisyon/füzyon), &3Immersive Engineering&r (endüstriyel multiblock'lar + artık &6petrol&r kuyuları), &3Thermal&r, &3Powah&r."
 				""
-				"Quest book başlangıçları: &eCreate&r ve &eMekanism&r. Bu ATM9 sürümünde Immersive Engineering / Petroleum için ayrı chapter yok; &eEngineer's Manual&r ve JEI kullan."
+				"Quest book başlangıçları: &eCreate&r ve &eMekanism&r. Petrol tarafı için yeni &eZapeG — Immersive Petroleum&r chapter'ını; Immersive Engineering ayrıntıları için &eEngineer's Manual&r ve JEI'yi kullan."
 				"&aİlk adım:&r &7bir Create cogwheel edin; item tüketilmez.&r"
 			]
 			icon: "create:cogwheel"
@@ -116,7 +116,7 @@
 				""
 				"Dekor için &3Macaw's&r (kapılar, çitler, çatılar) ve &3Supplementaries&r. Şehrin altyapısını &6Create&r ile otomatikleştir."
 				""
-				"Bu ATM9 sürümünde ayrı MineColonies chapter'ı yok; bu ZapeG kartı köprü görevi görür. Town Hall'dan sonra MineColonies öğreticisini ve Build Tool'u kullan."
+				"Bu ATM9 sürümünde ayrı MineColonies chapter'ı yok; bu ZapeG kartı köprü görevi görür. Town Hall'dan sonra MineColonies öğreticisini ve Build Tool'u kullan. Yapay zekâ işçileri ise ayrı &eZapeG — Vatandaşlar&r chapter'ında anlatılır; iki sistem aynı şey değildir."
 				"&aİlk adım:&r &7MineColonies town hall yerleştirme advancement'ı otomatik sayılır.&r"
 			]
 			icon: "minecraft:bricks"
@@ -148,7 +148,7 @@
 				""
 				"Uzay pahalı iş: önce Teknoloji Yolu'ndan biraz altyapı kur. &6Immersive Petroleum&r'un petrolü roket yakıtına akar."
 				""
-				"İlgili chapter: &eAd Astra&r."
+				"İlgili chapter'lar: &eAd Astra&r ve yakıt altyapısı için &eZapeG — Immersive Petroleum&r."
 				"&aİlk adım:&r &7Ad Astra coal generator advancement'ı otomatik sayılır.&r"
 			]
 			icon: "minecraft:firework_rocket"
@@ -181,7 +181,7 @@
 				"Ejderha avlayabilir, yumurtasını çalıp &6kendi ejderhanı büyütüp binebilirsin&r. Isim takmak için name tag artık craft edilebilir (JEI'de tarife bak — bizim özel tarifimiz)."
 				""
 				"Ayrıca: sirenler, kikloplar, ölüm solucanları... Uzak diyarlara dikkatli git."
-				"Ice and Fire için ayrı ATM9 chapter'ı yok; bu ZapeG kartını, Bestiary'yi ve JEI'yi birlikte kullan."
+				"Tam ilerleme zinciri artık &eZapeG — Ice and Fire&r chapter'ında. Bestiary gerçek kullanım kitabıdır; görev sayfası, Bestiary ve JEI birlikte kullanılmalı."
 				"&aİlk adım:&r &7bir dragon bone edin; item tüketilmez.&r"
 			]
 			icon: "minecraft:dragon_head"
@@ -209,7 +209,7 @@
 				""
 				"Ejderhalar da sayılır (yan komşu quest). En sonda: Draconic Evolution'ın Chaos Guardian'ı — ama oraya varan zaten bu rehbere ihtiyaç duymuyordur."
 				""
-				"Quest book'ta &eCataclysm&r ve &eApotheosis&r chapter'ları var. Bu ATM9 sürümünde The Aether için ayrı chapter yok; Aether advancement'larını ve rehber kitabını kullan."
+				"Quest book'ta &eCataclysm&r ve &eApotheosis&r chapter'ları var. ZapeG'in eklediği avlar için &eAlex's Caves&r, &eAquamirae&r, &eMowzie's Mobs&r ve &eBorn in Chaos&r chapter'larına bak. Bu ATM9 sürümünde The Aether için ayrı chapter yok; Aether advancement'larını ve rehber kitabını kullan."
 				"&aİlk adım:&r &7bir Wither çağırma advancement'ı otomatik sayılır.&r"
 			]
 			icon: "minecraft:wither_skeleton_skull"

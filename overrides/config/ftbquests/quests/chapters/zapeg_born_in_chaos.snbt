@@ -1,0 +1,166 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_born_in_chaos"
+	group: ""
+	icon: "born_in_chaos_v1:nightmare_stalker_skull"
+	id: "AAA7939B85726C2A"
+	order_index: 8
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Born in Chaos geceleri daha tehlikeli yapan onlarca yaratık, karanlık metal ekipmanı, simya ve çağırma zinciri ekler. Bu modda ilerleme çoğu zaman düşman ganimetiyle başlar."
+				""
+				"&eİlk hedef:&r &7iyi aydınlatılmış üs, güvenli kapı hattı, kalkan/menzilli silah ve dışarıda kontrollü av alanı.&r"
+				""
+				"Her advancement'ı kovalamak zorunda değilsin; aşağıdaki zincir modun anlamlı omurgasını seçer."
+			]
+			icon: "born_in_chaos_v1:nightmare_stalker_skull"
+			id: "77063A2CC2E2E0E9"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Gece avından karanlık demire"
+			tasks: [{
+				id: "0BC1D84C827B830A"
+				title: "Gece güvenliği planını oku"
+				type: "checkmark"
+			}]
+			title: "&8Kaos Geceleri"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["77063A2CC2E2E0E9"]
+			description: [
+				"Nightmare Stalker, Big Boy ve çağırıcılar gece avının temel sınavlarıdır. Düşmanları kasaba kapısına taşımak yerine açık ve işaretli bir alanda avla."
+				""
+				"&aİpucu:&r &7canlıların seslerini ve saldırı hazırlığını izle; Better Combat animasyonu içindeyken geri çekilme payı bırak.&r"
+			]
+			icon: "born_in_chaos_v1:nightmare_stalker_skull"
+			id: "1C91EB9EA9B7FE91"
+			subtitle: "Üç gece tehdidi"
+			tasks: [
+				{
+					advancement: "born_in_chaos_v1:fighting_nightmares"
+					criterion: ""
+					id: "CE213E67DE7DBDA8"
+					title: "Fighting Nightmares tamamla"
+					type: "advancement"
+				}
+				{
+					advancement: "born_in_chaos_v1:big_boy"
+					criterion: ""
+					id: "143652FEB2B426C9"
+					title: "Big Boy tamamla"
+					type: "advancement"
+				}
+				{
+					advancement: "born_in_chaos_v1:junior_summoner"
+					criterion: ""
+					id: "126BD62DC07335D3"
+					title: "Junior Summoner tamamla"
+					type: "advancement"
+				}
+			]
+			title: "&cGece Avları"
+			x: 3.0d
+			y: -2.0d
+		}
+		{
+			dependencies: ["1C91EB9EA9B7FE91"]
+			description: [
+				"Piece of Dark Metal ve ilgili ganimetler yeni zırh/silah hattını açar. Önce metallurgy ilerlemesini, sonra dark forging zincirini tamamla."
+				""
+				"Nadir parçaları JEI'de kullanım tuşuyla incele; dekor sanıp atma."
+			]
+			icon: "born_in_chaos_v1:pieceofdarkmetal"
+			id: "E7C2647C1C857B2F"
+			subtitle: "Ganimeti üretim hattına çevir"
+			tasks: [
+				{
+					advancement: "born_in_chaos_v1:dark_metallurgy"
+					criterion: ""
+					id: "1A68FD8686CD7D26"
+					title: "Dark Metallurgy tamamla"
+					type: "advancement"
+				}
+				{
+					advancement: "born_in_chaos_v1:dark_forging"
+					criterion: ""
+					id: "3AEF15B051307780"
+					title: "Dark Forging tamamla"
+					type: "advancement"
+				}
+			]
+			title: "&8Karanlık Metal"
+			x: 6.0d
+			y: -2.0d
+		}
+		{
+			dependencies: ["E7C2647C1C857B2F"]
+			description: [
+				"Chaos Knight ve Pumpkin Lord bu hattın büyük karşılaşmalarıdır. Arenayı yerleşimden uzakta tut ve minyonlar için alan hasarı/kaçış planı hazırla."
+			]
+			icon: "born_in_chaos_v1:dark_metal_armor_helmet"
+			id: "E0A05025114D3DE0"
+			subtitle: "Karanlık zırhın sahipleri"
+			tasks: [
+				{
+					advancement: "born_in_chaos_v1:chaos_knight"
+					criterion: ""
+					id: "FCCAB90ABB9C8EA0"
+					title: "Chaos Knight tamamla"
+					type: "advancement"
+				}
+				{
+					advancement: "born_in_chaos_v1:pumpkin_lord"
+					criterion: ""
+					id: "1C336C940282413F"
+					title: "Pumpkin Lord tamamla"
+					type: "advancement"
+				}
+			]
+			title: "&6Kaos Lordları"
+			x: 9.0d
+			y: -2.0d
+		}
+		{
+			dependencies: ["1C91EB9EA9B7FE91"]
+			description: [
+				"Transmutation ve compact necromancy yaratık ganimetini özel üretim/çağırma araçlarına dönüştürür. Önce JEI zincirinin tamamını gör; son parçayı üretip tarifin başında eksik kaldığını fark etme."
+				""
+				"&cÇağırmaları ortak alanlarda deneme.&r Kontrol edemediğin varlığı şehirden uzağa çıkar."
+			]
+			icon: "minecraft:brewing_stand"
+			id: "7AFE750A684F3248"
+			rewards: [{
+				id: "C0F331E0A112157B"
+				type: "xp"
+				xp: 50
+			}]
+			subtitle: "Simya ve kontrollü çağırma"
+			tasks: [
+				{
+					advancement: "born_in_chaos_v1:transmutalogy"
+					criterion: ""
+					id: "A77DB5B5E81F2486"
+					title: "Transmutalogy tamamla"
+					type: "advancement"
+				}
+				{
+					advancement: "born_in_chaos_v1:compact_necromancy"
+					criterion: ""
+					id: "B347876569B266E5"
+					title: "Compact Necromancy tamamla"
+					type: "advancement"
+				}
+			]
+			title: "&5Yasak Üretimler"
+			x: 6.0d
+			y: 2.0d
+		}
+	]
+	title: "&8ZapeG — Born in Chaos"
+}

@@ -12,13 +12,14 @@ readonly LIVE_PRESET_DIR="data/config/easy_npc/preset/humanoid/zapeg"
 usage() {
   cat <<'EOF'
 Usage:
-  scripts/muhtar-npc.sh apply v1 <x> <y> <z>
+  scripts/muhtar-npc.sh apply v2 <x> <y> <z>
+  scripts/muhtar-npc.sh apply v1 <x> <y> <z>  # legacy layout rollback
   scripts/muhtar-npc.sh list
   scripts/muhtar-npc.sh remove
 
 Run snapshot.sh first. For apply/update/remove, keep Muhtar's chunk loaded.
 The initial install also needs a Minecraft restart after apply-overrides.sh so
-Easy NPC reloads the tracked security allowlist.
+KubeJS registers the narrow quest bridge and FTB Quests loads the new chapters.
 EOF
 }
 

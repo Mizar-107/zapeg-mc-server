@@ -1,0 +1,176 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_immersive_petroleum"
+	group: ""
+	icon: "immersivepetroleum:projector"
+	id: "E412B34BDE1AD2EF"
+	order_index: 4
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Immersive Petroleum, &3Immersive Engineering&r altyapısına gerçek petrol arama, çıkarma ve rafineri zinciri ekler. Bu yüzden önce IE güç, kablo, sıvı ve multiblock mantığını öğren."
+				""
+				"&eAkış:&r &7rezerv bul → Derrick ile doğrula → Oil Tank/Pumpjack → Distillation Tower → benzin ve gelişmiş yakıtlar.&r"
+				""
+				"&6Engineer's Manual&r bu modun asıl yapı kılavuzudur. JEI malzemeyi; Projector ise multiblock yerleşimini gösterir."
+			]
+			icon: "immersivepetroleum:projector"
+			id: "9391D68FDF8F23F3"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Rezervden rafineriye"
+			tasks: [{
+				id: "DAF73AAA06E83A00"
+				title: "Petrol zincirini oku"
+				type: "checkmark"
+			}]
+			title: "&6Petrol Mühendisliği"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["9391D68FDF8F23F3"]
+			description: [
+				"Projector ile yapıyı hayalet bloklar halinde gör. Rezervi bulmadan Pumpjack kurmak yalnız pahalı bir heykel üretir."
+				""
+				"Derrick, zeminin altındaki rezervi doğrulayan keşif multiblock'udur. Tesisi yerleşimden uzakta ve boru hattına yer bırakarak planla."
+			]
+			icon: "immersivepetroleum:derrick"
+			id: "39CBE3E1787EEA38"
+			subtitle: "Önce ara, sonra sondaj yap"
+			tasks: [
+				{
+					advancement: "immersivepetroleum:main/projector"
+					criterion: ""
+					id: "77B1078263BD6D6A"
+					title: "Projector edin"
+					type: "advancement"
+				}
+				{
+					advancement: "immersivepetroleum:main/root"
+					criterion: ""
+					id: "5D35585E84AA63FF"
+					title: "Petrol rezervi bilgisini aç"
+					type: "advancement"
+				}
+				{
+					advancement: "immersivepetroleum:main/mb_derrick"
+					criterion: ""
+					id: "8F9E029B936B22BC"
+					title: "Derrick multiblock'unu kur"
+					type: "advancement"
+				}
+			]
+			title: "&eYeraltındaki Rezerv"
+			x: 3.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["39CBE3E1787EEA38"]
+			description: [
+				"Oil Tank büyük tampon depodur; Pumpjack rezervden ham petrol çeker. Pompanın güç, sıvı çıkışı ve tank bağlantısını Engineer's Manual şemasına göre kur."
+				""
+				"&cSıvıyı tek tanka kilitleme.&r &7Bakım için vanalar, ayrı giriş/çıkış ve taşma payı bırak.&r"
+			]
+			icon: "immersivepetroleum:pumpjack"
+			id: "0C7F977C96781075"
+			subtitle: "Ham petrolü güvenli biçimde çıkar"
+			tasks: [
+				{
+					advancement: "immersivepetroleum:main/mb_oiltank"
+					criterion: ""
+					id: "07DE7A6272AF5477"
+					title: "Oil Tank kur"
+					type: "advancement"
+				}
+				{
+					advancement: "immersivepetroleum:main/mb_pumpjack"
+					criterion: ""
+					id: "3227D61A24F512E4"
+					title: "Pumpjack kur"
+					type: "advancement"
+				}
+			]
+			title: "&6Çıkarma Hattı"
+			x: 6.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["0C7F977C96781075"]
+			description: [
+				"Distillation Tower ham petrolü ürünlere ayırır. Her çıkış için ayrı tank ve boru kullan; yanlış sıvı karışımı tüm hattı durdurabilir."
+				""
+				"Benzin, Portable Generator ve araç yakıtı gibi sistemlerde kullanılabilir. &eImmersive Vehicles yakıt eşleşmesini JEI ve canlı config'te doğrulamadan depo doldurma.&r"
+			]
+			icon: "immersivepetroleum:distillation_tower"
+			id: "CC04B9E1F244DF91"
+			subtitle: "Ham petrolü kullanılabilir ürünlere ayır"
+			tasks: [
+				{
+					advancement: "immersivepetroleum:main/mb_distillationtower"
+					criterion: ""
+					id: "035434B8A1A34561"
+					title: "Distillation Tower kur"
+					type: "advancement"
+				}
+				{
+					advancement: "immersivepetroleum:main/gasoline"
+					criterion: ""
+					id: "DBB79F60ACD238A8"
+					title: "Benzin üret"
+					type: "advancement"
+				}
+				{
+					advancement: "immersivepetroleum:main/gas_generator"
+					criterion: ""
+					id: "9284BCDA8C715A4D"
+					title: "Portable Generator edin"
+					type: "advancement"
+				}
+			]
+			title: "&cRafineri"
+			x: 9.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["CC04B9E1F244DF91"]
+			description: [
+				"Hydrotreater ve Cracking Unit ileri seviye ürün ağacını açar. Önce temel rafineriyi sürekli ve taşmasız çalıştır; sonra ikinci işlem hattını ekle."
+				""
+				"Ad Astra bu pakette &e#forge:diesel&r etiketini roket yakıtı olarak kabul eder. Ürettiğin sıvının gerçek etiketini JEI ile doğrula; isim benzerliğine güvenme."
+			]
+			icon: "immersivepetroleum:gas_generator"
+			id: "3D624BA3D1354526"
+			rewards: [{
+				id: "B2EF8285FE84FF78"
+				type: "xp"
+				xp: 75
+			}]
+			shape: "gear"
+			subtitle: "Temizleme ve kraking"
+			tasks: [
+				{
+					advancement: "immersivepetroleum:main/mb_hydrotreater"
+					criterion: ""
+					id: "F9D645F6A2640421"
+					title: "Hydrotreater kur"
+					type: "advancement"
+				}
+				{
+					advancement: "immersivepetroleum:main/cracking"
+					criterion: ""
+					id: "A51ADFC35A3A5A8D"
+					title: "Cracking işlemini tamamla"
+					type: "advancement"
+				}
+			]
+			title: "&5İleri Rafineri"
+			x: 12.0d
+			y: 0.0d
+		}
+	]
+	title: "&6ZapeG — Immersive Petroleum"
+}

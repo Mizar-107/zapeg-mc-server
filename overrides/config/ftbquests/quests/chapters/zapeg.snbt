@@ -151,13 +151,13 @@
 		}
 		{
 			description: [
-				"Enes bir arbaleti doldurup güvenli bir hedefe ateş eder. İsabet şart değil; mekanizmayı gerçekten kullanmak yeterli."
+				"Thekingim bir arbaleti doldurup güvenli bir hedefe ateş eder. İsabet şart değil; mekanizmayı gerçekten kullanmak yeterli."
 				""
-				"&eKilitli doğrulama:&r &7gerçek Minecraft nick'i oyuncu kayıt defterine eklenince ol_betsy advancement'ı yalnız o kişi için sayılacak; oyuncu tiki yoktur.&r"
+				"&aSunucu doğrular:&r &7minecraft:adventure/ol_betsy yalnız Thekingim için sayılır. Önceden kazanılmışsa girişte uzlaştırılır; oyuncu tiki yoktur.&r"
 			]
 			icon: "minecraft:crossbow"
 			id: "E82FE092F3CF415E"
-			subtitle: "Enes — bir arbalet kullan"
+			subtitle: "Thekingim — bir arbalet kullan"
 			tasks: [{
 				advancement: "zapeg:verified"
 				criterion: "enes_crossbow"
@@ -209,28 +209,6 @@
 			}]
 			title: "&6MertOnal: İlk Tapu"
 			x: -6.0d
-			y: 4.5d
-		}
-		{
-			description: [
-				"MertOnal ulaşım ağını başlatır: vanilla raylardan veya Create rayından toplam 64 farklı dünya koordinatına ray yerleştir."
-				""
-				"&aSunucu doğrular:&r &7yalnız MertOnal'ın yerleştirdiği raylar sayılır. Aynı koordinata rayı söküp tekrar koymak ilerlemeyi artırmaz.&r"
-				""
-				"&6Kişisel hatıra:&r &7Tamamlanınca &fMertOnal Ekspresi&r &7yalnız MertOnal'a bir kez teslim edilir.&r"
-			]
-			icon: "minecraft:rail"
-			id: "2F8C6A14E5D9037B"
-			subtitle: "MertOnal — 64 farklı koordinata ray yerleştir"
-			tasks: [{
-				advancement: "zapeg:verified"
-				criterion: "merton_rails"
-				id: "C4B91E670AD3528F"
-				title: "64 Farklı Ray Yerleştir"
-				type: "advancement"
-			}]
-			title: "&eMertOnal: Ray Hattı"
-			x: -3.0d
 			y: 4.5d
 		}
 		{

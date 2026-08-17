@@ -1,0 +1,854 @@
+{
+  PresetMetadata:{
+    access:"RESTRICTED",
+    author:"ZapeG",
+    category:"ZapeG",
+    created:1786924800000L,
+    description:"Conversation-first Turkish mod and quest-path consultant for ZapeG.",
+    entityTypeId:"easy_npc:humanoid",
+    modified:1786924800000L,
+    name:"Muhtar v2",
+    variantType:"PROFESSOR_01",
+    version:"2.0.0"
+  },
+  data:{
+    ActionData:{
+      ActionEventSet:{
+        ON_INTERACTION:[{
+          Type:"OPEN_DEFAULT_DIALOG"
+        }]
+      },
+      ActionPermissionLevel:0
+    },
+    Attributes:[{
+      Base:1.0d,Name:"minecraft:generic.attack_damage"
+    },{
+      Base:16.0d,Name:"minecraft:generic.follow_range"
+    },{
+      Base:0.5d,Name:"minecraft:generic.movement_speed"
+    }],
+    CustomIdentifier:"zapeg:muhtar",
+    CustomName:'{"color":"gold","text":"Muhtar"}',
+    CustomNameVisible:1b,
+    DialogData:{
+      DialogDataSet:[{
+        Buttons:[{
+          Actions:[{
+            Cmd:"new_player",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"main_new_player",Name:"Yeni başladım."
+        },{
+          Actions:[{
+            Cmd:"tech_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"main_technology",Name:"Teknoloji ve sanayi."
+        },{
+          Actions:[{
+            Cmd:"magic_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"main_magic",Name:"Büyü yolları."
+        },{
+          Actions:[{
+            Cmd:"transport_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"main_transport",Name:"Araçlar ve gemiler."
+        },{
+          Actions:[{
+            Cmd:"adventure_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"main_adventure",Name:"Macera, savaş, kasaba."
+        },{
+          Actions:[{
+            Cmd:"all_paths",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"main_all_paths",Name:"Bütün yolların özeti."
+        }],
+        Label:"default",
+        Name:"Muhtarın Yol Masası",
+        Priority:10,
+        Texts:[{
+          Text:"@initiator, sana yalnızca bir görev sayfası fırlatmayacağım. Ne oynamak istediğini seç; modların farkını, önce ne gerektiğini, ilk üç işi ve en sık yapılan hatayı anlatayım. Son düğme ancak istersen ilgili görev zincirini açar."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open new_player",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_new_player",Name:"Başlangıç görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["İlk işler: 1) Üssünü claimle. 2) Yatak, yemek ve dönüş noktası kur. 3) JEI ile tek bir yol seç. Warp stone ve sırt çantasını kaybetme."]},Type:"MESSAGE"
+          }],Label:"check_new_player",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"default",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_new_player",Name:"Ana masaya dön."
+        }],
+        Label:"new_player",
+        Name:"İlk Gün Planı",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: ATM9'a yeni giren veya uzun aradan sonra dönen oyuncu.<br>Önce: başlangıç sırt çantası, warp stone, yemek, meşale ve bir yatak hazır olsun.<br>İlk üç iş: 1) Küçük üssünü kurup FTB Chunks ile claimle. 2) Yatağı ve waystone/dönüş noktasını sabitle. 3) JEI'de R tarif, U kullanım tuşlarını öğrenip yalnız bir ana yol seç.<br>Tuzak: İnternetteki tarifler paket sürümüyle uyuşmayabilir; JEI son sözü söyler. Warp stone'u rastgele sandıkta bırakma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Cmd:"tech_automation",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"tech_choose_automation",Name:"Create mi Mekanism mi?"
+        },{
+          Actions:[{
+            Cmd:"tech_power",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"tech_choose_power",Name:"Önce enerji planı."
+        },{
+          Actions:[{
+            Cmd:"petroleum",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"tech_choose_petroleum",Name:"IE ve petrol sanayisi."
+        },{
+          Actions:[{
+            Cmd:"storage",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"tech_choose_storage",Name:"AE2 mi RS mi?"
+        },{
+          Actions:[{
+            Cmd:"default",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_tech_hub",Name:"Ana masaya dön."
+        }],
+        Label:"tech_hub",
+        Name:"Teknoloji Karar Masası",
+        Priority:-1,
+        Texts:[{
+          Text:"Create görünür mekanik düzenekler ve erken otomasyon; Mekanism FE kullanan fabrika, cevher işleme ve ileri enerji; Immersive Engineering ağır multiblock sanayi; AE2/RS ise eşya ağın. En sağlıklı sıra: önce sürdürülebilir güç, sonra tek üretim hattı, en son merkezi depolama ve otomatik craft."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open technology",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_tech_automation",Name:"Teknoloji görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Create: su çarkı + mil + pres. Mekanism: güvenilir FE + Metallurgic Infuser + lojistik. Create SU ile FE aynı enerji değildir."]},Type:"MESSAGE"
+          }],Label:"check_tech_automation",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"tech_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_tech_automation",Name:"Teknoloji masasına dön."
+        }],
+        Label:"tech_automation",
+        Name:"Create ve Mekanism",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: Create, hareket eden ve göze görünen fabrikayı sevene; Mekanism, kompakt yüksek hacimli üretim ve ileri teknoloji isteyene.<br>Önce: Create için geniş bir hat ve dönüş kaynağı; Mekanism için sürekli FE, osmium ve kablo altyapısı.<br>İlk üç iş: 1) Create'ta su çarkı, mil ve mekanik pres kur. 2) Mekanism'e geçeceksen enerji üretip Metallurgic Infuser aç. 3) İkisini sandık, boru veya taşıma hattıyla birleştir.<br>Tuzak: Create'ın Stress Unit sistemi FE değildir; Mekanism kablosu su çarkını elektrik santraline çevirmez. İki modu aynı anda büyütüp kaynaklarını bölme."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open technology",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_tech_power",Name:"Enerji görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Enerji sırası: 1) Başlangıç jeneratörü. 2) Batarya + doğru kablo. 3) Yük altında ölç, sonra yükselt. Reaktörü chunk-load etmeden bırakma."]},Type:"MESSAGE"
+          }],Label:"check_tech_power",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"tech_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_tech_power",Name:"Teknoloji masasına dön."
+        }],
+        Label:"tech_power",
+        Name:"Önce Güç, Sonra Fabrika",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: makineleri dur-kalk yapmadan büyütmek isteyen herkese. Erken oyunda Powah/Thermal veya Mekanism'in basit üreticileri; orta oyunda daha büyük Powah/Mekanism düzenleri; reaktörler ise talep gerçekten büyüyünce.<br>Önce: kuracağın makinelerin FE/t ihtiyacını, kablo aktarım sınırını ve yakıtını bil.<br>İlk üç iş: 1) Tek, güvenilir başlangıç jeneratörü kur. 2) Araya batarya ve yeterli aktarım hızlı kablo koy. 3) Makineleri yük altında çalıştırıp üretimi ancak dar boğazı gördükten sonra yükselt.<br>Tuzak: Büyük jeneratör, zayıf kablonun aktarım sınırını aşamaz. Fisyon veya füzyonu güvenli kapatma ve chunk yükleme planı olmadan kurma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open petroleum",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_petroleum",Name:"Petrol görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Petrol sırası: 1) Engineer's Manual + IE güç/çelik. 2) Survey ile rezervuar, sonra Pumpjack. 3) Tank + Distillation Tower. Her chunk'ta petrol yoktur."]},Type:"MESSAGE"
+          }],Label:"check_petroleum",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"tech_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_petroleum",Name:"Teknoloji masasına dön."
+        }],
+        Label:"petroleum",
+        Name:"Immersive Engineering ve Petrol",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: büyük, gerçek fabrika gibi görünen multiblock'lar; petrol, yakıt ve ağır sanayi isteyen oyuncu.<br>Önce: Engineer's Manual, IE kablo/güç altyapısı, çelik üretimi, geniş ve düz bir sanayi alanı.<br>İlk üç iş: 1) Sismik araçlarla gerçekten petrol rezervuarı bulunan chunk'ı belirle. 2) Pumpjack'i kurup gücü ve sıvı tankını bağla. 3) Distillation Tower ile ham petrolü ürünlere ayır ve ayrı tanklarda depola.<br>Tuzak: Pumpjack her yere konunca petrol üretmez; boş veya tükenmiş rezervuarda çalışmaz. Multiblock yönü, giriş-çıkış yüzleri ve chunk sınırı hataların çoğunu oluşturur."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open technology",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_storage",Name:"Depolama görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["RS daha hızlı öğrenilir; AE2 daha planlı ve ölçeklidir. 1) Güç + terminal. 2) Drive/disk. 3) External Storage, sonra autocraft. Acil sandık tut."]},Type:"MESSAGE"
+          }],Label:"check_storage",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"tech_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_storage",Name:"Teknoloji masasına dön."
+        }],
+        Label:"storage",
+        Name:"AE2 veya Refined Storage",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: Refined Storage hızlı kurulum ve sade ağ isteyenlere; Applied Energistics 2 kanal, alt ağ ve büyük autocrafting tasarlamayı sevenlere.<br>Önce: kesintisiz FE, quartz/silicon kaynakları, mevcut eşyalar için geçici sandık sistemi.<br>İlk üç iş: 1) Controller/güç ve erişim terminalini kur. 2) Drive ile küçük bir disk/cell ekleyip az miktarla test et. 3) Sandıkları External Storage/Storage Bus ile bağla; autocrafting'i ağ kararlı olduktan sonra aç.<br>Tuzak: Güç kesilince eşyalar silinmez ama erişim kaybolur. Jeneratör, kablo ve yedek parçayı ağın içinde kilitleme; acil sandıkta tut. AE2 kanal sınırını daha başta planla."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Cmd:"magic_ars",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"magic_choose_ars",Name:"Ars Nouveau."
+        },{
+          Actions:[{
+            Cmd:"magic_botania",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"magic_choose_botania",Name:"Botania."
+        },{
+          Actions:[{
+            Cmd:"magic_occultism",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"magic_choose_occultism",Name:"Occultism."
+        },{
+          Actions:[{
+            Cmd:"magic_blood",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"magic_choose_blood",Name:"Blood Magic."
+        },{
+          Actions:[{
+            Cmd:"default",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_magic_hub",Name:"Ana masaya dön."
+        }],
+        Label:"magic_hub",
+        Name:"Büyü Okulları",
+        Priority:-1,
+        Texts:[{
+          Text:"Ars Nouveau doğrudan, tasarlanabilir büyüler; Botania mana kullanan otomasyon ve bulmaca; Occultism ritüel, ruh işçileri ve güçlü depolama; Blood Magic ise riskli LP ağı, sunak ve ritüeller. Hızlı kişisel güç için Ars, teknik otomasyon için Botania, hizmetkâr/depolama için Occultism, bedel ve hazırlık sevene Blood Magic."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open magic",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_magic_ars",Name:"Büyü görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Ars: 1) Novice Spell Book. 2) Source Jar + Agronomic Sourcelink. 3) Touch/Projectile ile Break, Light gibi güvenli glyph'ler. Source'u unutma."]},Type:"MESSAGE"
+          }],Label:"check_magic_ars",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"magic_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_magic_ars",Name:"Büyü masasına dön."
+        }],
+        Label:"magic_ars",
+        Name:"Ars Nouveau",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: kazma, ışık, hareket ve savaş büyülerini kendi cümlesi gibi kurmak isteyen oyuncu.<br>Önce: Novice Spell Book, source gemleri ve güvenli bir büyü çalışma köşesi.<br>İlk üç iş: 1) Novice Spell Book edinip temel glyph'leri aç. 2) Source Jar ile Agronomic Sourcelink kurup sürdürülebilir source üret. 3) Touch veya Projectile biçimine Break/Light gibi güvenli etkiler ekleyip maliyeti test et.<br>Tuzak: Kitaba eklenen her glyph aynı anda kullanılmaz; büyü biçimi, augment sırası ve source maliyeti önemlidir. Pahalı kazı büyüsünü kaçış source'u bırakmadan spamleme."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open magic",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_magic_botania",Name:"Büyü görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Botania: 1) Lexica + Pure Daisy. 2) Livingwood/Livingrock. 3) Endoflame, Mana Spreader ve Pool. Çiçek ile havuz hizasını kontrol et."]},Type:"MESSAGE"
+          }],Label:"check_magic_botania",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"magic_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_magic_botania",Name:"Büyü masasına dön."
+        }],
+        Label:"magic_botania",
+        Name:"Botania",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: büyü görünümünde kaynak akışı, otomasyon ve düzenek tasarlamak isteyen oyuncu; Botania aslında mana ile çalışan bir teknoloji yoludur.<br>Önce: Lexica Botania, çiçekler, odun/taş ve otomasyona ayrılacak temiz alan.<br>İlk üç iş: 1) Pure Daisy ile Livingwood ve Livingrock üret. 2) Endoflame gibi üretici çiçeği Mana Spreader'a, onu Mana Pool'a bağla. 3) Mana kullanımını ölçüp işlevsel çiçekleri birer birer otomatikleştir.<br>Tuzak: Çiçek, spreader ve havuz doğru bağlanmadıysa mana görünmeden kaybolur. Botania'yı ücretsiz pasif güç sanma; yakıt ve doğru yönlendirme ister."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open magic",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_magic_occultism",Name:"Büyü görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Occultism: 1) Dictionary of Spirits. 2) Doğru chalk ve pentacle. 3) İlk Foliot ritüeli, sonra storage/mineshaft. Ritüel malzemesini birebir kontrol et."]},Type:"MESSAGE"
+          }],Label:"check_magic_occultism",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"magic_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_magic_occultism",Name:"Büyü masasına dön."
+        }],
+        Label:"magic_occultism",
+        Name:"Occultism",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: ritüel hazırlayıp ruh işçileri, eşya depolama ve boyutsal maden sistemi isteyen oyuncu.<br>Önce: Dictionary of Spirits, chalk üretimi, kalıcı ve bozulmayacak bir ritüel alanı.<br>İlk üç iş: 1) Kitaptan seçtiğin ruh tier'ına uygun pentacle'ı çiz. 2) Basit bir Foliot ritüeliyle mekanikleri ve bağlanmış lambayı öğren. 3) Crusher ruhu veya Dimensional Storage ile yararlı altyapıya geç; mineshaft'i sonra aç.<br>Tuzak: Yanlış chalk, pentacle veya kurban ritüeli başlatmaz. JEI listesindeki eşyaları yere rastgele atmak yetmez; kitapta yazan yerleşim ve ruh tier'ını birebir uygula."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open magic",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_magic_blood",Name:"Büyü görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Blood Magic: 1) Blood Altar + Sacrificial Dagger. 2) Orb ve Slate. 3) Rune ile tier yükselt. LP ağını izle; ritüel seni öldürebilir."]},Type:"MESSAGE"
+          }],Label:"check_magic_blood",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"magic_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_magic_blood",Name:"Büyü masasına dön."
+        }],
+        Label:"magic_blood",
+        Name:"Blood Magic",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: güçlü ritüel ve sigiller için kaynak, sağlık ve risk yönetmekten hoşlanan oyuncu.<br>Önce: güvenli üs, bol yemek/iyileşme, Blood Altar ve Sacrificial Dagger; bunu ana yaşam alanından ayrı tut.<br>İlk üç iş: 1) Sunakta kontrollü LP üret. 2) İlk Blood Orb ve Blank Slate ile kişisel soul network'ünü aç. 3) Doğru rune düzeniyle altar tier'ını yükseltip tek bir sigil/ritüeli test et.<br>Tuzak: Altar içindeki LP ile kişisel soul network aynı havuz değildir. Aktif ritüel ağı sessizce boşaltıp seni öldürebilir; kapasite ve tüketimi görmeden sürekli çalışma kurma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Cmd:"transport_iv",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"transport_choose_iv",Name:"Hazır araç ve uçaklar."
+        },{
+          Actions:[{
+            Cmd:"transport_eureka",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"transport_choose_eureka",Name:"Bloklardan fizik gemisi."
+        },{
+          Actions:[{
+            Cmd:"transport_nifty",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"transport_choose_nifty",Name:"Küçük yelkenli ve top."
+        },{
+          Actions:[{
+            Cmd:"default",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_transport_hub",Name:"Ana masaya dön."
+        }],
+        Label:"transport_hub",
+        Name:"Ulaşım Tersanesi",
+        Priority:-1,
+        Texts:[{
+          Text:"Immersive Vehicles hazır paketlerden sürülebilir araba, kamyon, uçak ve helikopter verir. Eureka, kendi blok yapını fiziksel bir gemiye çevirir. Aleki's Nifty Ships ise daha küçük, doğrudan denizcilik odaklı rowboat/sloop ve top deneyimidir. Hızlı sürüş için IV, yaratıcı yapı için Eureka, sade deniz macerası için Nifty."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open immersive_vehicles",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_transport_iv",Name:"Araç görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["IV: 1) El kitabı + Vehicle Bench. 2) Basit kara aracı, motor ve tekerler. 3) Yakıt, anahtar, boş yolda test. Base mod tek başına araç vermez; content pack gerekir."]},Type:"MESSAGE"
+          }],Label:"check_transport_iv",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"transport_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_transport_iv",Name:"Tersaneye dön."
+        }],
+        Label:"transport_iv",
+        Name:"Immersive Vehicles",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: hazır model araba, kamyon, uçak veya helikopteri gerçekten sürmek isteyen oyuncu. Official Content ve Automobile paketleri araçları sağlar.<br>Önce: geniş garaj, düz test yolu, Vehicle Bench, wrench/anahtar ve seçilen aracın yakıtı.<br>İlk üç iş: 1) El kitabını ve Vehicle Bench'i aç. 2) Basit bir kara aracını motor, teker ve gerekli parçalarıyla tamamla. 3) Yakıt doldurup anahtarla boş ve güvenli yolda fren/dönüş testi yap.<br>Tuzak: Immersive Vehicles çekirdeği tek başına araç içermez; doğru content pack parçasını seç. Yakıt türünü varsayma ve ilk denemeyi kasaba meydanında yapma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open eureka",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_transport_eureka",Name:"Fizik gemisi görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Eureka: 1) Küçük bağlı gövde. 2) Ship Helm yerleştir ve assemble et. 3) Kıyıda dönüş/yük testi. Değerli üssü ilk gemiye çevirme."]},Type:"MESSAGE"
+          }],Label:"check_transport_eureka",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"transport_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_transport_eureka",Name:"Tersaneye dön."
+        }],
+        Label:"transport_eureka",
+        Name:"Valkyrien Skies ve Eureka",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: kendi bloklarından yürünebilir, fizik kullanan hava/deniz gemisi tasarlamak isteyen oyuncu.<br>Önce: açık bir tersane, küçük ve tamamen bağlı gövde, Ship Helm ve kaybolsa üzmeyecek test malzemeleri.<br>İlk üç iş: 1) Az bloklu, tek parça bir gövde yap. 2) Ship Helm'i yerleştirip yapıyı assemble et. 3) Yük, dönüş ve durmayı kıyıya yakın düşük hızda dene; sonra balon/itki ve kabin ekle.<br>Tuzak: fizik gemileri chunk reload, mooring, claim ve bazı block entity'lerle hassastır. İlk denemede ana üssünü, değerli makineleri veya dolu depolama ağını gemiye çevirme."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open nifty_ships",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_transport_nifty",Name:"Yelkenli görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Nifty: 1) Watercraft frame ile rowboat. 2) Oar/oarlock ve güvenli launch. 3) Sloop, anchor ve sonra cannon. Değerli yükü chunk-reload testinden önce koyma."]},Type:"MESSAGE"
+          }],Label:"check_transport_nifty",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"transport_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_transport_nifty",Name:"Tersaneye dön."
+        }],
+        Label:"transport_nifty",
+        Name:"Aleki's Nifty Ships",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: dev fizik yapısı yerine küçük rowboat, sloop, yelken, anchor ve top ile doğrudan denize açılmak isteyen oyuncu.<br>Önce: kıyıda boş iskele, watercraft frame malzemeleri, oar/oarlock ve kurtarma için yedek tekne.<br>İlk üç iş: 1) Frame parçalarıyla küçük rowboat'u tamamla. 2) Kürek ve oarlock'ları takıp sığ suda indirme testi yap. 3) Sloop, anchor ve en son cannon/cannonball ilerlemesine geç.<br>Tuzak: Bu sürümde mooring, chunk reload ve render riskleri kabul edildi. Tekne yeniden yüklenmeyi başarıyla görmeden değerli sandık doldurma; ilk seferi uzun okyanusta yapma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Cmd:"exploration_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"adventure_choose_explore",Name:"Yeni bölgeler ve yaratıklar."
+        },{
+          Actions:[{
+            Cmd:"combat_world_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"adventure_choose_combat",Name:"Savaş, gece, Nether."
+        },{
+          Actions:[{
+            Cmd:"space",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"adventure_choose_space",Name:"Uzay programı."
+        },{
+          Actions:[{
+            Cmd:"town_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"adventure_choose_town",Name:"Kasaba ve vatandaşlar."
+        },{
+          Actions:[{
+            Cmd:"bosses",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"adventure_choose_bosses",Name:"Boss rotası seç."
+        },{
+          Actions:[{
+            Cmd:"default",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_adventure_hub",Name:"Ana masaya dön."
+        }],
+        Label:"adventure_hub",
+        Name:"Macera Haritası",
+        Priority:-1,
+        Texts:[{
+          Text:"Keşif modları yeni biyom ve yaratık aratır; savaş yolu ekipman ve zamanlama öğretir; Ad Astra teknoloji altyapısını gezegenlere taşır; kasaba yolları yapı ve yönetim ister. Boss zinciri ise tek mod değildir: hazırlanma seviyene göre Aether/Mowzie'den Cataclysm ve daha sonrasına geçer."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Cmd:"explore_iaf",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"explore_choose_iaf",Name:"Ejderha ve mitler."
+        },{
+          Actions:[{
+            Cmd:"explore_alex",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"explore_choose_alex",Name:"Alex's Caves."
+        },{
+          Actions:[{
+            Cmd:"explore_aqua",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"explore_choose_aqua",Name:"Aquamirae."
+        },{
+          Actions:[{
+            Cmd:"explore_mowzie",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"explore_choose_mowzie",Name:"Mowzie's Mobs."
+        },{
+          Actions:[{
+            Cmd:"explore_born",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"explore_choose_born",Name:"Born in Chaos."
+        },{
+          Actions:[{
+            Cmd:"adventure_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_exploration_hub",Name:"Macera masasına dön."
+        }],
+        Label:"exploration_hub",
+        Name:"Eklenen Keşif Dosyaları",
+        Priority:-1,
+        Texts:[{
+          Text:"Ice and Fire açık dünyada ejderha ve mitolojik av; Alex's Caves beş nadir, uzun içerikli yeraltı biyomu; Aquamirae buzlu okyanus korkusu; Mowzie's Mobs kısa ama mekanikli boss karşılaşmaları; Born in Chaos ise geceleri ve mağaraları sürekli daha tehlikeli yapar. Uzun keşif için Alex, evcilleştirme için ejderha, tek dövüş için Mowzie, atmosfer için Aquamirae/Born seç."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open ice_and_fire",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_explore_iaf",Name:"Ejderha görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Ice and Fire: 1) Bestiary + uzaktan keşif. 2) Dragonbone/scales ile hazırlan. 3) Yumurta için yeraltındaki tier 4-5 dişi ejderha. Kasabaya canlı ejderha çekme."]},Type:"MESSAGE"
+          }],Label:"check_explore_iaf",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"exploration_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_explore_iaf",Name:"Keşif dosyalarına dön."
+        }],
+        Label:"explore_iaf",
+        Name:"Ice and Fire",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: ejderha avı, mitolojik yaratıklar, zırh ve sonunda kendi ejderhasını büyütmek isteyen oyuncu.<br>Önce: Bestiary, uzak menzil, ateş/buz direnci, kaçış noktası ve kasabadan çok uzakta bir av alanı.<br>İlk üç iş: 1) Yuvayı uzaktan keşfet; yüzey ejderhasıyla hazırlığını ölç. 2) Dragonbone ve scales ile ekipmanı yükselt. 3) Yumurta hedefliyorsan yeraltındaki tier 4-5 dişi ejderha avına ayrıca hazırlan; sonra meal, horn ve staff üret.<br>Tuzak: Her ejderha yumurta vermez; yumurta büyük dişi ejderha ganimetidir. Panikle kasabaya doğru kaçmak ejderhayı evlere taşır."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open alexs_caves",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_explore_alex",Name:"Mağara görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Alex's Caves: 1) Cave Compendium/tablet/map ilerlemesi. 2) Tek biyom seç ve özel tehlikeye hazırlan. 3) İmza materyali topla, boss'u sonra dene. Kör kazma yapma."]},Type:"MESSAGE"
+          }],Label:"check_explore_alex",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"exploration_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_explore_alex",Name:"Keşif dosyalarına dön."
+        }],
+        Label:"explore_alex",
+        Name:"Alex's Caves",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: tek mağaraya girip saatlerce ayrı biyom, kaynak, yaratık ve boss ilerlemesi yaşamak isteyen oyuncu.<br>Önce: Cave Compendium/tablet/map ilerlemesini öğren, bol meşale, dönüş noktası ve seçilen biyoma uygun koruma hazırla.<br>İlk üç iş: 1) Tablet/compendium zinciriyle biyom arama aracını edin. 2) Beş mağaradan yalnız birini hedefleyip onun radyasyon, asit, karanlık veya canlı tehlikesine hazırlan. 3) Önce imza materyali ve güvenli çıkış, sonra boss/ileri eşya.<br>Tuzak: Bu biyomlar nadir ve uzaktır; körlemesine düz kazmak verimsizdir. Toxic Caves gibi bölgelerin çevresel hasarını normal zırh tek başına çözmez."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open aquamirae",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_explore_aqua",Name:"Okyanus görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Aquamirae: 1) Boat + su altında nefes + dönüş. 2) Ice Maze/ship graveyard keşfi ve Frozen Key. 3) Shipbreaker ve smithing loot. Buz altında çıkışı işaretle."]},Type:"MESSAGE"
+          }],Label:"check_explore_aqua",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"exploration_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_explore_aqua",Name:"Keşif dosyalarına dön."
+        }],
+        Label:"explore_aqua",
+        Name:"Aquamirae",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: buzlu okyanusta korku, labirent, sualtı ganimeti ve Shipbreaker karşılaşması isteyen oyuncu.<br>Önce: sağlam tekne, Water Breathing/Respiration, menzilli silah, yemek ve işaretli bir dönüş waystone'u.<br>İlk üç iş: 1) Ice Maze veya ship graveyard çevresini gündüz keşfet. 2) Frozen Key ve giriş malzemelerini toplarken nefes/çıkış hattı kur. 3) Boss ve smithing upgrade ganimetine ancak kaçış rotan hazırken ilerle.<br>Tuzak: Buz tavanı yukarı yüzerek kaçmayı engeller. Labirente tek hava kaynağıyla girme; ölüm noktasına ikinci kez ulaşamayacağın değerli eşyaları yanında taşıma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open mowzies_mobs",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_explore_mowzie",Name:"Mowzie görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Mowzie: 1) Bir hedef seç ve arenasını temizle. 2) Saldırı penceresini öğren. 3) Düşen gücü dene, sonra sıradaki boss. Frostmaw kristali çalınınca uyanır."]},Type:"MESSAGE"
+          }],Label:"check_explore_mowzie",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"exploration_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_explore_mowzie",Name:"Keşif dosyalarına dön."
+        }],
+        Label:"explore_mowzie",
+        Name:"Mowzie's Mobs",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: uzun üretim zinciri yerine keşifte bulunan, saldırı işaretleri ve açıklıkları olan tekil boss dövüşleri isteyen oyuncu.<br>Önce: sağlam zırh, kalkan/menzil, yemek, boş envanter ve boss çevresinde mezara geri dönebileceğin güvenli nokta.<br>İlk üç iş: 1) Bir hedef seçip çevresindeki normal mobları temizle. 2) İlk denemeyi hasar yarışı değil saldırı pencerelerini öğrenme turu yap. 3) Düşen özel gücü güvenli alanda denedikten sonra sonraki boss'a geç.<br>Tuzak: Ferrous Wroughtnaut gibi düşmanlar yalnız doğru açıklıkta hasar alır. Frostmaw'ın kristalini çalmak onu uyandırır; kaçış rotası olmadan ganimete dokunma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open born_in_chaos",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_explore_born",Name:"Kaos görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Born in Chaos: 1) Claim, ışık, kapalı savunma. 2) Yay/kalkanla ortak mobları tanı. 3) Dark Metal ve özel drop ilerlemesi. Elitleri kasaba kapısında dövme."]},Type:"MESSAGE"
+          }],Label:"check_explore_born",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"exploration_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_explore_born",Name:"Keşif dosyalarına dön."
+        }],
+        Label:"explore_born",
+        Name:"Born in Chaos",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: gecelerin ve mağaraların sürekli tehdit olduğu, karanlık yaratık ganimetleriyle ilerlenen korku-savaş deneyimi isteyen oyuncu.<br>Önce: claimli ve iyi aydınlatılmış üs, kapalı giriş, kalkan/menzil, süt veya durum etkisi çözümü ve kaçış koridoru.<br>İlk üç iş: 1) Yaygın gece moblarını uzaktan tanıyıp drop'larını ayır. 2) Tek bir Dark Metal/özel eşya zincirini JEI'den takip et. 3) Elit veya çağırıcı düşmanları açık alanda takım halinde avla.<br>Tuzak: Bazı düşmanlar minion ve durum etkisi zinciri kurar. Onları kasaba kapısında tanklamak yeni mobları evlerin içine taşır; savaş alanını üsten uzağa seç."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Cmd:"combat",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"combat_world_choose_combat",Name:"Silah ve yakın dövüş."
+        },{
+          Actions:[{
+            Cmd:"incendium",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"combat_world_choose_nether",Name:"Incendium Nether."
+        },{
+          Actions:[{
+            Cmd:"explore_born",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"combat_world_choose_born",Name:"Gece korkusu."
+        },{
+          Actions:[{
+            Cmd:"adventure_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_combat_world_hub",Name:"Macera masasına dön."
+        }],
+        Label:"combat_world_hub",
+        Name:"Savaş ve Tehlikeli Dünya",
+        Priority:-1,
+        Texts:[{
+          Text:"Simply Swords + Better Combat hareket ve silah zamanlamanı değiştirir. Born in Chaos gece baskısını artırır. Incendium ise Nether'ı yeni arazi ve yapılara çevirir. Önce güvenilir silah ve geri çekilme alışkanlığı kur; sonra gece avı veya yeni Nether chunk'larına açıl."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open combat",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_combat",Name:"Savaş görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Combat: 1) Basit Simply Swords türü seç. 2) Kukla/tek mobda combo, reach ve stamina hissini öğren. 3) Runic/relic silaha sonra geç. Vanilla spam-click yapma."]},Type:"MESSAGE"
+          }],Label:"check_combat",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"combat_world_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_combat",Name:"Savaş masasına dön."
+        }],
+        Label:"combat",
+        Name:"Simply Swords ve Better Combat",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: silah türlerinin menzil, hız ve saldırı animasyonu gerçekten farklı olsun isteyen oyuncu.<br>Önce: yaygın malzemeden kaybetmesi ucuz bir Simply Swords silahı, kalkan/yiyecek ve güvenli antrenman alanı.<br>İlk üç iş: 1) Tek bir archetype seç; hızlı, ağır veya menzilli hissini öğren. 2) Normal mobda combo, reach ve saldırı zamanını test et. 3) Zırhın ve kurtarma planın oturduktan sonra runic/relic silah peşine düş.<br>Tuzak: Better Combat vanilla spam-click ritmini değiştirir; animasyon bitmeden yön değiştirmek saldırıyı boşa çıkarabilir. Nadir silahın pasifini okumadan boss'a götürme."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open incendium",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_incendium",Name:"Nether görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Incendium: 1) Ateş direnci + yedek portal/waystone. 2) Dönüş koordinatını işaretle. 3) Yeni Nether chunk'larına git. Eski chunk'lar yeniden oluşmaz."]},Type:"MESSAGE"
+          }],Label:"check_incendium",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"combat_world_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_incendium",Name:"Savaş masasına dön."
+        }],
+        Label:"incendium",
+        Name:"Incendium Nether",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: vanilla Nether yerine çok daha büyük arazi şekilleri, özel yapılar ve keşif tehlikesi isteyen oyuncu.<br>Önce: Fire Resistance, altın parça, blok, yedek çakmak, işaretli portal ve mümkünse waystone/dönüş planı.<br>İlk üç iş: 1) Ana portalın koordinatını iki boyutta da kaydet. 2) Yakın çevrede güvenli bir ikmal noktası kur. 3) Incendium içeriği için daha önce oluşmamış yeni Nether chunk'larına ilerleyip tek yapıyı temizle.<br>Tuzak: Datapack eski chunk'ları yeniden üretmez; bilinen bölgede yeni arazi arama. Dev şekiller görüşü ve dönüş yolunu keser; portal bağlantısına kör güvenme."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open space",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_space",Name:"Uzay görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Ad Astra: 1) Sabit FE ve çelik/plate üretimi. 2) Oxygen Loader, suit ve fuel. 3) Roket + işaretli iniş üssü. Oksijensiz yedek plan olmadan kalkma."]},Type:"MESSAGE"
+          }],Label:"check_space",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"adventure_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_space",Name:"Macera masasına dön."
+        }],
+        Label:"space",
+        Name:"Ad Astra Uzay Programı",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: teknoloji altyapısını Ay, Mars ve istasyonlara taşıyıp oksijen/yakıt lojistiği yönetmek isteyen oyuncu.<br>Önce: sürekli FE, metal plate/çelik üretimi, bol yakıt malzemesi ve geri dönüş için waystone/yedek roket planı.<br>İlk üç iş: 1) Oxygen Loader, suit ve dolum zincirini Dünya'da test et. 2) Yakıtı ve roket parçalarını eksiksiz hazırlayıp yedek oksijen koy. 3) İlk inişte enerji, oksijen ve dönüş aracını aynı küçük üs çevresinde kur.<br>Tuzak: Roketi yapmak yolculuğun tamamı değildir. Oksijen ekipmanı dolu görünse bile bağlantı/parça eksiği öldürür; dönüş yakıtını Dünya'da bırakma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Cmd:"town_minecolonies",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"town_choose_minecolonies",Name:"MineColonies şehri."
+        },{
+          Actions:[{
+            Cmd:"citizens",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"town_choose_citizens",Name:"ZapeG vatandaşları."
+        },{
+          Actions:[{
+            Cmd:"adventure_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_town_hub",Name:"Macera masasına dön."
+        }],
+        Label:"town_hub",
+        Name:"Kasaba Yönetimi",
+        Priority:-1,
+        Texts:[{
+          Text:"MineColonies kendi builder, farmer, guard ve bina seviye sistemi olan tam şehir simülasyonudur. ZapeG Citizens ise belirli kasaba NPC'leriyle küçük, kontrollü ve konuşma odaklı işler içindir. Büyük uzun vadeli yerleşim için MineColonies; birkaç karaktere görev ve rol vermek için Citizens."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open town",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_town_minecolonies",Name:"Kasaba görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["MineColonies: 1) Geniş claim + Supply Camp. 2) Town Hall ve Builder Hut. 3) Builder malzemesini düzenli besle. İlk binaları birbirine sıkıştırma."]},Type:"MESSAGE"
+          }],Label:"check_town_minecolonies",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"town_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_town_minecolonies",Name:"Kasaba masasına dön."
+        }],
+        Label:"town_minecolonies",
+        Name:"MineColonies",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: vatandaş meslekleri, bina seviyeleri ve sürekli büyüyen tam bir şehir yönetmek isteyen oyuncu.<br>Önce: büyük ve mümkün olduğunca düz claim, Build Tool, bol temel blok, güvenli yol/aydınlatma ve uzun vadeli yerleşim planı.<br>İlk üç iş: 1) Supply Camp/Ship ile başlangıç kaynağını kur. 2) Town Hall ve Builder Hut yerlerini aralarında büyüme payı bırakarak seç. 3) Builder'ın istek listesini düzenli tamamlayıp depo/food/guard zincirine geç.<br>Tuzak: Bina kutuları göründüğünden büyüktür; ilk kulübeleri sıkıştırmak tüm şehri kilitler. Builder'a tarif dışı blok yığını vermek istek listesindeki eksik parçayı çözmez."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open citizens",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_citizens",Name:"Vatandaş görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Citizens: 1) Yönetilen vatandaşı ve rolünü tanı. 2) Tek, küçük, güvenli iş ver. 3) Araç, çalışma alanı ve sonuç sandığını kontrol et. Değerli ana depoyu teslim etme."]},Type:"MESSAGE"
+          }],Label:"check_citizens",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"town_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_citizens",Name:"Kasaba masasına dön."
+        }],
+        Label:"citizens",
+        Name:"ZapeG Citizens",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: dev şehir simülasyonu yerine kasabadaki belirli karakterlerle konuşup küçük, denetlenebilir işler yürütmek isteyen oyuncu.<br>Önce: yönetilen vatandaşın adı/rolü, güvenli çalışma alanı, kaybolsa sorun olmayacak araçlar ve ayrı sonuç sandığı.<br>İlk üç iş: 1) Vatandaşı tanıyıp mevcut rol ve sınırını öğren. 2) Tek seferde yalnız bir küçük görev ver. 3) Araç, malzeme, hedef alan ve sonuç sandığını gözle kontrol edip ancak sonra işi büyüt.<br>Tuzak: Vatandaş sınırsız bot veya ışınlanan fabrika değildir. Belirsiz, çok geniş veya tehlikeli iş verme; ana depo anahtarını ve en iyi ekipmanı ilk denemede teslim etme."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open bosses",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_bosses",Name:"Boss görevini aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Boss sırası: Aether/Mowzie ile mekanik öğren; I&F/Alex/Aqua keşif boss'ları; Cataclysm ileri oyun. Arena + mezar dönüşü + yedek set olmadan zincire başlama."]},Type:"MESSAGE"
+          }],Label:"check_bosses",Name:"Listeyi sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"adventure_hub",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_bosses",Name:"Macera masasına dön."
+        }],
+        Label:"bosses",
+        Name:"Boss Rotası",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: üretim ağacından çok dövüş hazırlığı, mekanik öğrenme ve ganimet basamağı isteyen takım.<br>Önce: Aether/Mowzie daha okunabilir başlangıç karşılaşmaları; Ice and Fire, Alex's Caves ve Aquamirae keşif hazırlığı ister; Cataclysm ileri oyun ekipmanı içindir.<br>İlk üç iş: 1) Seviyene uygun tek boss seç. 2) Arena, waystone/mezar dönüşü, yedek set ve sarf malzemesi hazırla. 3) İlk denemeyi mekanik öğrenmeye ayırıp ancak sonra zinciri ilerlet.<br>Tuzak: Bütün boss'lar tek doğrusal sıraya ait değildir. Rehberde görünmesi hazır olduğun anlamına gelmez; boss'u üs veya değerli yapı yanında çağırma."
+        }]
+      },{
+        Buttons:[{
+          Actions:[{
+            Type:"CLOSE_DIALOG"
+          },{
+            Cmd:"1t",Type:"WAIT"
+          },{
+            Cmd:"zapeg-guide open all_paths",ExecAsUser:1b,PermLevel:0,Type:"COMMAND"
+          }],Label:"open_all_paths",Name:"Bütün yol haritasını aç."
+        },{
+          Actions:[{
+            Msg:{R:"INITIATOR",T:2b,Texts:["Kısa harita: teknoloji = güç→üretim→depolama; büyü = tek okul; ulaşım = IV/Eureka/Nifty; macera = keşif/boss/uzay; kasaba = MineColonies/Citizens."]},Type:"MESSAGE"
+          }],Label:"check_all_paths",Name:"Özeti sohbete yaz."
+        },{
+          Actions:[{
+            Cmd:"default",Type:"OPEN_NAMED_DIALOG"
+          }],Label:"back_all_paths",Name:"Ana masaya dön."
+        }],
+        Label:"all_paths",
+        Name:"ZapeG Yol Haritası",
+        Priority:-1,
+        Texts:[{
+          Text:"Kime göre: tek bir mod seçmek yerine paketin ana yollarını yan yana görüp uzun vadeli proje seçmek isteyen oyuncu.<br>Önce: güvenli üs, sürdürülebilir yemek ve dönüş noktası kur; hangi yolu seçersen seç temel kaynak ve JEI erişimi gerekecek.<br>İlk üç iş: 1) Teknoloji, büyü, ulaşım, macera veya kasabadan yalnız birini ana proje seç. 2) O yolun ilk kaynak döngüsünü ve güvenlik altyapısını kur. 3) Ana yol kararlı çalışınca ikinci yolu yan proje olarak aç.<br>Tuzak: Bütün modlara aynı anda başlamak sandıkları yarım üretilmiş parça ve unutulmuş makinelerle doldurur. Görev sayfasını yapılacaklar listesi olarak kullan; bütün düğümleri aynı anda takip etme."
+        }]
+      }],
+      Type:"STANDARD"
+    },
+    EasyNPCVersion:3,
+    HandItems:[{
+      Count:1b,id:"minecraft:book"
+    },{}],
+    Invulnerable:1b,
+    ObjectiveData:{
+      HasObjectives:1b,
+      ObjectiveDataSet:[{
+        Type:"LOOK_AT_PLAYER"
+      },{
+        Type:"LOOK_AT_RESET"
+      }]
+    },
+    PersistenceRequired:1b,
+    PresetUUID:[I;768717981,-1907604534,-1084681926,-1655777766],
+    SkinData:{
+      Type:"DEFAULT"
+    },
+    VariantType:"PROFESSOR_01",
+    id:"easy_npc:humanoid"
+  }
+}

@@ -1,0 +1,129 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_simply_swords"
+	group: ""
+	icon: "simplyswords:runic_tablet"
+	id: "3524908D54E7131E"
+	order_index: 9
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"Simply Swords yeni silah aileleri ve nadir runik silahlar ekler; Better Combat bunlara animasyon, erişim mesafesi ve kombo akışı kazandırır."
+				""
+				"&eSeçim mantığı:&r &7Longsword dengeli; spear menzil; twinblade hızlı kombo; greataxe ağır vuruş. JEI'de saldırı hasarı kadar hız ve erişimi de karşılaştır.&r"
+				""
+				"Bu sayfa elli silahı tek tek toplatmaz; sistemin omurgasını öğretir."
+			]
+			icon: "simplyswords:runic_tablet"
+			id: "7CF703870D771D84"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Silah ailesi, ritim ve runik yükseltme"
+			tasks: [{
+				id: "867CEBC704EE2871"
+				title: "Silah seçme rehberini oku"
+				type: "checkmark"
+			}]
+			title: "&dSilahlar ve Better Combat"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["7CF703870D771D84"]
+			description: [
+				"Basit bir Iron Longsword üret. Amaç güç sıçraması değil; yeni erişim ve saldırı zamanlamasını güvenli hedefte hissetmek."
+				""
+				"Silah üstündeyken JEI kullanım tuşu ile yükseltme ve tarif yollarını kontrol et."
+			]
+			icon: "simplyswords:iron_longsword"
+			id: "70AF039A6F99212B"
+			subtitle: "İlk yeni silah ailesi"
+			tasks: [{
+				id: "5D1681BDD725668A"
+				item: "simplyswords:iron_longsword"
+				title: "Iron Longsword edin"
+				type: "item"
+			}]
+			title: "&fİlk Longsword"
+			x: 3.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["70AF039A6F99212B"]
+			description: [
+				"Runic Grimoire ve Runic Tablet, normal silahlardan özel pasif/aktif etkili silahlara geçişi açıklar. Kitabı okumadan rastgele nadir malzeme harcama."
+			]
+			icon: "simplyswords:runic_longsword"
+			id: "C74936F2770A303E"
+			subtitle: "Runik sistemin kapısını aç"
+			tasks: [{
+				advancement: "simplyswords:runic_weapon"
+				criterion: ""
+				id: "AB3D07182932137E"
+				title: "Bir runik silah edin"
+				type: "advancement"
+			}]
+			title: "&5Runik Silah"
+			x: 6.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["C74936F2770A303E"]
+			description: [
+				"Dormant Relic doğrudan son silah değildir. Önce uyandırma koşulunu öğren; Decaying Relic hattı ise ayrı bir nadir ilerlemedir."
+				""
+				"&eBu uzun vadeli hedeftir.&r Nadir silahı görev ödülü olarak vermiyoruz; dünyadaki ilerleme anlamını korur."
+			]
+			icon: "simplyswords:dormant_relic"
+			id: "096FA9C13148D3DE"
+			rewards: [{
+				id: "F83A84BBABF60C0F"
+				type: "xp"
+				xp: 50
+			}]
+			subtitle: "Kalıntıları bul ve neye dönüştüklerini öğren"
+			tasks: [
+				{
+					advancement: "simplyswords:dormant_relic"
+					criterion: ""
+					id: "C6C8D8F04A6A1D4F"
+					title: "Dormant Relic edin"
+					type: "advancement"
+				}
+				{
+					advancement: "simplyswords:decaying_relic"
+					criterion: ""
+					id: "41549CAF5FBA022E"
+					title: "Decaying Relic edin"
+					type: "advancement"
+				}
+			]
+			title: "&6Uyuyan Kalıntılar"
+			x: 9.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["70AF039A6F99212B"]
+			description: [
+				"Better Combat'ta tıklama, silah animasyonu ve saldırı aralığı birlikte çalışır. Sürekli spam yerine vuruşun tamamlanmasını, karakter yönünü ve hedef mesafesini izle."
+				""
+				"&aGüvenli test:&r &7zırhlı bir ekip arkadaşı değil; eğitim kuklası veya açık alandaki tek bir zayıf yaratık kullan. Longsword, spear ve ağır silahın ritmini karşılaştır.&r"
+			]
+			icon: "minecraft:iron_sword"
+			id: "55171530CF2392E9"
+			subtitle: "Hasardan önce zamanlama"
+			tasks: [{
+				id: "A7EA07B42DDA7B61"
+				title: "Üç silah ritmini güvenli alanda dene"
+				type: "checkmark"
+			}]
+			title: "&cDövüş Eğitimi"
+			x: 6.0d
+			y: 3.0d
+		}
+	]
+	title: "&dZapeG — Simply Swords"
+}

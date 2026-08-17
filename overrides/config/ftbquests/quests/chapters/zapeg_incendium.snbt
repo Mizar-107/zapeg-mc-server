@@ -1,0 +1,62 @@
+{
+	default_hide_dependency_lines: false
+	default_quest_shape: ""
+	filename: "zapeg_incendium"
+	group: ""
+	icon: "minecraft:netherrack"
+	id: "A744E9904B497EEA"
+	order_index: 12
+	progression_mode: "flexible"
+	quest_links: [ ]
+	quests: [
+		{
+			description: [
+				"&cIncendium 5.3.1&r, sunucuda çalışan bir Nether overhaul'dır. Oyuncular ayrı bir Incendium modu kurmaz; sunucu yeni Nether arazisini üretirken içeriği uygular."
+				""
+				"&eYalnız yeni chunk'lar:&r &7Incendium etkinleştirilmeden önce üretilmiş Nether chunk'ları değişmez. Yeniden bağlanmak, sunucuyu yeniden başlatmak veya eski bir portala tekrar girmek onları yeniden yazmaz.&r"
+				""
+				"&aHazırlık:&r &7yanına ateş direnci, yiyecek, blok, koordinat kaydı ve kesin bir dönüş yolu al. Uzak bir Overworld portalı kullanabilir; güvenli bir varış noktası kurduktan sonra waystone ile bağlantıyı kalıcılaştırabilirsin.&r"
+			]
+			icon: "minecraft:flint_and_steel"
+			id: "932933A8CBB67BBA"
+			shape: "gear"
+			size: 1.5d
+			subtitle: "Eski Nether korunur; yeni arazi uzakta doğar"
+			tasks: [{
+				id: "13CF217795FE17BD"
+				title: "Yeni chunk kuralını ve dönüş planını okudum"
+				type: "checkmark"
+			}]
+			title: "&cNether Değişti"
+			x: 0.0d
+			y: 0.0d
+		}
+		{
+			dependencies: ["932933A8CBB67BBA"]
+			description: [
+				"Bilinen Nether haritasının dışına açılan uzak bir portal kullan. Alternatif olarak güvenli bir uzak rota kur, yeni üretilen bölgeye ulaş ve dönüş için portal/waystone noktanı korumaya al."
+				""
+				"Bu görev belirli bir yapı adı veya kesin structure ID dayatmaz ve &f/locate&r istemez. Amaç, eski chunk sınırını geçip Incendium ile ilk kez üretilmiş Nether arazisini gerçekten keşfetmektir."
+				""
+				"&6Manuel doğrulama:&r &7FTB Quests bunun yeni chunk olduğunu otomatik kanıtlamaz. Haritanı/koordinatlarını kontrol edip yeni bölgeye ulaştığından ve sağlam döndüğünden emin olduktan sonra işaretle.&r"
+			]
+			icon: "minecraft:lodestone"
+			id: "5F61BDE6FB093557"
+			rewards: [{
+				id: "4D93D7D81217069F"
+				type: "xp"
+				xp: 10
+			}]
+			subtitle: "Uzak portal, güvenli dönüş, yeni chunk"
+			tasks: [{
+				id: "8783843C53B85FA9"
+				title: "Yeni Nether bölgesini keşfettim ve güvenle döndüm"
+				type: "checkmark"
+			}]
+			title: "&6Yeni Nether Seferi"
+			x: 3.0d
+			y: 0.0d
+		}
+	]
+	title: "&cZapeG — Incendium"
+}

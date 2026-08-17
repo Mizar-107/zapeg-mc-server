@@ -176,7 +176,7 @@ services:
       MC_RCON_PASSWORD: ${RCON_PASSWORD:-}
       MC_WORLD: /data/world
       # Do not send offline UUIDs to Mojang name lookup. Upstream labels these
-      # series by UUID; Prometheus rewrites only the five confirmed exact logins.
+      # series by UUID; Prometheus rewrites only the six confirmed exact logins.
       MC_NAME_SOURCE: offline
       MC_MOD_SERVER_STATS: forge         # per-dimension TPS/tick-time via forge rcon
     volumes:

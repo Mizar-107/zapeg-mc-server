@@ -4,7 +4,9 @@
 
 FTB Quests artık başarı gerçeğinin sahibi değil; yalnız kitap ve ödül yüzeyidir.
 `zapeg:verified` içindeki görünmez advancement kriterleri sunucu otoritesidir.
-Başarı görevlerinde oyuncunun basabileceği `checkmark` bırakılmaz.
+Otomatik ölçülebilen başarı görevlerinde oyuncunun basabileceği `checkmark`
+bırakılmaz; fiziksel sürüş/kalıcılık gibi ölçülemeyen yeni rehber adımları aşağıda
+ayrı ve açıkça manuel olarak listelenir.
 
 Yol Haritası da düzeltilmiştir: hoş geldin kriteri girişte; ilk gece yatakta
 uyuyunca; teknoloji/büyü/ejderha yolları gerçek item görülünce; şehir/uzay/boss
@@ -15,6 +17,45 @@ tikle kaynak alma kalmaz.
 - Yapı, güvenlik veya kalite hedefi: OP dünyada gördükten sonra kriteri verir.
 - FTB Teams ortak partisinde kriteri alan bir üye grup görevini tamamlar.
 - Kupa item ödülleri `team_reward: true` olduğu için takım başına bir kez alınır.
+
+## Eklenen modların rehber chapter'ları
+
+ZapeG'in oyuncuya dönük eklemeleri artık yalnız Yol Haritası metninde anılmaz;
+on ayrı chapter gerçek başlangıç ve ilerleme zincirleri sağlar:
+
+| Chapter | Kapsam | Ana doğrulama |
+|---|---|---|
+| ZapeG — Ice and Fire | Bestiary, av, yumurta/bakım, Dragonsteel | mod advancement'ları |
+| ZapeG — Immersive Petroleum | rezerv, pumpjack, damıtma, ileri rafineri | mod advancement'ları |
+| ZapeG — Alex's Caves | rehber/harita, altı mağara, altı boss | mod advancement'ları |
+| ZapeG — Aquamirae | buz labirenti, Shipbreaker, ekipman, Shellback | mod advancement'ları |
+| ZapeG — Mowzie's Mobs | erken avlar, Wroughtnaut/Frostmaw, Umvuthi, Sculptor | mod advancement'ları |
+| ZapeG — Born in Chaos | gece avları, dark metal, bosslar, necromancy | mod advancement'ları |
+| ZapeG — Simply Swords | silah ailesi, runik silah, relic, Better Combat pratiği | item + mod advancement'ı |
+| ZapeG — Araçlar ve Gemiler | IV/MTS, Eureka/VS, Nifty Ships | item + advancement + kullanım testi |
+| ZapeG — Citizens | sahiplik, sohbet, güvenli iş emri | tek açık manuel canlı test |
+| ZapeG — Incendium | yeni Nether chunk kuralı ve güvenli sefer | açık manuel keşif testi |
+
+Citadel, Fragmentum, Valkyrien Skies çekirdeği, Easy NPC iç bileşenleri,
+Chunky, BlueMap, Discord Integration ve ZapeG Runtime bağımlılık/operatör
+altyapısıdır; sırf listeyi doldurmak için sahte ilerleme sayfası almaz.
+Valkyrien Skies oyuncuya Eureka dalında; Numen ise Citizens dalında açıklanır.
+
+Yeni chapter/quest/task/reward kimlikleri
+`SHA256("zapeg-ftbq-v1|" + kalıcı_slug)` sonucunun ilk 16 hex hanesidir. Bir ID
+yayınlandıktan sonra slug veya ID yeniden üretilmez; aksi halde canlı ilerleme
+yeni bir nesne sanılır. Muhtar landing ID'leri yalnız
+`overrides/kubejs/server_scripts/zapeg_quest_guide.js` içindeki sabit haritada
+tutulur; NPC preset'lerine 16 haneli ID saçılmaz.
+
+Ölçülebilen yeni hedeflerde oyuncu tiki kullanılmaz. Bilinçli manuel alanlar
+yalnız şunlardır: bir rehber/güvenlik metnini okuma, gerçek araç veya geminin
+unload/reload sonrası kalması, güvenli Better Combat pratiği, gerçek Citizens
+yanıtı ve bounded iş, Incendium'un yeni chunk bölgesine gidip dönme. Bu düğmeler
+metinde açıkça “manuel” diye işaretlidir; nadir item veya ilerleme atlatan ödül
+vermez. Immersive Vehicles 24.0.0'ın 22 advancement dosyasından 20'si hatalı JSON
+olduğu için IV dalında bozuk advancement'a güvenmek yerine exact core item'ları
+ve gerçek yol testi kullanılır.
 
 ## Otomatik doğrulanan kişisel hedefler
 
@@ -29,17 +70,11 @@ tikle kaynak alma kalmaz.
 | Salih | `SalihKarahan` | Kendi evcil ejderhası | Kendi Ice and Fire ejderhasına binme + tame/owner UUID kontrolü |
 | Recep | `Mizar__107` | Sandık nöbeti | Sandık üstünde kesintisiz 120 saniye; ayrılınca sıfır |
 | Mert | `MertOnal` | Minecart ile 5 km | Vanilla `minecart_one_cm` istatistiği |
-| Mert | `MertOnal` | 64 ray yerleştirme | Exact actor + canlı dimension/koordinat defteri; aynı yer ikinci kez sayılmaz, eksilen ray düşer |
-| Enes | kesin değil | Arbalet | Exact login girilene kadar kilitli; sonra `ol_betsy` |
+| Enes | `Thekingim` | Arbalet | Exact login için `ol_betsy`; önceden kazanılmışsa girişte uzlaştırılır |
 
-`zapeg_tames`, `zapeg_chest_s` ve `zapeg_rails` scoreboard'ları canlı
-test/sayaç görünümü sağlar. Ray defteri yalnız `MertOnal` tarafından 64 farklı
-dimension/koordinata yerleştirilen vanilla rayları ve `create:track` bloklarını
-sayar; her yeni yerleştirmede kayıtlı rayların hâlâ orada olduğu taranır. Böylece
-tek rayı 64 yere taşıma ilerleme üretmez. Modlu canlıların hepsi vanilla
-tame tetikleyicisini kullanmayabilir; ilk test kurt/kedi/at ile yapılmalıdır.
-Dağıtımdan önce yerleştirilmiş rayların kimin tarafından konduğunu güvenilir
-biçimde çıkaramadığımız için onlar geçmişe dönük sayılmaz.
+`zapeg_tames` ve `zapeg_chest_s` scoreboard'ları canlı test/sayaç görünümü
+sağlar. Modlu canlıların hepsi vanilla tame tetikleyicisini kullanmayabilir;
+ilk test kurt/kedi/at ile yapılmalıdır.
 
 ## İncelemeli kişisel hedefler ve doğrudan ödüller
 
@@ -52,9 +87,9 @@ oyuncu tiki yoktur; OP aşağıdaki ölçütleri dünyada görür ve yalnız do�
 | `MertOnal` | Ev | Kapalı dış duvar/çatı, kapı, yatak, ışık, sandık; oyuncu yapı yanında | `MertOnal'ın Tapusu` (brick) |
 | `eminomi12` | Kasaba fıskiyesi | Ortak alan, görünür su/havuz, ışık; yol veya yapıları su basmıyor | `Kasaba Fıskiyesinin Kalbi` (heart of the sea) |
 
-Otomatik 64-ray ve iki owner-UUID ejderha görevi de aynı teslimat kanalını
-kullanır: `MertOnal Ekspresi`, `Emir'in Ejderha Boynuzu` ve `Salih'in Ejderha
-Düdüğü` yalnız ilgili exact login'e (`SalihKarahan` dahil) bir kez verilir.
+İki owner-UUID ejderha görevi de aynı teslimat kanalını kullanır: `Emir'in
+Ejderha Boynuzu` ve `Salih'in Ejderha Düdüğü` yalnız ilgili exact login'e
+(`SalihKarahan` dahil) bir kez verilir.
 
 Onay komutları:
 
@@ -109,17 +144,39 @@ advancement task olarak göründüğü iki farklı istemcide doğrulanır.
 
 Yeni zincirlerin kısa kabul testi:
 
-1. `MertOnal` bir vanilla ray koyar; `zapeg_rails` 1 olur. Rayı söküp başka yere
-   taşıyınca sayaç 1'de kalır. Ardından bir `create:track` koyup sayacı kontrol
-   edin; Create özel yerleştirme olayı bu sürümde sayılmazsa canlı görev metnini
-   test düzelene kadar vanilla rayla sınırlayın.
-2. Emir veya Salih kendi evcil Ice and Fire ejderhasına biner; ilgili kişisel
+1. Emir veya Salih kendi evcil Ice and Fire ejderhasına biner; ilgili kişisel
    kriter ve grup `dragon_rider` kriteri açılır. Başkasına ait ejderha kişisel
    kriteri açmamalıdır.
-3. Bir kişisel ödül teslim olurken NBT sahibi doğru, FTB ödül talebi yok ve aynı
+2. Bir kişisel ödül teslim olurken NBT sahibi doğru, FTB ödül talebi yok ve aynı
    kriter sonraki girişte ikinci eşya üretmiyor olmalıdır.
 
-Yeni beş task daha önce var olmadığı için eski onur-tiki temizleme listesine
+Eklenen mod chapter'larının temsilî kabul testi:
+
+1. OP olmayan iki takım üyesiyle Ice and Fire Bestiary ve Immersive Petroleum
+   projector advancement'larını ayrı ayrı tetikleyin; FTB Teams ilerlemesinin
+   beklenen üyeye/takıma yansıdığını doğrulayın. Advancement daha önce alınmışsa
+   chapter kurulumundan sonraki yeniden uzlaştırmayı da test edin.
+2. `/zapeg-guide open petroleum` ve `/zapeg-guide open immersive_vehicles`
+   komutlarını normal oyuncuyla çalıştırın. Yalnız doğru landing quest açılmalı;
+   progress ve ödül değişmemeli.
+3. IV dalında Car Handbook ve üç workbench item task'ını deneyin; belirli araç
+   NBT'si istenmemeli. Küçük resmi-pack aracını sürüp chunk'ı unload/reload edin,
+   geri dönün ve yalnız gerçek kalıcılık testinden sonra manuel düğmeye basın.
+4. Eureka prototipini ve Nifty sloop'u ayrı alanlarda test edin. Nifty gemisini
+   anchor + iki uçlu mooring ile bırakıp 16+ chunk uzaklaşın, geri dönün ve
+   restart/reconnect sonrası kargo ile gövdenin kaldığını doğrulayın. Hiçbir IV,
+   Eureka/VS, Nifty veya hareketli Create sistemini diğerinin üstüne koymayın.
+5. Citizens brain gerçekten açıkken OP bir test çalışanı provision etsin.
+   Oyuncu `@Ad status`, bounded hareket işi ve `@Ad stop` akışını görmeden final
+   manuel task'ı tamamlamasın. Sunucuya ait lore vatandaşı fiziksel oyuncu işi
+   almamalı; onun `/citizen task` yolu yalnız oyun içi OP içindir.
+6. Incendium için eski Nether chunk'ının değişmediğini ve uzak portalın yeni
+   üretilen bölgede farklı içerik verdiğini doğrulayın; dönüş portalı/waystone
+   güvenli olmadan keşif tikini işaretlemeyin.
+7. Muhtar'ın her quest handoff'unu üç kez aç/kapatın. NPC diyaloğu FTB ekranının
+   altında açık kalmamalı; test matrisi `MUHTAR-QUEST-GUIDE-TR.md` içindedir.
+
+Yeni dört task daha önce var olmadığı için eski onur-tiki temizleme listesine
 eklenmez; aşağıdaki resetler yalnız eski task ID'leri içindir.
 
 Mevcut task ID'leri korunduğu için daha önce elle atılmış tikler kendiliğinden
@@ -169,10 +226,10 @@ kanıtlar, klavyedeki gerçek insanı değil. Kişiye güç/OP/claim bypass vere
 - Emir: sabit checkpoint kutuları ve scoreboard süreli yarış ligi.
 - Emin: public hayvanat bahçesi; kaliteyi NPC/OP kayıt eder, BlueMap yalnız
   kamusal yapının marker'ını gösterir.
-- Mert Onal: ev ve 64 farklı ray görevi canlı; sonraki adım bu hattı kasaba
-  istasyonu veya limana bağlayan rota görevidir.
+- Mert Onal: 5 km minecart ve ev görevi canlı; sonraki adım resmi araç paketiyle
+  bir garaj veya yolculuk zinciridir.
 - Salih + Mert: belirlenmiş eğitim koordinatında ortak yangın sigortası tatbikatı.
 - Recep: 120 saniye nöbetten sonra kasaba arşivi/charter sorumluluğu.
-- Enes: exact nick sonrası jetpack uçuş lisansı.
+- Enes (`Thekingim`): jetpack uçuş lisansı.
 - Yusuf, Ali ve Ertu: login'leri gelince ilk ziyaret/waystone
   pasaportu; tahminî isimle kişisel hak açılmaz.
