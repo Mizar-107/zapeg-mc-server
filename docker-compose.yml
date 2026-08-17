@@ -120,7 +120,9 @@ services:
       # No password here: mc-backup auto-reads /data/.rcon-cli.env from SRC_DIR.
       PAUSE_IF_NO_PLAYERS: "false"
       # jars/caches are re-resolvable from pins — world + configs are what matter
-      EXCLUDES: "*.jar,cache,temp,logs,crash-reports,libraries,versions"
+      # BlueMap tiles are regenerated from the world; archiving them every day
+      # wastes disk and I/O while the renderer is writing.
+      EXCLUDES: "*.jar,cache,temp,logs,crash-reports,libraries,versions,bluemap,bluemap/**"
     volumes:
       - ./data:/data:ro
       - ./backups:/backups
@@ -156,9 +158,10 @@ services:
       - citizen-brain-data:/data
 
   # Metrics stack — OPT-IN: docker compose --profile metrics up -d
-  # Grafana at :3000 (anonymous read-only for the group), dashboards pre-provisioned.
+  # Grafana is localhost-only by default. Use an SSH tunnel/VPN or authenticated
+  # HTTPS reverse proxy; do not publish raw :3000 to the internet.
   metrics-exporter:
-    image: ghcr.io/dirien/minecraft-exporter:latest
+    image: ghcr.io/dirien/minecraft-exporter:0.24.0
     container_name: atm9-exporter
     profiles: ["metrics"]
     restart: unless-stopped
@@ -173,35 +176,40 @@ services:
       MC_RCON_PASSWORD: ${RCON_PASSWORD:-}
       MC_WORLD: /data/world
       # Do not send offline UUIDs to Mojang name lookup. Upstream labels these
-      # series by UUID; add friendly aliases after real player data exists.
+      # series by UUID; Prometheus rewrites only the five confirmed exact logins.
       MC_NAME_SOURCE: offline
       MC_MOD_SERVER_STATS: forge         # per-dimension TPS/tick-time via forge rcon
     volumes:
       - ./data:/data:ro
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.12.0
     container_name: atm9-prometheus
     profiles: ["metrics"]
     restart: unless-stopped
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
-      - "--storage.tsdb.retention.time=180d"
+      # A full season/year remains queryable, but the disk cap wins if needed.
+      - "--storage.tsdb.retention.time=400d"
+      - "--storage.tsdb.retention.size=10GB"
     volumes:
       - ./metrics/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prom-data:/prometheus
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.1.0
     container_name: atm9-grafana
     profiles: ["metrics"]
     restart: unless-stopped
     ports:
-      - "3000:3000"                      # reverse-proxy/VPN like BlueMap
+      - "${GRAFANA_BIND_ADDRESS:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-zapeg-admin}
-      GF_AUTH_ANONYMOUS_ENABLED: "true"  # group members view without login
+      # The fallback is intentionally usable only with the localhost bind above.
+      # Set a unique value before any reverse-proxy/VPN publication.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-zapeg-local-only}
+      GF_AUTH_ANONYMOUS_ENABLED: ${GRAFANA_ANONYMOUS_ENABLED:-false}
       GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - ./metrics/grafana/provisioning:/etc/grafana/provisioning:ro
       - graf-data:/var/lib/grafana
@@ -215,6 +223,13 @@ services:
     command: ["python", "-u", "heraldor.py"]
     profiles: ["heraldor"]
     restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
     depends_on:
       mc:
         condition: service_healthy
@@ -223,10 +238,14 @@ services:
       RCON_HOST: mc
       RCON_PORT: "25575"
       RCON_ENV_FILE: /run/secrets/mc-rcon.env
+      PYTHONDONTWRITEBYTECODE: "1"
       HERALDOR_WEBHOOK: ${HERALDOR_WEBHOOK:-}
       HERALDOR_EVENTS: ${HERALDOR_EVENTS:-false}
       HERALDOR_LLM: ${HERALDOR_LLM:-false}
       CHECK_INTERVAL: ${HERALDOR_CHECK_INTERVAL:-300}
+      MINION_POLL_INTERVAL: ${HERALDOR_MINION_POLL_INTERVAL:-10}
+      HERALDOR_DB_PATH: /state/heraldor.sqlite3
+      HERALDOR_SNAPSHOT_PATH: /state/backup/heraldor.sqlite3
       P_WHISPER: ${HERALDOR_P_WHISPER:-0.002}
       P_GLOBAL: ${HERALDOR_P_GLOBAL:-0.0005}
       P_DISCORD: ${HERALDOR_P_DISCORD:-0.0003}
@@ -235,6 +254,9 @@ services:
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
     volumes:
+      - type: bind
+        source: ./data/heraldor
+        target: /state
       - type: bind
         source: ./data/.rcon-cli.env
         target: /run/secrets/mc-rcon.env

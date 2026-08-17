@@ -1,6 +1,6 @@
-# BALANCE — duplicate-material & balance review (2026-08-15, pre-launch)
+# BALANCE — duplicate-material & balance review (2026-08-17, pre-launch)
 
-Scope: what our five content adds do to ATM9's economy. Verified against the pack's own file list and configs where possible; items marked *verify at boot* get checked in the throwaway world.
+Scope: what ZapeG's manual content additions do to ATM9's economy. Verified against the pack's own file list and configs where possible; items marked *verify at boot* get checked in the throwaway world.
 
 ## Findings
 
@@ -13,6 +13,7 @@ Scope: what our five content adds do to ATM9's economy. Verified against the pac
 | 5 | **AC nuclear bomb** exists (cave uranium) | Social rule | Recipe-removal one-liner staged (commented) in `zapeg_balance.js` if the social rule fails |
 | 6 | **Progression pace** | Baseline | ATM9 kitchen-sink with no recipe overhaul IS the low-grind mode; stars stay craftable per the natural-progression decision (v0.3.1). Nothing to tune pre-playtest |
 | 7 | **v0.8.0 overlap audit** (post-add self-check) | Clean | Aquamirae vs pack's Aquaculture = horror biome vs fishing rods, no overlap. ATM9 1.1.1 already supplies WDA 2.1.58; the redundant ZapeG 2.1.57 declaration was removed, while its mega-dungeon niche remains. Structure layers by size (CTOV villages / Structory ruins / YUNG temples / WDA complexes). Simply Swords vs Silent Gear = found-loot vs crafted-gear systems, coexist. Two watch-items for playtest: combined night pressure (Born in Chaos + Apotheosis elites) and total structure density — both are config dials |
+| 8 | **Immersive Vehicles transport/fuel overlap** | Compatible with a boundary | Keep IV for road/terrain vehicles and VS/Eureka for moving ships; do not expect IV collision on ship decks or Create contraptions. Inspect the generated IV fuel config in the throwaway boot before changing recipes: do not assume Immersive Petroleum or PneumaticCraft fuels are mapped. Map one existing fuel family only after its exact fluid IDs and consumption balance are verified; avoid adding a third oil worldgen system |
 
 ## Rules for future adds
 

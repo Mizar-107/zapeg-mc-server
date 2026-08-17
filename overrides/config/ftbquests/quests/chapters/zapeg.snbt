@@ -13,15 +13,17 @@
 			description: [
 				"Emir'in görevi: End'e gir, kristalleri indir ve Ender Dragon'a son darbeyi vur."
 				""
-				"&7Bu kişisel hedef ilk sürümde onur sistemiyle işaretlenir; ejderhayı kralxlarge kesince kutuyu o işaretler.&r"
+				"&aSunucu doğrular:&r &7minecraft:end/kill_dragon yalnız kralxlarge için sayılır; oyuncu tiki yoktur.&r"
 			]
 			icon: "minecraft:end_crystal"
 			id: "B83937C29F4A971F"
 			subtitle: "kralxlarge — Ender Dragon'ı kes"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "emir_dragon"
 				id: "000E3123FACFC641"
 				title: "Ender Dragon'ı Kes"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&5Emir: Son Darbe"
 			x: -4.5d
@@ -31,15 +33,17 @@
 			description: [
 				"Emir, emeğinin karşılığını tek bir parıltılı yığınla kanıtlayacak: aynı anda 64 elması envanterinde bulundur."
 				""
-				"&7Elmaslar teslim edilmez ve tüketilmez. kralxlarge yığını tamamlayınca görevi işaretler.&r"
+				"&aSunucu doğrular:&r &7kralxlarge envanterinde aynı anda 64 elmas görünce tamamlanır; elmaslar tüketilmez.&r"
 			]
 			icon: "minecraft:diamond"
 			id: "C365EF34099C3E16"
 			subtitle: "kralxlarge — 64 elması bir araya getir"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "emir_diamonds"
 				id: "55F51C09F9CA1025"
 				title: "Bir Stack Elmas Topla"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&bEmir: Mavi Servet"
 			x: -1.5d
@@ -49,15 +53,17 @@
 			description: [
 				"Emin Taha ufukta yeni bir köy arıyor. Bir köy bul, sakinleriyle tanış ve yerini kaybetmemek için haritaya işaret koy."
 				""
-				"&7Köyü eminomi12 bulduğunda görev onur sistemiyle işaretlenir.&r"
+				"&aSunucu doğrular:&r &7bir vanilla köy yapısına eminomi12 girdiğinde tamamlanır.&r"
 			]
 			icon: "minecraft:bell"
 			id: "4D638BEA6E924FF1"
 			subtitle: "eminomi12 — bir köy keşfet"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "emin_village"
 				id: "CDDB1C66FE19DD82"
 				title: "Bir Köy Bul"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&eEmin Taha: Köy Peşinde"
 			x: 1.5d
@@ -67,15 +73,17 @@
 			description: [
 				"Emin Taha'nın kafilesi hayvansız olmaz. Kurt, kedi, papağan, at veya pakette evcilleştirilebilen başka canlılardan toplam 10 tanesini evcilleştir."
 				""
-				"&7Yavrulatmak bu hedefe dahil değil; eminomi12 onuncu dostunu edindiğinde görevi işaretler.&r"
+				"&aSunucu doğrular:&r &7dağıtımdan sonra eminomi12 tarafından evcilleştirilen canlılar sayılır; yavrulatmak dahil değildir.&r"
 			]
 			icon: "minecraft:lead"
 			id: "21D65B09DA573A9B"
 			subtitle: "eminomi12 — toplam 10 hayvan evcilleştir"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "emin_tames"
 				id: "D416C228525ED49F"
 				title: "10 Hayvan Evcilleştir"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&aEmin Taha: Büyük Kafile"
 			x: 4.5d
@@ -83,17 +91,19 @@
 		}
 		{
 			description: [
-				"Salih'in kontrollü yangın tatbikatı başlıyor: yalnızca önceden belirlenmiş taş veya netherrack eğitim alanında tek bir ateş yak."
+				"Salih'in kontrollü yangın tatbikatı başlıyor: yalnızca taş/netherrack ile çevrili güvenli bir eğitim alanında tek bir ateş yak."
 				""
-				"&cEvler, ormanlar, oyuncu eşyaları ve ahşap yapılar görev alanı değildir.&r &7Su hazır olmadan tatbikat başlamaz.&r"
+				"&cEvler, ormanlar, oyuncu eşyaları ve ahşap yapılar görev alanı değildir.&r &7Sunucu yalnız netherrack/soul-soil üzerinde, yakınında yanıcı blok bulunmayan tek alevi kabul eder.&r"
 			]
 			icon: "minecraft:flint_and_steel"
 			id: "12AD93DCE7AB6EB5"
-			subtitle: "SalihKarahans — güvenli alanda tatbikat ateşini yak"
+			subtitle: "SalihKarahan — güvenli alanda tatbikat ateşini yak"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "salih_ignite"
 				id: "15ED4390EB972793"
 				title: "Kontrollü Ateş Yak"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&6Salih: Tatbikat Başladı"
 			x: -3.0d
@@ -103,15 +113,17 @@
 			description: [
 				"Tatbikatın ikinci ve ayrı görevi: Salih yaktığı eğitim ateşini tamamen söndürür, çevrede alev kalmadığını kontrol eder ve alanı güvenli bırakır."
 				""
-				"&7SalihKarahans yangını söndürdükten sonra bu görevi işaretler. Gerçek yapılara zarar vermek hiçbir zaman başarı sayılmaz.&r"
+				"&aSunucu doğrular:&r &7SalihKarahan'ın kabul edilmiş aynı alevi bizzat söndürmesi gerekir. Gerçek yapılara zarar vermek başarı sayılmaz.&r"
 			]
 			icon: "minecraft:water_bucket"
 			id: "C315EF02FEA9F4AF"
-			subtitle: "SalihKarahans — tatbikat ateşini tamamen söndür"
+			subtitle: "SalihKarahan — tatbikat ateşini tamamen söndür"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "salih_extinguish"
 				id: "26BEE202F4AB1770"
 				title: "Kontrollü Ateşi Söndür"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&3Salih: Alan Güvenli"
 			x: 0.0d
@@ -121,15 +133,17 @@
 			description: [
 				"Recep'in kadim görevi basit görünür: bir sandığın kapağında dimdik dur ve sandık nöbetini tamamla."
 				""
-				"&7Mizar__107 gerçekten sandığın üzerinde bekledikten sonra görevi işaretler. İçindekileri almak şart değil.&r"
+				"&aSunucu doğrular:&r &7Mizar__107 sandığın üstünde kesintisiz 120 saniye durmalıdır; inince sayaç sıfırlanır.&r"
 			]
 			icon: "minecraft:chest"
 			id: "52A9FA4E43803736"
 			subtitle: "Mizar__107 — bir sandığın üzerinde bekle"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "recep_chest_watch"
 				id: "B86D6769503F1DF9"
 				title: "Sandık Üstü Nöbeti"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&6Recep: Sandık Muhafızı"
 			x: 3.0d
@@ -139,19 +153,151 @@
 			description: [
 				"Enes bir arbaleti doldurup güvenli bir hedefe ateş eder. İsabet şart değil; mekanizmayı gerçekten kullanmak yeterli."
 				""
-				"&7Nick kesinleşene kadar bu kişisel hedef onur sistemiyle işaretlenir.&r"
+				"&eKilitli doğrulama:&r &7gerçek Minecraft nick'i oyuncu kayıt defterine eklenince ol_betsy advancement'ı yalnız o kişi için sayılacak; oyuncu tiki yoktur.&r"
 			]
 			icon: "minecraft:crossbow"
 			id: "E82FE092F3CF415E"
 			subtitle: "Enes — bir arbalet kullan"
 			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "enes_crossbow"
 				id: "88AD1A6A59C28098"
 				title: "Arbalet Kullan"
-				type: "checkmark"
+				type: "advancement"
 			}]
 			title: "&cEnes: Arbaletçi"
 			x: 6.0d
 			y: 1.5d
+		}
+		{
+			description: [
+				"Araba modu sonunda geldi. MertOnal eski minecart dönemini kapatmak için toplam 5 kilometre yol yapar. Tek seferde olması gerekmez."
+				""
+				"&aSunucu doğrular:&r &7vanilla minecart mesafe istatistiği 5 km'ye ulaşınca otomatik tamamlanır.&r"
+			]
+			icon: "minecraft:minecart"
+			id: "7A4C1E9D2B6F0831"
+			subtitle: "MertOnal — minecart ile toplam 5 km"
+			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "mert_minecart"
+				id: "6D2B9A5C7E104F83"
+				title: "Raylarda 5 km"
+				type: "advancement"
+			}]
+			title: "&6Mert: Garaja Giden Son 5 km"
+				x: 0.0d
+				y: 4.5d
+		}
+		{
+			description: [
+				"MertOnal kendi evini kurar: dış duvarları ve çatısı kapalı; kapısı, yatağı, aydınlatması ve en az bir sandığı olan yaşanabilir bir yapı yap."
+				""
+				"&eYetkili doğrular:&r &7MertOnal yapının yanında hazır bulunurken ev dünyada incelenir. Boyut ve stil serbesttir; oyuncunun kendi tiki yoktur.&r"
+				""
+				"&6Kişisel hatıra:&r &7Onaydan sonra &fMertOnal'ın Tapusu&r &7yalnız MertOnal'a bir kez teslim edilir.&r"
+			]
+			icon: "minecraft:bricks"
+			id: "91A6C4F2D8E7035B"
+			subtitle: "MertOnal — yaşanabilir bir ev yap"
+			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "merton_house"
+				id: "A3D7E950C1B4628F"
+				title: "Kendi Evini Yap"
+				type: "advancement"
+			}]
+			title: "&6MertOnal: İlk Tapu"
+			x: -6.0d
+			y: 4.5d
+		}
+		{
+			description: [
+				"MertOnal ulaşım ağını başlatır: vanilla raylardan veya Create rayından toplam 64 farklı dünya koordinatına ray yerleştir."
+				""
+				"&aSunucu doğrular:&r &7yalnız MertOnal'ın yerleştirdiği raylar sayılır. Aynı koordinata rayı söküp tekrar koymak ilerlemeyi artırmaz.&r"
+				""
+				"&6Kişisel hatıra:&r &7Tamamlanınca &fMertOnal Ekspresi&r &7yalnız MertOnal'a bir kez teslim edilir.&r"
+			]
+			icon: "minecraft:rail"
+			id: "2F8C6A14E5D9037B"
+			subtitle: "MertOnal — 64 farklı koordinata ray yerleştir"
+			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "merton_rails"
+				id: "C4B91E670AD3528F"
+				title: "64 Farklı Ray Yerleştir"
+				type: "advancement"
+			}]
+			title: "&eMertOnal: Ray Hattı"
+			x: -3.0d
+			y: 4.5d
+		}
+		{
+			description: [
+				"Emin Taha kasabanın ortak alanına gerçek su kullanan, havuzu belirgin ve çevresi aydınlatılmış bir fıskiye yapar. Yolları veya komşu yapıları su basmamalıdır."
+				""
+				"&eYetkili doğrular:&r &7eminomi12 yapı yanında hazır bulunurken kamusal konum, su, havuz, aydınlatma ve çevre güvenliği dünyada incelenir.&r"
+				""
+				"&6Kişisel hatıra:&r &7Onaydan sonra &bKasaba Fıskiyesinin Kalbi&r &7yalnız eminomi12'ye bir kez teslim edilir.&r"
+			]
+			icon: "minecraft:heart_of_the_sea"
+			id: "B7E204D95A6C13F8"
+			subtitle: "eminomi12 — kasabanın ortak alanına fıskiye yap"
+			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "emin_fountain"
+				id: "D18F73A4C9E5602B"
+				title: "Kasaba Fıskiyesini Yap"
+				type: "advancement"
+			}]
+			title: "&bEmin Taha: Kasabanın Kalbi"
+			x: 3.0d
+			y: 4.5d
+		}
+		{
+			description: [
+				"Emir kendine ait evcil bir Ice and Fire ejderhası edinir. Ejderha hayatta olmalı ve Emir'e sahip/komut ilişkisi göstermelidir."
+				""
+				"&aSunucu doğrular:&r &7kralxlarge kendi evcil ateş, buz veya yıldırım ejderhasına bindiğinde gerçek owner UUID kontrol edilir; başka oyuncunun ejderhası sayılmaz.&r"
+				""
+				"&6Kişisel hatıra:&r &7Onaydan sonra &6Emir'in Ejderha Boynuzu&r &7yalnız kralxlarge'a bir kez teslim edilir.&r"
+			]
+			icon: "iceandfire:dragon_horn"
+			id: "64C1E8A30F7D925B"
+			subtitle: "kralxlarge — kendine ait evcil bir ejderhan olsun"
+			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "emir_dragon_owner"
+				id: "E5A273C19D6048BF"
+				title: "Kendi Ejderhana Sahip Ol"
+				type: "advancement"
+			}]
+			title: "&5Emir: Ejderha Sahibi"
+			x: 6.0d
+			y: 4.5d
+		}
+		{
+			description: [
+				"Salih kendine ait evcil bir Ice and Fire ejderhası edinir. Ejderha hayatta olmalı ve Salih'e sahip/komut ilişkisi göstermelidir."
+				""
+				"&aSunucu doğrular:&r &7SalihKarahan kendi evcil ateş, buz veya yıldırım ejderhasına bindiğinde gerçek owner UUID kontrol edilir; başka oyuncunun ejderhası sayılmaz.&r"
+				""
+				"&6Kişisel hatıra:&r &7Onaydan sonra &6Salih'in Ejderha Düdüğü&r &7yalnız SalihKarahan'a bir kez teslim edilir.&r"
+			]
+			icon: "iceandfire:dragon_flute"
+			id: "F2B90C4D761A3E58"
+			subtitle: "SalihKarahan — kendine ait evcil bir ejderhan olsun"
+			tasks: [{
+				advancement: "zapeg:verified"
+				criterion: "salih_dragon_owner"
+				id: "7C15E9B042D8A36F"
+				title: "Kendi Ejderhana Sahip Ol"
+				type: "advancement"
+			}]
+			title: "&4Salih: Ejderha Sahibi"
+			x: 9.0d
+			y: 4.5d
 		}
 	]
 	title: "&bZapeG"

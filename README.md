@@ -1,6 +1,6 @@
 # ZapeG — ATM9+ server
 
-Self-hosted server for the custom pack: **ATM9 1.1.1 base + 22 additions** (18 client+server, 4 server-only). The server resolves the external pins and installs the reviewed ZapeG Citizens build; players receive one generated ZapeG patch instead of downloading jars individually. This README is the full reference; start with [HOSTING.md](HOSTING.md) if you're the operator. Decisions: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md) · change playbook: [UPDATING.md](UPDATING.md) · player install: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.md).
+Self-hosted server for the custom pack: **ATM9 1.1.1 base + 25 additions** (21 client+server, 4 server-only). The server resolves the external pins and installs the reviewed ZapeG Citizens build; players receive one generated ZapeG patch instead of downloading jars individually. This README is the full reference; start with [HOSTING.md](HOSTING.md) if you're the operator. Decisions: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md) · change playbook: [UPDATING.md](UPDATING.md) · player install: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.md) · reversible Muhtar guide: [docs/MUHTAR-QUEST-GUIDE-TR.md](docs/MUHTAR-QUEST-GUIDE-TR.md).
 
 ## Version pins (verified 2026-08-17)
 
@@ -10,6 +10,9 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + 22 additions** (18 c
 | Ice and Fire | 2.1.13-1.20.1-beta-5 | CF file `5633453` | Still the newest official 1.20.1 build; beta-5 fixed Citadel 2.6.x compat |
 | Citadel | 2.6.3-1.20.1 (2026-01) | CF file `7476570` | I&F dep. Fallback if version-range error: 2.6.1 = `6002521` |
 | Immersive Petroleum | 4.3.1-36b (2026-07) | CF file `8499079` | Forge build, actively maintained |
+| Immersive Vehicles | 24.0.0 (2026-04) | CF file `7926604` | Client+server core; this release fixes the Ad Astra startup crash. Requires Forge ≥47.1.47; ZapeG's 47.4.10 satisfies it |
+| MTS Official Pack | V29 (2026-04) | CF file `7933733` | Client+server official cars, trucks, planes, helicopters and tanks; requires Immersive Vehicles |
+| MTS Official Automobile Pack | V3 (2026-04) | CF file `7933540` | Client+server official car-focused addon; requires both Immersive Vehicles and MTS Official Pack V29 |
 | Chunky | 1.3.146 | Modrinth (`MODRINTH_PROJECTS`) | No 1.20.1 Forge build exists on CurseForge |
 | Alex's Caves | 2.0.2 (2024-10) | CF file `5848216` | Client+server; shares Citadel dep |
 | Mowzie's Mobs | 1.8.2 (2026-03) | CF file `7815705` | Client+server; GeckoLib already in ATM9 |
@@ -29,14 +32,14 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + 22 additions** (18 c
 | BlueMap | 5.3-forge-1.20 | Modrinth (`MODRINTH_PROJECTS`) | Server-only web map on `:8100`. Pinned to 5.3 — 5.12+ needs Java 21, we're on 17 |
 | Discord Integration | 3.0.7.1 (2024-05) | CF file `5332465` | Server-only; token wired post-boot (HOSTING) |
 
-Confirmed **already in ATM9 1.1.1** (435-mod manifest): When Dungeons Arise 2.1.58, playerAnimator 1.0.2-rc1+1.20, Twilight Forest 4.3.2508, Spark, FerriteCore, ModernFix, Embeddium/Oculus and Kotlin for Forge. The first two were removed from ZapeG's manual declarations after a real boot exposed the duplicate WDA mod ID. The 21 external ZapeG additions are pinned by exact CurseForge file IDs, `MODRINTH_PROJECTS`, or the reviewed CC:Tweaked override and SHA-256 inventory locks; ZapeG Citizens is the twenty-second, owned addition and is likewise verified by exact filename plus SHA-256 locks.
+Confirmed **already in ATM9 1.1.1** (435-mod manifest): When Dungeons Arise 2.1.58, playerAnimator 1.0.2-rc1+1.20, Twilight Forest 4.3.2508, Spark, FerriteCore, ModernFix, Embeddium/Oculus and Kotlin for Forge. The first two were removed from ZapeG's manual declarations after a real boot exposed the duplicate WDA mod ID. The 24 external ZapeG additions are pinned by exact CurseForge file IDs, `MODRINTH_PROJECTS`, or the reviewed CC:Tweaked override and SHA-256 inventory locks; ZapeG Citizens is the twenty-fifth, owned addition and is likewise verified by exact filename plus SHA-256 locks.
 
 ## Quickstart
 
 ```bash
 cp .env.example .env        # optional settings; default mc + backup has no required env value
 docker compose up -d        # starts the default stack: mc + backup
-docker compose logs -f mc   # first boot: pack + 22 additions + Forge install — expect 5–15+ min
+docker compose logs -f mc   # first boot: pack + 25 additions + Forge install — expect 5–15+ min
 ```
 
 Healthy = `[Server thread/INFO]: Done (…)! For help, type "help"`. The backup sidecar starts once `mc` reports healthy.
@@ -64,25 +67,26 @@ published. Only the optional metrics profile needs an explicit shared password.
 
 1. **Phase 1 — base boot:** quickstart above, then save the baseline mod list:
    `docker compose exec mc rcon-cli forge mods > docs/modlist-$(date +%F).txt` (create `docs/` first, or just redirect anywhere and commit it).
-2. **Phase 2 — extras verification:** boot log must show all **22 additions** loading; compare external downloads against `extras/cf-mods.txt` and `MODRINTH_PROJECTS`, then confirm the owned `zapeg-citizens` jar from `overrides/mods`. In a **throwaway world** confirm worldgen: dragon roosts/caves spawn (`/locate structure iceandfire:...` tab-completes), IP oil reservoirs (`/ie` … or JEI the pumpjack), the added content mods appear in `forge mods`, and a small Eureka ship can assemble, move, disassemble and survive a reconnect.
-3. **Phase 3 — custom layer + generated config pass, before the real world:** apply `scripts/apply-overrides.sh`, restart, and verify the three custom quest pages (**ZapeG — Yol Haritası**, **ZapeG — Kilometre Taşları**, **ZapeG**). Then run `scripts/iceandfire-config-check.sh`; edit the surfaced config so Ice and Fire silver ore generation is **off** and dragon griefing is low/none, snapshot, then restart. Doing this after pregen would leave duplicate silver in every generated chunk. Endgame policy stays level 1 (social); level-3 hooks remain dormant.
+2. **Phase 2 — extras verification:** boot log must show all **25 additions** loading; compare external downloads against `extras/cf-mods.txt` and `MODRINTH_PROJECTS`, then confirm the owned `zapeg-citizens` jar from `overrides/mods`. In a **throwaway world** confirm worldgen: dragon roosts/caves spawn (`/locate structure iceandfire:...` tab-completes), IP oil reservoirs (`/ie` … or JEI the pumpjack), and the added content mods appear in `forge mods`. Spawn one vehicle from each official MTS pack; fuel and drive them over normal terrain, unload/reload the chunk, restart, reconnect and confirm they persist. Then assemble, move and disassemble a small Eureka ship separately. Do not place IV vehicles on Eureka ships or moving Create contraptions: those physics systems do not support reliable vehicle collision.
+3. **Phase 3 — custom layer + generated config pass, before the real world:** apply `scripts/apply-overrides.sh`, restart, and verify the three custom quest pages (**ZapeG — Yol Haritası**, **ZapeG — Kilometre Taşları**, **ZapeG**). Achievement tasks must have no clickable checkmark; run the two-client checks in `docs/QUEST-VALIDATION-TR.md`. Place the tracked, stateless Muhtar only after choosing his town-square coordinates, then run the non-OP button matrix in `docs/MUHTAR-QUEST-GUIDE-TR.md`; deleting him never alters quest progress. Then run `scripts/iceandfire-config-check.sh`; edit the surfaced config so Ice and Fire silver ore generation is **off** and dragon griefing is low/none, snapshot, then restart. Doing this after pregen would leave duplicate silver in every generated chunk. Endgame policy stays level 1 (social); level-3 hooks remain dormant.
 4. **Phase 4 — seed audition + world prep:** audition 2–3 fresh worlds as described in HOSTING, let the group choose, set `WORLD_SEED`, snapshot, and only then reset for the real world. Apply gamerules and run `scripts/pregen.sh 6000` (hours of CPU, fine overnight).
 5. **Phase 5 — clients:** see below.
-6. **Phase 6 — playtest matrix:** Create contraption, IE multiblock, Mekanism fission, MineColonies town hall, Ars spell, Ad Astra rocket, one Cataclysm boss, one dragon.
+6. **Phase 6 — playtest matrix:** Create contraption, IE multiblock, Mekanism fission, MineColonies town hall, Ars spell, Ad Astra rocket, one vehicle from each official MTS pack, one Cataclysm boss, one dragon.
 
 ## Clients (Phase 5)
 
-Every player runs **ATM9 1.1.1 on Forge 47.4.10 + the same 18 client additions**. Chunky, BlueMap, Incendium and Discord Integration are server-only.
+Every player runs **ATM9 1.1.1 on Forge 47.4.10 + the same 21 client additions**. Chunky, BlueMap, Incendium and Discord Integration are server-only.
 
 Do not ask players to download jars individually. The **pack maintainer**, once,
 creates the builder source profile: install ATM9 1.1.1 in CurseForge, select Forge
 47.4.10, add every client CurseForge entry in `extras/cf-mods.txt` (all except the
 server-only Discord Integration entry) through the app so its exact file ID lands
-in `minecraftinstance.json`, then place the exact Better Combat Modrinth jar in
-`mods/`. Do not add WDA or playerAnimator: ATM9 supplies both. Launch that profile
+in `minecraftinstance.json`, then place the exact Better Combat and CC:Tweaked
+1.116.1 Modrinth jars in `mods/`. Remove ATM9's older CC:Tweaked copy; do not add
+WDA or playerAnimator because ATM9 supplies both. Launch that profile
 once. Players never do this.
 
-The reviewed 18-jar hash lock is tracked at `tools/client-extra-mods.lock`; it includes the repo-owned ZapeG Citizens jar without pretending that jar came from CurseForge.
+The reviewed 21-jar hash lock is tracked at `tools/client-extra-mods.lock`; it includes the repo-owned ZapeG Citizens jar without pretending that jar came from CurseForge.
 After the server's pins pass the throwaway-world test, build the profile-root patch:
 
 ```powershell
@@ -93,7 +97,7 @@ Only regenerate a lock with `-WriteInventoryLock` after an intentional pin
 change, as part of the snapshot/test/review ritual; normal builds consume the
 tracked lock and fail closed on any unexpected jar or hash.
 
-Share `ZapeG-Kurulum-Yamasi-ATM9-1.1.1-<date>.zip`. Licensed players install ATM9 1.1.1, set the profile's modloader to Forge 47.4.10, open the profile folder, remove the old CC:Tweaked and Citizens jar families as instructed in `INSTALL-TR.txt`, and extract this one zip there. The patch contains `mods/`, the shader setting, PackMenu branding, `INSTALL-TR.txt` and a SHA-256 build manifest; it does not overwrite the player's `options.txt`. The builder requires the exact 18 pinned jar filenames and rejects missing, stale or duplicate versions.
+Share `ZapeG-Kurulum-Yamasi-ATM9-1.1.1-<date>.zip` privately. Licensed players install ATM9 1.1.1, set the profile's modloader to Forge 47.4.10, open the profile folder, remove the old CC:Tweaked and Citizens jar families as instructed in `INSTALL-TR.txt`, and extract this one zip there. The patch contains `mods/`, the shader and Entity Culling compatibility settings, PackMenu branding, `INSTALL-TR.txt` and a SHA-256 build manifest; it does not overwrite the player's `options.txt`. The builder requires the exact 21 pinned jar filenames and rejects missing, stale or duplicate versions. Immersive Vehicles and its official packs are all-rights-reserved CurseForge projects: prefer source installation through CurseForge, keep generated artifacts private, never commit their jars, and obtain author permission before any public redistribution.
 
 For offline players, run the tool without `-PatchOnly`; it consumes the tracked,
 reviewed `tools/client-mods.lock`. Exact filenames, CurseForge metadata IDs and
@@ -105,7 +109,13 @@ installer. Player-facing steps: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.m
 
 - **Automated:** sidecar tars `/data` daily (`BACKUP_INTERVAL=24h`), prunes after 14 days → `./backups/`. Jars/caches excluded — they re-resolve from pins; world + configs are the real state.
 - **Manual (mandatory before ANY change):** `scripts/snapshot.sh <label>` → `./snapshots/`. Works hot (flushes saves via RCON) or cold; it briefly stops/restarts the automatic backup service to prevent overlapping save coordination. Avoid the daily archive window when practical.
-- **Restore:** stop stack, extract the tarball over `data/`, start. Test one restore before go-live.
+- **Restore:** stop the stack (including optional profiles), extract the tarball
+  over `data/`, and keep Heraldor stopped. If the archive contains
+  `data/heraldor/backup/heraldor.sqlite3`, promote that consistent copy with
+  `docker compose --profile heraldor run --rm --no-deps heraldor python heraldor.py admin restore-snapshot`
+  before starting the Heraldor profile; then start the required services. See
+  [the Heraldor runbook](docs/HERALDOR-RUNBOOK.md#restore-from-a-normal-server-archive).
+  Test one complete restore before go-live.
 
 ## Upgrades / changes — the ritual
 
@@ -113,7 +123,7 @@ installer. Player-facing steps: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.m
 2. Edit the pin (`CF_FILE_ID` for pack bump, `extras/cf-mods.txt` for mod bumps)
 3. `docker compose up -d mc` (recreates, re-resolves)
 4. Watch boot log; on failure: restore snapshot, revert pin
-5. Ship matching client update **before** players reconnect — clients need the same 18 client+server additions; the four server-only additions never go in a client
+5. Ship matching client update **before** players reconnect — clients need the same 21 client+server additions; the four server-only additions never go in a client
 
 ## Troubleshooting
 
@@ -122,14 +132,17 @@ installer. Player-facing steps: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.m
 - **OOM / long GC pauses** → `MEMORY` stays ≤ 12G (more is worse on this pack); check host isn't overcommitted.
 - **Slow ticks on exploration** → pregen wider (`scripts/pregen.sh 8000`); Spark is already in the pack: `/spark profiler start` before adding any "performance" mods.
 - **Flight kicks** → already mitigated (`ALLOW_FLIGHT=true`, watchdog off, secure profile off).
+- **IV vehicle disappears while nearby** → reapply the current patch and confirm `config/entityculling.json` lists `mts:builder_existing`, `mts:builder_rendering` and `mts:builder_seat` under `entityWhitelist`.
+- **IV dashboard/fuel text is invisible with shaders** → open the in-game IV config (`P`) and set Rendering → `LightsTransp=true`; toggling shaders with **K** is the quickest diagnosis.
+- **IV vehicle falls through/misbehaves on a ship or contraption** → move it to normal terrain. Collision with moving Eureka/VS ships and Create contraptions is not supported reliably upstream.
 
 ## Layout
 
 ```
 docker-compose.yml     mc (itzg AUTO_CURSEFORGE) + backup; optional service profiles
-extras/cf-mods.txt     16 CurseForge additions pinned by file ID (15 client, 1 server-only)
+extras/cf-mods.txt     19 CurseForge additions pinned by file ID (18 client, 1 server-only)
 overrides/             mirrors data/ — quest chapters, kubejs scripts, server icon, owned Citizens jar
-scripts/               snapshot.sh · pregen.sh · apply-overrides.sh · apply-gamerules.sh · iceandfire-config-check.sh
+scripts/               snapshot.sh · pregen.sh · apply-overrides.sh · apply-gamerules.sh · muhtar-npc.sh · iceandfire-config-check.sh
 metrics/               opt-in Grafana/Prometheus stack (--profile metrics) — see metrics/README.md
 tools/                 Build-ClientZip.ps1 (single licensed-player patch + offline payload)
 HOSTING.md             day-0 guide for the operator

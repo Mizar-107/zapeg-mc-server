@@ -1,6 +1,6 @@
 # HOSTING — day-0 guide for the server operator
 
-You're hosting **ZapeG** — a private modded Minecraft server for 4–10 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 22 additions** (18 client+server, 4 server-only). The container resolves the external pins and installs the reviewed ZapeG Citizens jar from this repo. Players never install jars one-by-one; Ertu generates one client patch. Full reference: [README.md](README.md). Citizens launch setup: [docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
+You're hosting **ZapeG** — a private modded Minecraft server for 4–10 players: **All the Mods 9 v1.1.1 (Forge, MC 1.20.1) + 25 additions** (21 client+server, 4 server-only). The container resolves the external pins and installs the reviewed ZapeG Citizens jar from this repo. Players never install jars one-by-one; Ertu generates one client patch. Full reference: [README.md](README.md). Citizens launch setup: [docs/CITIZENS-HOST-SETUP.md](docs/CITIZENS-HOST-SETUP.md). Decisions/background: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md).
 
 ## Requirements
 
@@ -49,10 +49,12 @@ WORLD_SEED=
 MC_CPUSET=
 CF_API_KEY=
 
-HERALDOR_WEBHOOK=<new_Heraldor-only_webhook_or_blank>
+# Keep blank unless a real Heraldor-only webhook has been created on the host.
+HERALDOR_WEBHOOK=
 HERALDOR_EVENTS=false
 HERALDOR_LLM=false
 HERALDOR_CHECK_INTERVAL=300
+HERALDOR_MINION_POLL_INTERVAL=10
 HERALDOR_P_WHISPER=0.002
 HERALDOR_P_GLOBAL=0.0005
 HERALDOR_P_DISCORD=0.0003
@@ -70,11 +72,11 @@ Profile-only values:
 - `CITIZENS_BRAIN_URL` + `CITIZENS_BRAIN_TOKEN` → shared Citizens controller;
   keep the Ollama key only in `secrets/citizens_ollama_api_key.txt` and follow
   [the dedicated setup guide](docs/CITIZENS-HOST-SETUP.md)
-- `RCON_PASSWORD` + `GRAFANA_PASSWORD` → `metrics`; generate a shell-safe RCON
-  value with `openssl rand -hex 32`, set both before first enabling the profile,
-  then recreate `mc` with the metrics profile so server/exporter share the RCON value
+- `RCON_PASSWORD` + `GRAFANA_PASSWORD` → `metrics`; generate two different
+  shell-safe values, leave Grafana on `127.0.0.1` with anonymous access off,
+  then follow [the metrics runbook](metrics/README.md)
 - `RCLONE_DEST` plus local `rclone.conf` → `offsite`
-- `HERALDOR_WEBHOOK`, `HERALDOR_EVENTS`, `HERALDOR_LLM` and advanced `HERALDOR_CHECK_INTERVAL` / `HERALDOR_P_*` knobs → optional `heraldor`
+- `HERALDOR_WEBHOOK`, `HERALDOR_EVENTS`, `HERALDOR_LLM` and advanced `HERALDOR_CHECK_INTERVAL` / `HERALDOR_MINION_POLL_INTERVAL` / `HERALDOR_P_*` knobs → optional `heraldor`
 
 The default stack does **not** call an LLM. Normal Minecraft↔Discord bridging is also not configured through `.env`; it uses the generated mod config described below.
 
@@ -103,8 +105,17 @@ scripts/apply-overrides.sh && docker compose restart mc
 
 Open the FTB Quests book and verify all three custom pages load: **ZapeG — Yol
 Haritası**, **ZapeG — Kilometre Taşları**, and the separate personal-lore page
-**ZapeG**. The initial personal objectives are honor-system checkmarks; each
-requested objective is its own quest node.
+**ZapeG**. Achievement tasks are non-clickable and server-authoritative; exact
+checks, migration/reset commands and the few OP-reviewed milestones are in
+[docs/QUEST-VALIDATION-TR.md](docs/QUEST-VALIDATION-TR.md).
+
+The custom layer also ships a dormant, versioned Muhtar preset. After choosing
+his overworld town-square coordinates, follow
+[the Muhtar runbook](docs/MUHTAR-QUEST-GUIDE-TR.md): snapshot, apply overrides,
+restart once for the narrow Easy NPC security allowlist, then run
+`bash scripts/muhtar-npc.sh apply v1 <X> <Y> <Z>`. Test every button as a non-OP.
+Muhtar only opens existing quest cards; removing him cannot reset or complete a
+quest.
 
 ## One-time service wiring (after first boot)
 
@@ -146,12 +157,31 @@ one-liners. Its optional `LLM_*` settings are independent of Citizens.
 
 **Heraldor** (optional, LLM-free by default): enable it only after `mc` has
 completed its first boot, then run `docker compose --profile heraldor up -d --build`.
-Embedded lines work with `HERALDOR_LLM=false`; `LLM_*` is ignored. Only if Discord posts are wanted, create a **separate Heraldor-only webhook**, put its new URL directly in host `.env` as `HERALDOR_WEBHOOK`, and never commit/share it. Blank means no Discord posts. The deliberately rare defaults are exposed as `HERALDOR_CHECK_INTERVAL` and `HERALDOR_P_*`; test before changing them, especially the player-independent Discord roll. `HERALDOR_EVENTS=true` additionally enables staged midnight shadow visits. Do NOT explain Heraldor to the players.
+Embedded lines work with `HERALDOR_LLM=false`; `LLM_*` is ignored. Only if Discord posts are wanted, create a **separate Heraldor-only webhook**, put its new URL directly in host `.env` as `HERALDOR_WEBHOOK`, and never commit/share it. Blank means no Discord posts. The deliberately rare defaults are exposed as `HERALDOR_CHECK_INTERVAL` and `HERALDOR_P_*`; test before changing them, especially the player-independent Discord roll. `HERALDOR_EVENTS=true` additionally enables staged midnight shadow visits. Director state lives under `data/heraldor/`; its `backup/heraldor.sqlite3` is an online-consistent SQLite snapshot included by the normal backup. Do NOT explain Heraldor to the players.
 
-## Verify all 22 additions loaded (once, after first boot)
+The first servant is a manual rehearsal, not a random spawn. After applying the
+tracked KubeJS overrides and restarting, an OP can use
+`/zapeg-lore servant rehearse <player>` and `/zapeg-lore servant cleanup`. The
+lootless, XP-less wither skeleton is displayed as `Heraldor'un Hizmetkârı`, can
+damage only its selected real player, and expires after 120 seconds. Three
+explicit live `/zapeg-lore servant awaken <player>` victories create one durable
+story event; rehearsal victories never advance it. Inspect state with
+`docker compose --profile heraldor exec heraldor python heraldor.py admin status`.
+Voice playback is deliberately not connected yet; the event records only the
+allowlisted clip ID `servants_after_three_v1`, so an absent relay cannot speak
+unexpectedly after it is installed. Follow [the Heraldor runbook](docs/HERALDOR-RUNBOOK.md)
+before using the encounter in the live world.
+
+Each Minecraft world receives a hidden random Heraldor token. Replacing a
+throwaway world starts an independent servant-victory stream instead of making
+the new score look like a regression. After restoring a normal server archive,
+keep Heraldor stopped and promote its consistent SQLite snapshot using the
+restore command in the runbook before starting the service.
+
+## Verify all 25 additions loaded (once, after first boot)
 
 ```bash
-ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|alexscaves|mowziesmobs|easy_npc|aquamirae|fragmentum|born_in_chaos|simplyswords|valkyrienskies|eureka|numen|cc-tweaked|zapeg-citizens|bettercombat|chunky|bluemap|incendium|dcintegration'   # expect 22
+ls data/mods | grep -icE 'iceandfire|citadel|immersivepetroleum|Immersive Vehicles|MTS Official Pack|OAmP|alexscaves|mowziesmobs|easy_npc|aquamirae|fragmentum|born_in_chaos|simplyswords|valkyrienskies|eureka|numen|cc-tweaked|zapeg-citizens|bettercombat|chunky|bluemap|incendium|dcintegration'   # expect 25
 test -f data/mods/DungeonsArise-1.20.x-2.1.58-release.jar && test -f data/mods/player-animation-lib-forge-1.0.2-rc1+1.20.jar   # ATM9 base, not additions
 ```
 
@@ -176,7 +206,7 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
 
 ## World protocol (agreed in the brief — please follow)
 
-1. **First world is a throwaway** for verification: join once (ask Ertu), confirm dragon roosts exist (`/locate structure` tab-completes `iceandfire:` entries), Immersive Petroleum loaded, then assemble/move/disassemble a small Eureka ship and reconnect once. Do not enable VS's experimental air-pocket/connectivity system.
+1. **First world is a throwaway** for verification: join once (ask Ertu), confirm dragon roosts exist (`/locate structure` tab-completes `iceandfire:` entries) and Immersive Petroleum loaded. Spawn one vehicle from MTS Official Pack and one from the Official Automobile Pack; fuel and drive them over normal terrain, unload/reload their chunk, restart, reconnect and confirm both persist. Test with 2–3 clients while watching Spark/TPS and host network use. Separately assemble/move/disassemble a small Eureka ship and reconnect once. Do not put IV vehicles on the ship or on moving Create contraptions—their collision systems are not compatible—and do not enable VS's experimental air-pocket/connectivity system.
 2. **Generated config pass, before any real-world chunks exist:** run
    `scripts/iceandfire-config-check.sh`, edit the surfaced live config, set Ice and
    Fire silver ore generation **off** and dragon griefing low/none, then snapshot
@@ -214,5 +244,5 @@ If boot fails with **"Mod IceandFire requires Citadel between …"** → in `ext
 ## Don'ts
 
 - Don't exceed `MEMORY: 12G` — GC degrades above that on this pack.
-- Don't update the ATM9 version or any mod yourself — that's coordinated with client updates. Players need the same 18 client+server additions; Chunky, BlueMap, Incendium and Discord Integration stay server-only.
+- Don't update the ATM9 version or any mod yourself — that's coordinated with client updates. Players need the same 21 client+server additions; Chunky, BlueMap, Incendium and Discord Integration stay server-only.
 - Don't delete `snapshots/` or `backups/` to free space without checking with Ertu.

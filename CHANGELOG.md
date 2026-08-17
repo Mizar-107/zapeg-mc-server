@@ -4,10 +4,10 @@ Format per entry: what changed · world risk · what players must do.
 
 ## Unreleased — target v0.9.0
 
-Player- and server-owned LLM citizens. World risk: low but behaviorally powerful; first
-movement/mining tests belong in a disposable unclaimed area. Players: install the
-new 18-jar ZapeG patch before joining (Numen + ZapeG Citizens and the required
-CC:Tweaked replacement were added).
+Player- and server-owned LLM citizens plus the official Immersive Vehicles stack.
+World risk: low on add (IV has no worldgen), but first citizen and vehicle tests
+belong in a disposable unclaimed world; removing IV after vehicles/items exist is
+high risk. Players: install the new 21-jar ZapeG patch before joining.
 
 - Added Numen AI 0.1.1 (CurseForge file `8551640`) and the reviewed ZapeG Citizens 0.3.0 Forge jar to both the server and client inventory locks.
 - Replaced ATM9's CC:Tweaked 1.113.1 with the required 1.116.1 on server, patch and offline payload; builders and rollout guides remove older CC/Citizens copies and verify a single exact jar for each mod ID.
@@ -18,8 +18,21 @@ CC:Tweaked replacement were added).
 - The shared brain has no published host port, receives no Minecraft data/RCON/Docker socket, runs read-only without Linux capabilities and keeps SQLite state in its own named volume.
 - The custom Citizens release jar is tracked in `overrides/mods/` and locked by SHA-256; the brain image builds from the public `zapeg-citizens` tag `v0.3.0`. The v0.3.0 jar and protocol-v2 brain must be deployed together.
 - Removed the obsolete single-character log-tail chat prototype and its persona. Easy NPC remains for lore/quest characters; Heraldor remains an independent optional service.
-- Manual additions are now 22 total: 18 client+server and 4 server-only. The generated player patch contains exactly 18 reviewed additions.
+- Added Immersive Vehicles 24.0.0 (CurseForge file `7926604`), MTS Official Pack V29 (`7933733`) and MTS Official Automobile Pack V3 (`7933540`) as an exact client+server dependency set. IV 24.0.0 is the native Forge 1.20.1 release that fixes the Ad Astra startup crash; broader community-pack expansion is deferred until the official baseline passes playtesting.
+- Added an authoritative Entity Culling client default that render-whitelists IV's three builder entities; both patch and offline builds now require and verify that config. Operator/player guidance covers shader text visibility and the unsupported collision boundary with moving Eureka/VS ships and Create contraptions.
+- Rethemed MertOnal's existing minecart gift, welcome line and 5 km quest as a keepsake/farewell to the pre-car era; task IDs, progress criteria and rewards are unchanged.
+- Manual additions are now 25 total: 21 client+server and 4 server-only. The generated player patch contains exactly 21 reviewed additions.
 - Production scope now includes online player-owned workers plus persistent server-owned lore characters. Ordinary mass enemies and boss mechanics should still use deterministic mob AI; the LLM citizen layer is best used for named characters, dialogue and high-level orders.
+- Removed every `checkmark` from all three custom quest pages while preserving existing task IDs. Yol Haritası now requires a real first item/advancement; KubeJS verifies exact-name dragon/diamond/village/tame/fire/chest/minecart objectives; Wither, MineColonies, moon-return, Cataclysm and Chaos Guardian milestones are event-driven; subjective builds require an OP world inspection.
+- Added `MertOnal`'s 5 km minecart quest, persistent tame/chest counters and a Turkish migration/test runbook. Group trophy items are claimable once per team. Enes's crossbow remains deliberately locked until his exact login is confirmed.
+- Corrected the identity registry: the car-fan Mert previously keyed as `MubarekAbi` is actually `MertOnal`; the other rare Mert returns to the unconfirmed `Mert` placeholder. Salih's exact login is `SalihKarahan`, not the previously recorded `SalihKarahans`. Welcome/gift keys, quest ownership, rewards, offline UUID aliases and documentation now use the corrected identities.
+- Added one-shot migrations so `MertOnal` and `SalihKarahan` receive their formerly missed named starter gifts if they already claimed the generic kit under the corrected login. Mert's two additional objectives are an OP-inspected habitable house and 64 distinct exact-actor ray placements that must still exist when counted. Added Emin Taha's OP-inspected public fountain plus separate owner-UUID dragon objectives for Emir and Salih; mounting an owned tamed Ice and Fire dragon also verifies the group milestone.
+- Added five owner-tagged quest keepsakes: MertOnal's deed and minecart, Emin's fountain heart, Emir's dragon horn and Salih's dragon flute. KubeJS delivers each once, directly to the exact login, with owner/quest NBT instead of exposing it as a shared FTB Teams claim; a full inventory pauses and retries delivery instead of dropping the item.
+- Pinned the metrics images, made Grafana localhost-only/non-anonymous by default, expanded retention to 400 days with a 10 GB cap, added confirmed UUID→login relabels and provisioned TPS/tick-time/entity/player-detail panels. Daily backups now exclude regenerable BlueMap tiles.
+- Upgraded Heraldor to a persistent SQLite Director with global/per-player quiet periods, a rolling event budget, at-most-once side effects, world-tokened scoreboard high-water ingestion, a consistent online snapshot under `data/heraldor/`, and an explicit safe snapshot-restore command.
+- Added OP-only `/zapeg-lore servant rehearse|awaken <player>` encounters for a target-bound, lootless, XP-less vanilla minion named `Heraldor'un Hizmetkârı`; rehearsals never advance the story, its hidden live tag—not its cosmetic name—authorizes kills, and the third legitimate live victory records one allowlisted future-audio event. No voice relay or automatic minion spawn is enabled yet.
+- Added a versioned Easy NPC **Muhtar v1** as a stateless router into the existing ZapeG quest-path cards. His eight quest buttons open real quest IDs for the interacting non-OP player and never modify progress, inventory, rewards or path state. A fixed entity UUID, repo-owned preset mirror, placement helper and Turkish rollback/removal runbook make the whole feature independently reversible. The personal Nemesis idea remains parked.
+- Corrected the ZapeG bridge-card directions for ATM9 1.1.1: MineColonies, Immersive Engineering, The Aether and Ice and Fire do not have stock chapters in this exact pack, so their cards now point to the appropriate in-mod tutorial/guide or JEI instead of promising a nonexistent chapter.
 
 ## v0.8.1 — 2026-08-16
 
@@ -38,8 +51,8 @@ Novice-proof client onboarding + operator clarity + pre-launch personalization. 
 - Heraldor's default probabilities were reduced to match the locked rare-ARG intent; its Discord roll remains independent of player presence.
 - Heraldor shadow summons now encode the JSON custom name as a valid SNBT string even though the Turkish name contains an apostrophe.
 - v0.8 overlap audit is recorded in `BALANCE.md`; no recipe/economy changes were required.
-- Added exact-name personalization for `eminomi12` (Emin Taha) and `MubarekAbi` (Mert): per-login joke pools, named first-join gifts (`Hayvanat Bahçesi Ruhsatı` / `Araba Modu Gelene Kadar`) and Muhtar dossiers. Roster and server slots now reflect 10 players.
-- Confirmed Salih's Minecraft name as `SalihKarahans`; his house-burning welcome pool, named flint-and-steel first-login gift and Muhtar dossier now use the exact login key.
+- Added exact-name personalization for `eminomi12` (Emin Taha) and `MertOnal` (Mert): per-login joke pools, named first-join gifts (`Hayvanat Bahçesi Ruhsatı` / `Araba Modu Gelene Kadar`) and Muhtar dossiers. Roster and server slots now reflect 10 players.
+- Confirmed Salih's Minecraft name as `SalihKarahan`; his house-burning welcome pool, named flint-and-steel first-login gift and Muhtar dossier now use the exact login key.
 - Added a third FTB Quests page titled **ZapeG** for personal lore assignments. Its eight initial objectives are eight independent quest nodes rather than bundled multi-condition tasks: Emir's Ender Dragon and 64-diamond goals; Emin Taha's village and ten-tame goals; Salih's controlled ignition and extinguishing drill; Recep's chest watch; and Enes's crossbow use. Mert deliberately has no filler quest. Initial completion is honor-system/manual until exact-name event automation is runtime-tested.
 - Corrected statistics before launch: the dragon-death counter now accepts only Ice and Fire's fire/ice/lightning dragons, the exporter no longer attempts Mojang lookup for offline identities, and Prometheus/Grafana use a one-minute collection/refresh cadence. Upstream exposes offline UUID labels until post-boot friendly aliases are configured.
 - Applied the owner's offline access decision: whitelist defaults off and `Mizar__107` defaults to permanent OP; nickname/OP spoofing is explicitly accepted and documented.

@@ -1,4 +1,4 @@
-# Extra CurseForge content on top of ATM9 — exact file pins (verified 2026-08-16).
+# Extra CurseForge content on top of ATM9 — exact file pins (verified 2026-08-17).
 # Format: slug:fileID
 # Docs: https://docker-minecraft-server.readthedocs.io/en/latest/mods-and-plugins/curseforge-files/
 # NOTE: dependencies are NOT auto-resolved here — Citadel is listed explicitly
@@ -7,8 +7,9 @@
 # CLIENT+SERVER (players need these exact builds too — see docs/PLAYER-SETUP-TR.md):
 #   ice-and-fire-dragons, citadel, immersive-petroleum, alexs-caves, mowzies-mobs,
 #   easy-npc bundle + core + config-ui, aquamirae + fragmentum, born-in-chaos,
-#   simply-swords, valkyrien-skies, eureka-ships, numen-ai
-#   (+ better-combat via MODRINTH_PROJECTS — also client-side)
+#   simply-swords, valkyrien-skies, eureka-ships, numen-ai,
+#   immersive-vehicles + official-content-pack + official-automobile-pack
+#   (+ better-combat and the CC:Tweaked 1.116.1 re-pin via Modrinth — client+server)
 #   (+ ZapeG Citizens from the owned overrides/mods jar — not CurseForge)
 # ATM9 1.1.1 already supplies When Dungeons Arise 2.1.58 and the exact
 # playerAnimator build required by Better Combat; do not declare either twice.
@@ -26,6 +27,19 @@ citadel:7476570
 
 # Immersive Petroleum 1.20.1-4.3.1-36b (2026-07-24) — IE oil addon, Forge build
 immersive-petroleum:8499079
+
+# --- v0.9.0 official Immersive Vehicles stack (all client + server) ----------
+
+# Immersive Vehicles 24.0.0 (2026-04-14) — native Forge 1.20.1 build.
+# 24.0.0 is mandatory here: it fixes the IV + Ad Astra startup crash.
+minecraft-transport-simulator:7926604
+
+# Official Content Pack V29 — cars, trucks, planes, helicopters and tanks.
+# IV ships no vehicles by itself; this dependency is therefore explicit.
+transport-simulator-official-vehicle-set:7933733
+
+# Official Automobile Pack V3 — official car expansion; requires both IV and OCP.
+mts-iv-official-automobile-pack:7933540
 
 # Alex's Caves 2.0.2 (2024-10-26) — 5 cave biomes with own bosses (v0.4.0 drop)
 alexs-caves:5848216
