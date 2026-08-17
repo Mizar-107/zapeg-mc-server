@@ -133,7 +133,7 @@
 			description: [
 				"Recep'in kadim görevi basit görünür: bir sandığın kapağında dimdik dur ve sandık nöbetini tamamla."
 				""
-				"&aSunucu doğrular:&r &7Mizar__107 sandığın üstünde kesintisiz 120 saniye durmalıdır; inince sayaç sıfırlanır.&r"
+				"&aSunucu doğrular:&r &7Mizar__107 sandığın üstünde kesintisiz 120 saniye durmalıdır; tamamlanmadan inerse sayaç sıfırlanır, başarıdan sonra 120'de sabitlenir.&r"
 			]
 			icon: "minecraft:chest"
 			id: "52A9FA4E43803736"

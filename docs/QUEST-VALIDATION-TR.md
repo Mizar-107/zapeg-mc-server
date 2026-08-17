@@ -68,13 +68,14 @@ ve gerçek yol testi kullanılır.
 | Emin Taha | `eminomi12` | 10 evcilleştirme | Tekrarlanan `tame_animal` olayı + kalıcı sayaç |
 | Salih | `SalihKarahan` | Kontrollü yak/söndür | Netherrack/soul-soil, 2 blok güvenlik hacmi, aynı ateş ve aynı oyuncu |
 | Salih | `SalihKarahan` | Kendi evcil ejderhası | Kendi Ice and Fire ejderhasına binme + tame/owner UUID kontrolü |
-| Recep | `Mizar__107` | Sandık nöbeti | Sandık üstünde kesintisiz 120 saniye; ayrılınca sıfır |
+| Recep | `Mizar__107` | Sandık nöbeti | Sandık üstünde kesintisiz 120 saniye; tamamlanmadan ayrılınca sıfır |
 | Mert | `MertOnal` | Minecart ile 5 km | Vanilla `minecart_one_cm` istatistiği |
 | Enes | `Thekingim` | Arbalet | Exact login için `ol_betsy`; önceden kazanılmışsa girişte uzlaştırılır |
 
 `zapeg_tames` ve `zapeg_chest_s` scoreboard'ları canlı test/sayaç görünümü
-sağlar. Modlu canlıların hepsi vanilla tame tetikleyicisini kullanmayabilir;
-ilk test kurt/kedi/at ile yapılmalıdır.
+sağlar. Sandık nöbeti başarıdan sonra 120'de sabitlenir ve artık her saniye
+yeniden yazılmaz. Modlu canlıların hepsi vanilla tame tetikleyicisini
+kullanmayabilir; ilk test kurt/kedi/at ile yapılmalıdır.
 
 ## İncelemeli kişisel hedefler ve doğrudan ödüller
 
@@ -126,6 +127,8 @@ advancement grant <oyuncu> only zapeg:verified reactor
 
 Yanlış onay aynı komutta `grant` yerine `revoke` ile geri alınır; ardından
 ilgili FTB task ilerlemesi de `ftbquests change_progress` ile resetlenir.
+Oyuncu çevrimiçiyken revoke yapıldıysa oturumluk doğrulama önbelleğini temizlemek
+için oyuncuyu yeniden bağlatın veya `/kubejs reload server_scripts` çalıştırın.
 
 ## Canlıya geçiş
 

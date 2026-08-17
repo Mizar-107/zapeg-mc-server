@@ -65,27 +65,79 @@ const ZAPEG_CATACLYSM_BOSSES = [
 
 const ZAPEG_PENDING_FIRES = {}
 const ZAPEG_FIRE_ATTEMPTS = {}
+const ZAPEG_VERIFIED_CACHE = {}
+const ZAPEG_VERIFIED_PROBES = {}
+const ZAPEG_REWARD_RECHECK_TICKS = 100
+
+function zapegVerifiedCacheKey(player) {
+  return `uuid:${String(player.uuid)}`
+}
+
+function zapegVerifiedCache(player) {
+  const key = zapegVerifiedCacheKey(player)
+  if (!ZAPEG_VERIFIED_CACHE[key]) ZAPEG_VERIFIED_CACHE[key] = {}
+  return ZAPEG_VERIFIED_CACHE[key]
+}
+
+function zapegVerifiedProbes(player) {
+  const key = zapegVerifiedCacheKey(player)
+  if (!ZAPEG_VERIFIED_PROBES[key]) ZAPEG_VERIFIED_PROBES[key] = {}
+  return ZAPEG_VERIFIED_PROBES[key]
+}
+
+function zapegClearVerifiedCache(player) {
+  const key = zapegVerifiedCacheKey(player)
+  delete ZAPEG_VERIFIED_CACHE[key]
+  delete ZAPEG_VERIFIED_PROBES[key]
+}
+
+function zapegIsVerifiedCached(player, criterion) {
+  return Boolean(zapegVerifiedCache(player)[criterion])
+}
+
+function zapegRememberVerified(player, criterion) {
+  zapegVerifiedCache(player)[criterion] = true
+}
+
+function zapegProbeVerifiedOnce(player, criterion) {
+  const probes = zapegVerifiedProbes(player)
+  if (probes[criterion]) return zapegIsVerifiedCached(player, criterion)
+  probes[criterion] = true
+  return zapegHasVerified(player, criterion)
+}
 
 function zapegGrantVerified(player, criterion, title) {
+  if (zapegIsVerifiedCached(player, criterion)) return true
+
   const name = String(player.username)
   const changed = player.server.runCommandSilent(
     `execute as ${name} if entity @s[advancements={zapeg:verified={${criterion}=false}}] run advancement grant @s only zapeg:verified ${criterion}`
   )
 
-  if (changed > 0) {
-    player.server.tell(
-      Text.of('✓ ').green()
-        .append(Text.of(name).aqua())
-        .append(Text.of(` doğrulandı: ${title}`).gold())
-    )
-  }
+  // A zero result can mean "already complete" or "not grantable". Cache only
+  // confirmed positives so a missing/temporarily unavailable criterion retries.
+  if (changed <= 0) return zapegHasVerified(player, criterion)
+
+  zapegRememberVerified(player, criterion)
+  player.server.tell(
+    Text.of('✓ ').green()
+      .append(Text.of(name).aqua())
+      .append(Text.of(` doğrulandı: ${title}`).gold())
+  )
+
+  if (ZAPEG_PERSONAL_REWARDS[criterion]) zapegGivePersonalRewards(player, true)
+  return true
 }
 
 function zapegReconcileVanillaAdvancement(player, source, criterion) {
+  if (zapegIsVerifiedCached(player, criterion)) return
+
   const name = String(player.username)
-  player.server.runCommandSilent(
+  const changed = player.server.runCommandSilent(
     `execute as ${name} if entity @s[advancements={${source}=true,zapeg:verified={${criterion}=false}}] run advancement grant @s only zapeg:verified ${criterion}`
   )
+  if (changed > 0) zapegRememberVerified(player, criterion)
+  else zapegHasVerified(player, criterion)
 }
 
 function zapegScore(server, objective, name, value) {
@@ -93,13 +145,17 @@ function zapegScore(server, objective, name, value) {
 }
 
 function zapegHasVerified(player, criterion) {
+  if (zapegIsVerifiedCached(player, criterion)) return true
+
   const name = String(player.username)
-  return player.server.runCommandSilent(
+  const verified = player.server.runCommandSilent(
     `execute as ${name} if entity @s[advancements={zapeg:verified={${criterion}=true}}] run data get entity @s UUID`
   ) > 0
+  if (verified) zapegRememberVerified(player, criterion)
+  return verified
 }
 
-function zapegGivePersonalRewards(player) {
+function zapegGivePersonalRewards(player, forceCriterionCheck) {
   const name = String(player.username)
 
   for (const criterion in ZAPEG_PERSONAL_REWARDS) {
@@ -108,7 +164,12 @@ function zapegGivePersonalRewards(player) {
 
     const stage = `zapeg_reward_${criterion}`
     const marker = `zapegReward_${criterion}_v1`
-    if (Boolean(player.persistentData[marker]) || player.stages.has(stage) || !zapegHasVerified(player, criterion)) continue
+    if (Boolean(player.persistentData[marker]) || player.stages.has(stage)) continue
+
+    const cached = zapegIsVerifiedCached(player, criterion)
+    const recheckDue = Number(player.age) % ZAPEG_REWARD_RECHECK_TICKS === 0
+    if (!cached && !forceCriterionCheck && !recheckDue) continue
+    if (!zapegHasVerified(player, criterion)) continue
 
     if (!Item.exists(reward.item)) {
       if (!ZAPEG_REWARD_ITEM_ERRORS[criterion]) {
@@ -181,18 +242,23 @@ ServerEvents.loaded(event => {
 PlayerEvents.loggedIn(event => {
   const player = event.player
   const name = String(player.username)
+  zapegClearVerifiedCache(player)
 
   zapegGrantVerified(player, 'welcome', 'ZapeG’e Hoş Geldin')
 
   if (name === ZAPEG_QUEST_PLAYERS.emir) {
     zapegReconcileVanillaAdvancement(player, 'minecraft:end/kill_dragon', 'emir_dragon')
-    if (Number(player.inventory.count('minecraft:diamond')) >= 64) {
+    const diamondsDone = zapegProbeVerifiedOnce(player, 'emir_diamonds')
+    if (!diamondsDone && Number(player.inventory.count('minecraft:diamond')) >= 64) {
       zapegGrantVerified(player, 'emir_diamonds', 'Emir — Mavi Servet')
     }
   }
 
-  if (name === ZAPEG_QUEST_PLAYERS.mert && Number(player.stats.get('minecraft:minecart_one_cm')) >= 500000) {
-    zapegGrantVerified(player, 'mert_minecart', 'Mert — Raylarda 5 km')
+  if (name === ZAPEG_QUEST_PLAYERS.mert) {
+    const minecartDone = zapegProbeVerifiedOnce(player, 'mert_minecart')
+    if (!minecartDone && Number(player.stats.get('minecraft:minecart_one_cm')) >= 500000) {
+      zapegGrantVerified(player, 'mert_minecart', 'Mert — Raylarda 5 km')
+    }
   }
 
   if (name === ZAPEG_QUEST_PLAYERS.enes) {
@@ -203,9 +269,20 @@ PlayerEvents.loggedIn(event => {
     zapegScore(player.server, 'zapeg_tames', name, Number(player.persistentData.zapegTames || 0))
   }
   if (name === ZAPEG_QUEST_PLAYERS.recep) {
-    zapegScore(player.server, 'zapeg_chest_s', name, Number(player.persistentData.zapegChestSeconds || 0))
+    let chestDone = zapegProbeVerifiedOnce(player, 'recep_chest_watch')
+    const storedSeconds = Number(player.persistentData.zapegChestSeconds || 0)
+    if (!chestDone && storedSeconds >= 120) {
+      chestDone = zapegGrantVerified(player, 'recep_chest_watch', 'Recep — 120 saniyelik Sandık Nöbeti')
+    }
+    const displaySeconds = chestDone ? 120 : Math.min(120, storedSeconds)
+    if (displaySeconds !== storedSeconds) player.persistentData.zapegChestSeconds = displaySeconds
+    zapegScore(player.server, 'zapeg_chest_s', name, displaySeconds)
   }
-  zapegGivePersonalRewards(player)
+  zapegGivePersonalRewards(player, true)
+})
+
+PlayerEvents.loggedOut(event => {
+  zapegClearVerifiedCache(event.player)
 })
 
 PlayerEvents.advancement(event => {
@@ -245,6 +322,7 @@ PlayerEvents.advancement(event => {
 PlayerEvents.inventoryChanged('minecraft:diamond', event => {
   const player = event.player
   if (String(player.username) !== ZAPEG_QUEST_PLAYERS.emir) return
+  if (zapegIsVerifiedCached(player, 'emir_diamonds')) return
   if (Number(player.inventory.count('minecraft:diamond')) >= 64) {
     zapegGrantVerified(player, 'emir_diamonds', 'Emir — Mavi Servet')
   }
@@ -370,45 +448,73 @@ PlayerEvents.tick(event => {
 
   if (Number(player.age) % 20 !== 0) return
 
-  if (name === ZAPEG_QUEST_PLAYERS.emir && Number(player.inventory.count('minecraft:diamond')) >= 64) {
+  if (name === ZAPEG_QUEST_PLAYERS.emir &&
+      !zapegIsVerifiedCached(player, 'emir_diamonds') &&
+      Number(player.inventory.count('minecraft:diamond')) >= 64) {
     zapegGrantVerified(player, 'emir_diamonds', 'Emir — Mavi Servet')
   }
 
-  if (name === ZAPEG_QUEST_PLAYERS.mert && Number(player.stats.get('minecraft:minecart_one_cm')) >= 500000) {
+  if (name === ZAPEG_QUEST_PLAYERS.mert &&
+      !zapegIsVerifiedCached(player, 'mert_minecart') &&
+      Number(player.stats.get('minecraft:minecart_one_cm')) >= 500000) {
     zapegGrantVerified(player, 'mert_minecart', 'Mert — Raylarda 5 km')
   }
 
-  if (zapegOwnsMountedDragon(player)) {
-    zapegGrantVerified(player, 'dragon_rider', 'İlk Evcil Ejderha')
-    if (name === ZAPEG_QUEST_PLAYERS.emir) {
+  const needsDragonRider = !zapegIsVerifiedCached(player, 'dragon_rider')
+  const needsEmirDragon = name === ZAPEG_QUEST_PLAYERS.emir &&
+    !zapegIsVerifiedCached(player, 'emir_dragon_owner')
+  const needsSalihDragon = name === ZAPEG_QUEST_PLAYERS.salih &&
+    !zapegIsVerifiedCached(player, 'salih_dragon_owner')
+  if ((needsDragonRider || needsEmirDragon || needsSalihDragon) && zapegOwnsMountedDragon(player)) {
+    if (needsDragonRider) zapegGrantVerified(player, 'dragon_rider', 'İlk Evcil Ejderha')
+    if (needsEmirDragon) {
       zapegGrantVerified(player, 'emir_dragon_owner', 'Emir — Kendi Ejderhası')
     }
-    if (name === ZAPEG_QUEST_PLAYERS.salih) {
+    if (needsSalihDragon) {
       zapegGrantVerified(player, 'salih_dragon_owner', 'Salih — Kendi Ejderhası')
     }
   }
 
   if (name === ZAPEG_QUEST_PLAYERS.recep) {
-    const under = String(player.level.getBlock(
-      Math.floor(Number(player.x)),
-      Math.floor(Number(player.y) - 0.05),
-      Math.floor(Number(player.z))
-    ).id)
-    const onChest = under === 'minecraft:chest' || under === 'minecraft:trapped_chest'
-    const seconds = onChest ? Number(player.persistentData.zapegChestSeconds || 0) + 1 : 0
-    player.persistentData.zapegChestSeconds = seconds
-    zapegScore(player.server, 'zapeg_chest_s', name, seconds)
-    if (seconds >= 120) {
-      zapegGrantVerified(player, 'recep_chest_watch', 'Recep — 120 saniyelik Sandık Nöbeti')
+    if (!zapegIsVerifiedCached(player, 'recep_chest_watch')) {
+      // Also probes once after /kubejs reload, when loggedIn did not run again.
+      const chestDone = zapegProbeVerifiedOnce(player, 'recep_chest_watch')
+      const previousSeconds = Number(player.persistentData.zapegChestSeconds || 0)
+      if (chestDone) {
+        if (previousSeconds !== 120) {
+          player.persistentData.zapegChestSeconds = 120
+          zapegScore(player.server, 'zapeg_chest_s', name, 120)
+        }
+      } else if (previousSeconds >= 120) {
+        // The threshold was earned; latch it while a transient grant failure retries.
+        zapegGrantVerified(player, 'recep_chest_watch', 'Recep — 120 saniyelik Sandık Nöbeti')
+      } else {
+        const under = String(player.level.getBlock(
+          Math.floor(Number(player.x)),
+          Math.floor(Number(player.y) - 0.05),
+          Math.floor(Number(player.z))
+        ).id)
+        const onChest = under === 'minecraft:chest' || under === 'minecraft:trapped_chest'
+        const seconds = onChest ? Math.min(120, previousSeconds + 1) : 0
+        if (seconds !== previousSeconds) {
+          player.persistentData.zapegChestSeconds = seconds
+          zapegScore(player.server, 'zapeg_chest_s', name, seconds)
+        }
+        if (seconds >= 120) {
+          zapegGrantVerified(player, 'recep_chest_watch', 'Recep — 120 saniyelik Sandık Nöbeti')
+        }
+      }
     }
   }
 
-  zapegGivePersonalRewards(player)
+  zapegGivePersonalRewards(player, false)
 
   const dimension = String(player.level.dimension)
-  if (dimension === 'ad_astra:moon') {
+  if (dimension === 'ad_astra:moon' && !player.stages.has('zapeg_moon_landed')) {
     player.stages.add('zapeg_moon_landed')
-  } else if (dimension === 'minecraft:overworld' && player.stages.has('zapeg_moon_landed')) {
+  } else if (dimension === 'minecraft:overworld' &&
+             player.stages.has('zapeg_moon_landed') &&
+             !zapegIsVerifiedCached(player, 'moon_return')) {
     zapegGrantVerified(player, 'moon_return', 'Ay’a gidildi ve dönüldü')
   }
 })
