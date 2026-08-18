@@ -262,6 +262,13 @@ services:
       HERALDOR_VOICE_ENABLED: ${HERALDOR_VOICE_ENABLED:-false}
       CHECK_INTERVAL: ${HERALDOR_CHECK_INTERVAL:-300}
       MINION_POLL_INTERVAL: ${HERALDOR_MINION_POLL_INTERVAL:-10}
+      CONTROL_POLL_INTERVAL: ${CONTROL_POLL_INTERVAL:-2}
+      # Autonomous scene scheduler — default off; enable only in a copied test
+      # world after the two-client privacy gate passes (docs/HERALDOR-RUNBOOK.md).
+      HERALDOR_SCENE_SCHEDULER: ${HERALDOR_SCENE_SCHEDULER:-false}
+      SCHEDULER_INTERVAL: ${SCHEDULER_INTERVAL:-60}
+      STALK_SAMPLE_INTERVAL: ${STALK_SAMPLE_INTERVAL:-45}
+      DEATH_POLL_INTERVAL: ${DEATH_POLL_INTERVAL:-30}
       HERALDOR_DB_PATH: /state/heraldor.sqlite3
       HERALDOR_SNAPSHOT_PATH: /state/backup/heraldor.sqlite3
       P_WHISPER: ${HERALDOR_P_WHISPER:-0.002}
