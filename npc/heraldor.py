@@ -33,6 +33,7 @@ from pathlib import Path
 from mcrcon import MCRcon
 
 from heraldor_director import (
+    COLOSSUS_PROFILE,
     CONTROL_PHASES,
     CONTROL_SCENE_PROFILE_PHASES,
     CONTROL_TOKEN_MAX_FUTURE_SECONDS,
@@ -183,6 +184,8 @@ def _control_event_shape(request: ControlRequest) -> tuple[str, str, bool]:
         return "director_scene", "directed", request.action == "scene_rehearse"
     if request.action == "cancel":
         return "director_cancel", "operator", False
+    if request.action == "colossus_reset":
+        return "director_colossus_reset", "operator", False
     return "director_status", "operator", False
 
 
@@ -356,6 +359,24 @@ def process_control_request(
             record.event_id, record.status, f"campaign phase is now {desired}"
         )
 
+    if request.action == "colossus_reset":
+        # Pure Director pacing state; no runtime command is involved.
+        director.reset_colossus_stage(request.world_token, request.target, now=timestamp)
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="delivered",
+            payload={"target": request.target},
+            subject=request.target,
+            now=timestamp,
+        )
+        return ControlOutcome(
+            record.event_id,
+            record.status,
+            f"colossus stage reset for {request.target}",
+        )
+
     if request.action in {"scene_rehearse", "scene_trigger"}:
         minimum = CONTROL_SCENE_PROFILE_PHASES[request.argument]
         if not state.allows_profile(request.argument):
@@ -375,11 +396,17 @@ def process_control_request(
 
     payload: dict[str, object] = {}
     scene_hint: tuple[int, int] | None = None
+    colossus_stage: int | None = None
     if request.action in {"scene_rehearse", "scene_trigger"}:
         payload = {
             "profile": request.argument,
             "target": request.target,
         }
+        if request.argument == COLOSSUS_PROFILE and request.target:
+            # The encounter comes closer each time: live triggers carry and
+            # then advance the stored stage; rehearsals only ever read it.
+            colossus_stage = director.colossus_stage(request.world_token, request.target)
+            payload["colossus_stage"] = colossus_stage
         if request.action == "scene_trigger":
             payload["runtime_event_id"] = request.event_id
             # Stalking memory: live scenes bias their anchor toward the
@@ -415,14 +442,22 @@ def process_control_request(
         command = "zapegscene cancel-all"
     elif request.action == "scene_rehearse":
         command = f"zapegscene rehearse {request.target} {request.argument}"
+        if colossus_stage is not None:
+            command += f" {colossus_stage}"
     else:
         ttl_ticks = scene_ttl_ticks(request.argument, state.phase)
-        command = (
-            f"zapegscene trigger {request.target} {request.event_id} "
-            f"{request.argument} {ttl_ticks}"
-        )
-        if scene_hint is not None:
-            command += f" {scene_hint[0]} {scene_hint[1]}"
+        if colossus_stage is not None:
+            command = (
+                f"zapegscene trigger {request.target} {request.event_id} "
+                f"{request.argument} stage {colossus_stage} {ttl_ticks}"
+            )
+        else:
+            command = (
+                f"zapegscene trigger {request.target} {request.event_id} "
+                f"{request.argument} {ttl_ticks}"
+            )
+            if scene_hint is not None:
+                command += f" {scene_hint[0]} {scene_hint[1]}"
 
     try:
         output = str(rcon(command)).strip()
@@ -442,6 +477,14 @@ def process_control_request(
         error=None if success else f"runtime rejected request: {output}",
     )
     if success:
+        if (
+            request.action == "scene_trigger"
+            and colossus_stage is not None
+            and request.target
+        ):
+            # Only a delivered live trigger brings it closer; rehearsals and
+            # rejected dispatches leave the stored stage untouched.
+            director.advance_colossus_stage(request.world_token, request.target)
         message = output
         return ControlOutcome(record.event_id, "delivered", message)
     return ControlOutcome(

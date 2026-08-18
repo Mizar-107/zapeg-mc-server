@@ -110,13 +110,13 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   zhEnsureObjectives(server)
   const allowedActions = [
     'status', 'pause', 'resume', 'phase_start', 'phase_advance',
-    'scene_rehearse', 'scene_trigger', 'cancel'
+    'scene_rehearse', 'scene_trigger', 'cancel', 'colossus_reset'
   ]
   const allowedArguments = [
     '-', 'presence', 'servants', 'manifestation',
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
     'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
-    'chroma_break_01', 'near_miss_01', 'whisper_steps_01'
+    'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01'
   ]
   if (allowedActions.indexOf(action) < 0 || allowedArguments.indexOf(argument) < 0) {
     zhReply(source, 'The Director request was not allowlisted.', true)
@@ -127,13 +127,14 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   const profiles = [
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
     'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
-    'chroma_break_01', 'near_miss_01', 'whisper_steps_01'
+    'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01'
   ]
   const sceneAction = action === 'scene_rehearse' || action === 'scene_trigger'
   const validShape =
     (noArgumentActions.indexOf(action) >= 0 && argument === '-' && !target) ||
     (action === 'phase_start' && phases.indexOf(argument) >= 0 && !target) ||
-    (sceneAction && profiles.indexOf(argument) >= 0 && Boolean(target))
+    (sceneAction && profiles.indexOf(argument) >= 0 && Boolean(target)) ||
+    (action === 'colossus_reset' && argument === '-' && Boolean(target))
   if (!validShape) {
     zhReply(source, 'The Director request arguments were not allowlisted.', true)
     return 0
@@ -198,7 +199,8 @@ function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
     ['false-passage', 'false_passage_01'],
     ['chroma-break', 'chroma_break_01'],
     ['near-miss', 'near_miss_01'],
-    ['whisper-steps', 'whisper_steps_01']
+    ['whisper-steps', 'whisper_steps_01'],
+    ['colossus', 'colossus_01']
   ]
   profiles.forEach(profile => {
     apparition.then(Commands.literal(profile[0])
@@ -573,6 +575,18 @@ ServerEvents.commandRegistry(event => {
         )
         .then(Commands.literal('cancel')
           .executes(ctx => zhQueueDirectorRequest(ctx.source, 'cancel', '-', null))
+        )
+        .then(Commands.literal('colossus')
+          .then(Commands.literal('reset')
+            .then(Commands.argument('target', Arguments.PLAYER.create(event))
+              .executes(ctx => zhQueueDirectorRequest(
+                ctx.source,
+                'colossus_reset',
+                '-',
+                Arguments.PLAYER.getResult(ctx, 'target')
+              ))
+            )
+          )
         )
       )
   )

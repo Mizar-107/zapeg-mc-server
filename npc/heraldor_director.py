@@ -30,6 +30,13 @@ DEATH_SOURCE_TEMPLATE = "minecraft:scoreboard:zh_death:{subject}:v1:world:{world
 DEATH_MAX_INGEST_JUMP = 5
 AFTERMATH_META_PREFIX = "aftermath:"
 AFTERMATH_PROFILE = "footsteps_01"
+# The far colossus: a render-only silhouette escalated one stage per live
+# operator trigger, persisted per target per world. Rehearsals never advance
+# it, and the autonomous scheduler must never plan it on its own.
+COLOSSUS_PROFILE = "colossus_01"
+COLOSSUS_MAX_STAGE = 4
+COLOSSUS_META_PREFIX = "colossus:"
+OPERATOR_ONLY_PROFILES = frozenset({COLOSSUS_PROFILE})
 AUDIO_SINK = "discord_voice"
 AUDIO_EVENT_TYPE = "heraldor.audio.requested"
 AUDIO_LIVE_TTL_SECONDS = 5 * 60
@@ -54,6 +61,7 @@ CONTROL_SCENE_PROFILE_PHASES = {
     "false_passage_01": "servants",
     "light_fault_01": "manifestation",
     "chroma_break_01": "manifestation",
+    "colossus_01": "manifestation",
 }
 # Mirrors SceneProfile.defaultTtlTicks() in zapeg-runtime; the Director scales
 # these by campaign phase and passes the result as the optional ttl_ticks
@@ -70,6 +78,7 @@ SCENE_PROFILE_DEFAULT_TTL_TICKS = {
     "chroma_break_01": 120,
     "near_miss_01": 110,
     "whisper_steps_01": 180,
+    "colossus_01": 320,
 }
 # Profiles whose runtime placement walks the ground around the target; only
 # these can take a stalking-memory or grave-site anchor hint.
@@ -106,6 +115,7 @@ CONTROL_ACTIONS = frozenset(
         "scene_rehearse",
         "scene_trigger",
         "cancel",
+        "colossus_reset",
     }
 )
 CONTROL_EVENT_NAMESPACE = uuid.UUID("da548502-11dd-5b05-886a-650c4b74596c")
@@ -282,6 +292,12 @@ def parse_control_request(token: str) -> ControlRequest:
         if argument not in CONTROL_START_PHASES or raw_target != "-":
             raise ValueError("invalid Heraldor campaign phase")
         target = None
+    elif action == "colossus_reset":
+        if argument != "-":
+            raise ValueError("unexpected Heraldor colossus reset argument")
+        if not re.fullmatch(r"[A-Za-z0-9_]{1,16}", raw_target):
+            raise ValueError("invalid Heraldor colossus reset target")
+        target = raw_target
     else:
         if argument not in CONTROL_SCENE_PROFILE_PHASES:
             raise ValueError("invalid Heraldor scene profile")
@@ -1230,6 +1246,118 @@ class DirectorStore:
         self.backup_snapshot()
         return True
 
+    def colossus_stage(self, world_token: int | str, subject: str) -> int:
+        """The target's current colossus approach stage (0 when never seen).
+
+        Pure pacing memory in director_meta, world-tokened like servant
+        state; rehearsals read it but never advance it.
+        """
+
+        token = normalize_world_token(world_token)
+        key = COLOSSUS_META_PREFIX + token + ":" + subject.casefold()
+        with self._transaction() as db:
+            row = db.execute(
+                "SELECT value FROM director_meta WHERE key = ?", (key,)
+            ).fetchone()
+        if row is None:
+            return 0
+        try:
+            stage = int(str(row["value"]))
+        except ValueError:
+            return 0
+        return max(0, min(COLOSSUS_MAX_STAGE, stage))
+
+    def advance_colossus_stage(
+        self,
+        world_token: int | str,
+        subject: str,
+        *,
+        now: int | None = None,
+    ) -> int:
+        """Advance the target's colossus stage after a delivered live scene.
+
+        Stages climb 0..COLOSSUS_MAX_STAGE and wrap to 0 after the finale, so
+        the encounter passes once it has stood over the target. Only called
+        for delivered live triggers — never for rehearsals or failures.
+        """
+
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid colossus subject: {subject!r}")
+        timestamp = int(self.clock() if now is None else now)
+        key = COLOSSUS_META_PREFIX + token + ":" + subject.casefold()
+        with self._transaction() as db:
+            row = db.execute(
+                "SELECT value FROM director_meta WHERE key = ?", (key,)
+            ).fetchone()
+            try:
+                current = int(str(row["value"])) if row is not None else 0
+            except ValueError:
+                current = 0
+            current = max(0, min(COLOSSUS_MAX_STAGE, current))
+            following = current + 1 if current < COLOSSUS_MAX_STAGE else 0
+            db.execute(
+                """
+                INSERT INTO director_meta (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE
+                    SET value = excluded.value, updated_at = excluded.updated_at
+                """,
+                (key, str(following), timestamp),
+            )
+            db.execute(
+                """
+                INSERT OR IGNORE INTO events
+                    (event_id, kind, category, subject, payload_json, status, created_at)
+                VALUES (?, 'colossus_stage', 'observation', ?, ?, 'observed', ?)
+                """,
+                (
+                    f"director:colossus:stage:v1:{uuid.uuid4().hex}",
+                    subject.casefold(),
+                    compact_json(
+                        {
+                            "world_token": token,
+                            "previous_stage": current,
+                            "stage": following,
+                        }
+                    ),
+                    timestamp,
+                ),
+            )
+        self.backup_snapshot()
+        return following
+
+    def reset_colossus_stage(
+        self,
+        world_token: int | str,
+        subject: str,
+        *,
+        now: int | None = None,
+    ) -> None:
+        """Operator reset: the target's colossus approach starts over."""
+
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid colossus subject: {subject!r}")
+        timestamp = int(self.clock() if now is None else now)
+        key = COLOSSUS_META_PREFIX + token + ":" + subject.casefold()
+        with self._transaction() as db:
+            db.execute("DELETE FROM director_meta WHERE key = ?", (key,))
+            db.execute(
+                """
+                INSERT OR IGNORE INTO events
+                    (event_id, kind, category, subject, payload_json, status, created_at)
+                VALUES (?, 'colossus_stage', 'observation', ?, ?, 'observed', ?)
+                """,
+                (
+                    f"director:colossus:reset:v1:{uuid.uuid4().hex}",
+                    subject.casefold(),
+                    compact_json({"world_token": token, "reset": True}),
+                    timestamp,
+                ),
+            )
+        self.backup_snapshot()
+
     def death_high_water(self, world_token: int | str, subject: str) -> int:
         token = normalize_world_token(world_token)
         if not PLAYER_NAME_RE.fullmatch(subject):
@@ -1504,7 +1632,7 @@ class DirectorStore:
                 allowed = [
                     name
                     for name in CONTROL_SCENE_PROFILE_PHASES
-                    if state.allows_profile(name)
+                    if state.allows_profile(name) and name not in OPERATOR_ONLY_PROFILES
                 ]
                 if not allowed:
                     return None

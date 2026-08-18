@@ -1372,5 +1372,196 @@ class SchedulerDispatchTest(unittest.TestCase):
         players.assert_not_called()
 
 
+class ColossusEscalationTest(unittest.TestCase):
+    """The colossus comes closer with each delivered live trigger — and only
+    ever then. Rehearsals read the stored stage, failures leave it alone,
+    and the state is per target per world."""
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.clock = FakeClock()
+        self.store = DirectorStore(
+            Path(self.temp.name) / "heraldor.sqlite3", clock=self.clock
+        )
+        self.addCleanup(self.store.close)
+
+    def start_manifestation(self, nonce: int = 960) -> None:
+        outcome = heraldor_service.process_control_request(
+            self.store,
+            control_request("phase_start", "manifestation", nonce=nonce),
+            observed_world_token=WORLD_TOKEN,
+        )
+        self.assertEqual(outcome.status, "delivered")
+
+    def process_scene(self, action: str, target: str, nonce: int, rcon_output: str):
+        request = control_request(action, "colossus_01", target, nonce=nonce)
+        with patch.object(
+            heraldor_service, "rcon", return_value=rcon_output
+        ) as runtime:
+            outcome = heraldor_service.process_control_request(
+                self.store, request, observed_world_token=WORLD_TOKEN
+            )
+        commands = [call.args[0] for call in runtime.call_args_list]
+        return outcome, commands, request
+
+    def test_stage_walks_up_and_wraps_after_the_finale(self) -> None:
+        store = self.store
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 0)
+        for expected in (1, 2, 3, 4):
+            self.assertEqual(
+                store.advance_colossus_stage(WORLD_TOKEN, "Alice"), expected
+            )
+        # The encounter passes once it has stood over the target.
+        self.assertEqual(store.advance_colossus_stage(WORLD_TOKEN, "Alice"), 0)
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 0)
+
+    def test_stage_is_per_target_and_per_world(self) -> None:
+        store = self.store
+        store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        store.advance_colossus_stage(WORLD_TOKEN, "Bob")
+        store.advance_colossus_stage(999999999, "Alice")
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 2)
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Bob"), 1)
+        self.assertEqual(store.colossus_stage(999999999, "Alice"), 1)
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Carol"), 0)
+
+    def test_reset_clears_the_stage_and_audits(self) -> None:
+        store = self.store
+        store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        store.reset_colossus_stage(WORLD_TOKEN, "Alice")
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 0)
+        payloads = [
+            str(row["payload_json"])
+            for row in store.connection.execute(
+                "SELECT payload_json FROM events WHERE kind = 'colossus_stage'"
+            ).fetchall()
+        ]
+        self.assertEqual(len(payloads), 3)
+        self.assertEqual(
+            sum('"reset":true' in payload for payload in payloads), 1
+        )
+
+    def test_rehearsal_carries_but_never_advances_the_stage(self) -> None:
+        self.start_manifestation()
+        store = self.store
+        store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        outcome, commands, _ = self.process_scene(
+            "scene_rehearse", "Alice", nonce=961, rcon_output="scene dispatched event=x"
+        )
+        self.assertEqual(outcome.status, "delivered")
+        self.assertEqual(commands, ["zapegscene rehearse Alice colossus_01 2"])
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 2)
+
+    def test_live_trigger_carries_then_advances_the_stage(self) -> None:
+        self.start_manifestation()
+        store = self.store
+        outcome, commands, request = self.process_scene(
+            "scene_trigger",
+            "Alice",
+            nonce=962,
+            rcon_output=f"scene dispatched event=pending",
+        )
+        self.assertEqual(outcome.status, "delivered")
+        self.assertEqual(len(commands), 1)
+        self.assertIn(
+            f"zapegscene trigger Alice {request.event_id} colossus_01 stage 0 ",
+            commands[0],
+        )
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 1)
+
+        outcome, commands, request = self.process_scene(
+            "scene_trigger",
+            "Alice",
+            nonce=963,
+            rcon_output="scene dispatched event=pending",
+        )
+        self.assertEqual(outcome.status, "delivered")
+        self.assertIn(
+            f"zapegscene trigger Alice {request.event_id} colossus_01 stage 1 ",
+            commands[0],
+        )
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 2)
+
+    def test_failed_trigger_leaves_the_stage_untouched(self) -> None:
+        self.start_manifestation()
+        store = self.store
+        outcome, _, _ = self.process_scene(
+            "scene_trigger",
+            "Alice",
+            nonce=964,
+            rcon_output="another scene is active event=pending",
+        )
+        self.assertEqual(outcome.status, "failed")
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 0)
+
+    def test_bridge_reset_command_clears_the_stage(self) -> None:
+        self.start_manifestation()
+        store = self.store
+        store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        outcome = heraldor_service.process_control_request(
+            store,
+            control_request("colossus_reset", "-", "Alice", nonce=965),
+            observed_world_token=WORLD_TOKEN,
+        )
+        self.assertEqual(outcome.status, "delivered")
+        self.assertIn("reset", outcome.message)
+        self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 0)
+
+    def test_colossus_is_manifestation_gated_for_bridge_scenes(self) -> None:
+        heraldor_service.process_control_request(
+            self.store,
+            control_request("phase_start", "servants", nonce=966),
+            observed_world_token=WORLD_TOKEN,
+        )
+        outcome, commands, _ = self.process_scene(
+            "scene_rehearse", "Alice", nonce=967, rcon_output="scene dispatched event=x"
+        )
+        self.assertEqual(outcome.status, "rejected")
+        self.assertIn("manifestation", outcome.message)
+        self.assertEqual(commands, [])
+
+    def test_scheduler_never_plans_the_colossus_on_its_own(self) -> None:
+        self.start_manifestation()
+        store = self.store
+        seen: list[list[str]] = []
+
+        class SpyRoll(ScriptedRoll):
+            def choice(self, seq):
+                seen.append([str(item) for item in seq])
+                return super().choice(seq)
+
+        # Every probability gate open at manifestation: the candidate list
+        # the planner chooses from must not contain the operator-only
+        # profile at all.
+        plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=SpyRoll())
+        self.assertIsNotNone(plan)
+        self.assertNotEqual(plan.profile, "colossus_01")
+        profile_lists = [seq for seq in seen if "echo_01" in seq]
+        self.assertTrue(profile_lists, "planner never built a profile candidate list")
+        for candidates in profile_lists:
+            self.assertNotIn("colossus_01", candidates)
+        store.mark_attempting(plan.event_id)
+        store.finish_attempt(plan.event_id, delivered=True)
+        self.clock.value += store.policy.cluster_subject_gap_seconds + 1
+
+        # Negative control: with the operator-only filter patched out, the
+        # colossus really does enter the candidate list — the filter is what
+        # keeps it off the scheduler, not the phase map.
+        with patch("heraldor_director.OPERATOR_ONLY_PROFILES", frozenset()):
+            seen.clear()
+            plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=SpyRoll())
+        self.assertIsNotNone(plan)
+        profile_lists = [seq for seq in seen if "echo_01" in seq]
+        self.assertTrue(
+            any("colossus_01" in seq for seq in profile_lists),
+            "without the filter the colossus would be plannable",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
