@@ -66,6 +66,7 @@ step. Neither interface can rewind a phase, and `confrontation` is not released.
 /zapeg-lore director phase advance
 /zapeg-lore director pause
 /zapeg-lore director resume
+/zapeg-lore director colossus reset <player>
 /zapeg-lore director cancel
 ```
 
@@ -88,6 +89,7 @@ strings:
 /zapeg-lore director event rehearse apparition chroma-break <player>
 /zapeg-lore director event rehearse apparition near-miss <player>
 /zapeg-lore director event rehearse apparition whisper-steps <player>
+/zapeg-lore director event rehearse apparition colossus <player>
 
 /zapeg-lore director event trigger apparition echo <player>
 /zapeg-lore director event trigger apparition threshold <player>
@@ -100,21 +102,33 @@ strings:
 /zapeg-lore director event trigger apparition chroma-break <player>
 /zapeg-lore director event trigger apparition near-miss <player>
 /zapeg-lore director event trigger apparition whisper-steps <player>
+/zapeg-lore director event trigger apparition colossus <player>
 ```
 
 `echo`, `threshold`, `peripheral`, `sky-mark` and `whisper-steps` require
 `presence`; `motion-echo`, `footsteps`, `near-miss` and `false-passage`
-require `servants`; `light-fault` and `chroma-break` require `manifestation`.
-These phase gates apply to both the high-level rehearsal and live forms. Live
-triggers carry a Director-computed, phase-scaled scene length (presence ×1.0,
-servants ×1.15, manifestation ×1.35 of the profile default, clamped to
-1200 ticks); rehearsals always use the profile default. Ground-anchored live
-profiles (`echo`, `threshold`, `peripheral`, `footsteps`, `false-passage`)
-additionally carry a coarse anchor hint from stalking memory when one exists,
-so the scene appears near a place the target actually visits. Raw OP
-`/zapegscene` commands remain an effects-only manual test/override: they
-consume only the runtime UUID ledger and never mutate the Python campaign
-phase or pause state.
+require `servants`; `light-fault`, `chroma-break` and `colossus` require
+`manifestation`. These phase gates apply to both the high-level rehearsal and
+live forms. Live triggers carry a Director-computed, phase-scaled scene length
+(presence ×1.0, servants ×1.15, manifestation ×1.35 of the profile default,
+clamped to 1200 ticks); rehearsals always use the profile default.
+Ground-anchored live profiles (`echo`, `threshold`, `peripheral`, `footsteps`,
+`false-passage`) additionally carry a coarse anchor hint from stalking memory
+when one exists, so the scene appears near a place the target actually visits.
+
+The `colossus` apparition is the escalation encounter: the Director stores one
+approach stage (0–4) per target per world and sends it with the scene. A
+delivered live trigger advances the stage by one — horizon silhouette, distant
+figure, looming, towering near-presence, then the watching finale — and the
+trigger after the finale wraps back to the horizon. Rehearsals play at the
+stored stage without advancing it, a rejected or failed trigger leaves it
+untouched, and `/zapeg-lore director colossus reset <player>` clears it back
+to the horizon. The autonomous scheduler can never pick `colossus` on its
+own; it only ever moves when an operator triggers it. To preview a specific
+stage without touching stored state, use the raw runtime form `/zapegscene
+rehearse <player> colossus_01 <0-4>`. Raw OP `/zapegscene` commands remain an
+effects-only manual test/override: they consume only the runtime UUID ledger
+and never mutate the Python campaign phase, pause state or colossus stage.
 
 The high-level command is asynchronous. Its immediate response says **queued**,
 not executed. KubeJS writes one allowlisted token tied to the current hidden
@@ -169,7 +183,9 @@ activity" (a bounded budget of scenes with short gaps) followed by days of
 silence, and each subject has their own cooldown. Even then, two probability
 gates keep openings and follow-up beats rare. Every planned scene is a normal
 audited Director event with `planner=scheduler` and a reason of
-`cluster_open`, `cluster_beat`, `aftermath` or `grave_echo`.
+`cluster_open`, `cluster_beat`, `aftermath` or `grave_echo`. The `colossus`
+profile is operator-only and is never planned, scheduled or otherwise started
+without an explicit OP command.
 
 Stalking memory never stores exact positions: samples collapse into 32-block
 cells, capped per player, and the moment a new world token is observed every
@@ -424,7 +440,7 @@ Before using it in the story, verify all of these in a copied/disposable world:
 15. Cross the third-servant threshold once while paused in the copy, resume and
     verify the story observation remains but its terminally suppressed audio is
     never delivered later.
-16. Two-client privacy for every protocol-4 profile: the target renders/hears
+16. Two-client privacy for every protocol-5 profile: the target renders/hears
     the full scene while a nearby observer receives no packet, no sound, no
     GUI artifact and no sky/doorway geometry — verify with both clients in
     first and third person, with shaders on and off (Embeddium/Oculus) and
@@ -438,10 +454,36 @@ Before using it in the story, verify all of these in a copied/disposable world:
 19. Scheduler dry run in the copy: enable `HERALDOR_SCENE_SCHEDULER`, confirm
     scenes cluster then fall silent for days, confirm `planner=scheduler`
     events in `admin status`, and confirm a fresh death is never echoed while
-    an old one is echoed at most once near its site.
+    an old one is echoed at most once near its site. Confirm a long idle run
+    never starts a `colossus` scene on its own.
 20. Stalking-memory boundary: inspect the SQLite `stalk_cells` table and
     confirm only coarse 32-block cells exist, then change the world token and
     confirm every old cell is purged.
+21. Two-client privacy for the colossus at every stage: the target sees the
+    silhouette and feels the footfall pulses while a nearby observer — even
+    standing beside the target and looking the same way — receives no packet,
+    no silhouette, no boom, no heartbeat and no camera shake. Verify in first
+    and third person.
+22. Shake comfort check: during a stage-3/4 rehearsal the footfall pulses read
+    as deep ground thuds, not motion sickness — each pulse decays within about
+    a second, the camera never drifts between steps, and the target keeps full
+    control (walking, aiming, inventory) throughout. If anyone reports
+    discomfort, stop using stages 3–4 until the caps are re-tuned.
+23. Stage progression, rehearsal vs live: rehearse `colossus` twice and
+    confirm both play at the same stored stage; live-trigger once and confirm
+    the next rehearsal has moved one stage closer; reset with
+    `/zapeg-lore director colossus reset <player>` and confirm the next
+    rehearsal is back on the horizon. Restart the Director between steps and
+    confirm the stage survives in SQLite, and confirm a second player has an
+    independent stage.
+24. Colossus cleanup paths: logout, death, dimension change and
+    `/zapegscene cancel-all` mid-scene remove the silhouette, the shake and
+    the heartbeat immediately, with no residue after relog.
+25. Colossus shader matrix: rehearse stage 1 and stage 4 with shaders off,
+    with Embeddium, and with Oculus + a common pack — the silhouette must read
+    as a dark shape in the fog (never invisible, never glowing), terrain in
+    front of it must occlude it honestly, and the fog dip prelude must not
+    fight the pack's own fog.
 
 Use `/zapeg-lore servant cleanup` immediately if any targeting or drop invariant
 fails. Keep the feature manual until this gate passes.
