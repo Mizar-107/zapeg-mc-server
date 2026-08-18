@@ -855,7 +855,7 @@ class ServantScriptContractTest(unittest.TestCase):
         self.assertIn("net.minecraft.server.rcon.RconConsoleSource", self.script)
         self.assertIn("net.minecraft.server.level.ServerPlayer", self.script)
         self.assertIn(
-            "String(rawSource.getUUID()) === String(player.uuid)", self.script
+            "String(rawSource.getUUID()) === zhEntityUuid(player)", self.script
         )
         self.assertIn("const ZH_CONTROL_TTL_SECONDS = 90", self.script)
         self.assertIn("control_request", self.script)

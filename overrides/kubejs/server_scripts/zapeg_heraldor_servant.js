@@ -16,12 +16,22 @@ const ZH_CONTROL_TTL_SECONDS = 90
 const ZH_LIFETIME_TICKS = 2400
 const ZH_MAX_DISTANCE = 48
 const ZH_NUMEN_CLASS = 'com.dwinovo.numen.entity.NumenPlayer'
+const ZH_PLAYER_CLASS = Java.loadClass('net.minecraft.world.entity.player.Player')
 
 let ZH_TICK_COUNTER = 0
 let ZH_GATE_WAS_ACTIVE = false
 
 function zhHasTag(entity, tag) {
   return Boolean(entity && entity.tags && entity.tags.contains(tag))
+}
+
+// Rhino bean naming on this build: getScoreboardName() -> .scoreboardName, but
+// getUUID() stays .UUID (leading all-caps segment is never decapitalized), and
+// no username getter exists at all. A missing getter reads back as undefined
+// and String(undefined) === 'undefined' passes the name regex, so names and
+// UUIDs must come from these exact accessors.
+function zhEntityUuid(entity) {
+  return String(entity.getUUID())
 }
 
 function zhIsNumenPlayer(player) {
@@ -40,8 +50,12 @@ function zhIsNumenPlayer(player) {
 
 function zhSafePlayerName(player) {
   if (!player) return null
-  const name = String(player.username)
+  const name = String(player.scoreboardName)
   return /^[A-Za-z0-9_]{1,16}$/.test(name) ? name : null
+}
+
+function zhDimensionId(level) {
+  return String(level.dimension().location())
 }
 
 function zhDirectorSourceAllowed(source) {
@@ -57,7 +71,7 @@ function zhDirectorSourceAllowed(source) {
         rawSource &&
         String(rawSource.getClass().getName()) ===
           'net.minecraft.server.level.ServerPlayer' &&
-        String(rawSource.getUUID()) === String(player.uuid)
+        String(rawSource.getUUID()) === zhEntityUuid(player)
       )
     }
   } catch (_) {
@@ -226,7 +240,7 @@ function zhForEachLevel(server, callback) {
 function zhExpireLoadedServants(server) {
   zhRefreshGameTime(server)
   zhForEachLevel(server, level => {
-    const dimension = String(level.dimension)
+    const dimension = zhDimensionId(level)
     server.runCommandSilent(
       `execute in ${dimension} as @e[type=minecraft:wither_skeleton,tag=${ZH_SERVANT_TAG}] ` +
       `unless score @s ${ZH_EXPIRY_OBJECTIVE} matches 1.. run tag @s add ${ZH_EXPIRED_TAG}`
@@ -311,7 +325,7 @@ function zhMaintainTargets(server) {
         const targetName = String(servant.persistentData.zhTargetName || '')
         const target = targetName ? server.getPlayer(targetName) : null
         const invalid = !target || !target.isAlive() || zhIsNumenPlayer(target) ||
-          String(target.level.dimension) !== String(servant.level.dimension) ||
+          zhDimensionId(target.level) !== zhDimensionId(servant.level) ||
           Number(servant.distanceTo(target)) > ZH_MAX_DISTANCE
         if (invalid) zhExpireServant(servant)
         else servant.target = target
@@ -377,12 +391,12 @@ function zhSpawnServant(source, target, rehearsal) {
     ]
   })
   servant.mainHandItem = Item.of('minecraft:stone_sword')
-  servant.persistentData.zhTargetUuid = String(target.uuid)
+  servant.persistentData.zhTargetUuid = zhEntityUuid(target)
   servant.persistentData.zhTargetName = targetName
   servant.persistentData.zhInstanceId = instanceId
   servant.spawn()
   servant.target = target
-  const dimension = String(target.level.dimension)
+  const dimension = zhDimensionId(target.level)
   const selector =
     `@e[type=minecraft:wither_skeleton,tag=${ZH_SERVANT_TAG},tag=${instanceTag},limit=1]`
   server.runCommandSilent(
@@ -417,7 +431,7 @@ function zhSpawnServant(source, target, rehearsal) {
   const mode = rehearsal ? 'rehearsal (no story progress)' : 'LIVE'
   zhReply(
     source,
-    `Awakened Heraldor'un Hizmetkârı for ${String(target.username)} — ${mode}.`,
+    `Awakened Heraldor'un Hizmetkârı for ${targetName} — ${mode}.`,
     false
   )
   return 1
@@ -428,7 +442,7 @@ function zhCleanupServants(source) {
   zhEnsureObjectives(server)
   let affected = 0
   zhForEachLevel(server, level => {
-    const dimension = String(level.dimension)
+    const dimension = zhDimensionId(level)
     server.runCommandSilent(
       `execute in ${dimension} run tag ` +
       `@e[type=minecraft:wither_skeleton,tag=${ZH_SERVANT_TAG}] add ${ZH_EXPIRED_TAG}`
@@ -548,11 +562,11 @@ ServerEvents.commandRegistry(event => {
 })
 
 EntityEvents.hurt(event => {
-  const attacker = event.source.entity || event.source.actual
+  const attacker = event.source.entity
   if (!zhHasTag(attacker, ZH_SERVANT_TAG)) return
 
   const intended = String(attacker.persistentData.zhTargetUuid || '')
-  if (!intended || String(event.entity.uuid) !== intended) event.cancel()
+  if (!intended || zhEntityUuid(event.entity) !== intended) event.cancel()
 })
 
 EntityEvents.drops('minecraft:wither_skeleton', event => {
@@ -580,7 +594,11 @@ EntityEvents.death('minecraft:wither_skeleton', event => {
     zhHasTag(servant, ZH_COUNTED_TAG) ||
     zhHasTag(servant, ZH_REHEARSAL_TAG)
   ) return
-  const killer = event.source.player
+  // source.player only sees the DIRECT entity, so projectile final blows
+  // resolve to the arrow and never count. source.entity is the true attacker
+  // (the shooter for projectiles); instanceof keeps mob/environment kills out.
+  const attacker = event.source.entity
+  const killer = attacker instanceof ZH_PLAYER_CLASS ? attacker : null
   if (!killer || zhIsNumenPlayer(killer)) return
   const name = zhSafePlayerName(killer)
   if (!name) return
