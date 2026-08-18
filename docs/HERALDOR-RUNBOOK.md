@@ -24,9 +24,9 @@ or explain the command, tags, counters, thresholds, or audio trigger.
   orthogonal pause state and hardcoded apparition profiles. Minecraft only
   writes one short-lived request; the Python Director is the authority that
   validates, records and dispatches it to the client/server runtime.
-- Eleven apparition profiles on runtime protocol `4`: the original six plus
-  `sky-mark`, `false-passage`, `chroma-break`, `near-miss` and
-  `whisper-steps`.
+- Twelve apparition profiles on runtime protocol `5`: the original six plus
+  `sky-mark`, `false-passage`, `chroma-break`, `near-miss`, `whisper-steps`
+  and the staged, operator-only `colossus` escalation encounter.
 - An opt-in autonomous scene scheduler (off by default) that clusters scenes
   into a "night of activity" followed by days of silence, enforces a
   per-subject gap, and never runs while dormant, paused, inside a story quiet
@@ -197,8 +197,9 @@ death ingestion keep running so the memory stays warm.
 ## Deploy
 
 Apply the tracked overrides using the normal deployment workflow, then restart
-Minecraft so the new server script registers cleanly. Rebuild the optional
-Director service because its image now contains `heraldor_director.py`:
+Minecraft so the new server script registers cleanly. The Director image bakes
+in `heraldor.py` and `heraldor_director.py` at build time, so rebuild the
+optional service whenever the Python side changes:
 
 The high-level apparition commands also require the matching ZapeG runtime on
 the server and every participating client. Confirm raw `/zapegscene status`
