@@ -39,9 +39,29 @@ CONTROL_START_PHASES = frozenset(CONTROL_PHASES[1:])
 CONTROL_SCENE_PROFILE_PHASES = {
     "echo_01": "presence",
     "threshold_01": "presence",
+    "peripheral_01": "presence",
     "motion_echo_01": "servants",
+    "footsteps_01": "servants",
     "light_fault_01": "manifestation",
 }
+# Mirrors SceneProfile.defaultTtlTicks() in zapeg-runtime; the Director scales
+# these by campaign phase and passes the result as the optional ttl_ticks
+# argument of /zapegscene trigger (server clamps to MAX_TTL_TICKS).
+SCENE_PROFILE_DEFAULT_TTL_TICKS = {
+    "echo_01": 200,
+    "threshold_01": 160,
+    "motion_echo_01": 220,
+    "light_fault_01": 140,
+    "peripheral_01": 140,
+    "footsteps_01": 160,
+}
+SCENE_TTL_PHASE_SCALE = {
+    "dormant": 1.0,
+    "presence": 1.0,
+    "servants": 1.15,
+    "manifestation": 1.35,
+}
+SCENE_MAX_TTL_TICKS = 1200
 CONTROL_ACTIONS = frozenset(
     {
         "status",
@@ -150,6 +170,19 @@ def normalize_world_token(value: int | str) -> str:
     if not re.fullmatch(r"[1-9]\d{0,9}", token) or int(token) > 2_000_000_000:
         raise ValueError(f"invalid Heraldor world token: {value!r}")
     return token
+
+
+def scene_ttl_ticks(profile: str, phase: str) -> int:
+    """Phase-scaled scene length: scenes linger longer as the campaign
+    escalates, always bounded by the runtime's MAX_TTL_TICKS clamp."""
+
+    base = SCENE_PROFILE_DEFAULT_TTL_TICKS.get(profile)
+    if base is None:
+        raise ValueError(f"unknown Heraldor scene profile: {profile!r}")
+    scale = SCENE_TTL_PHASE_SCALE.get(phase)
+    if scale is None:
+        raise ValueError(f"unknown Heraldor campaign phase: {phase!r}")
+    return min(SCENE_MAX_TTL_TICKS, max(1, round(base * scale)))
 
 
 def parse_control_request(token: str) -> ControlRequest:

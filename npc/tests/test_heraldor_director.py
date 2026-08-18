@@ -803,6 +803,97 @@ class PresenceServiceTest(unittest.TestCase):
             players.assert_not_called()
 
 
+class SceneTtlScalingTest(unittest.TestCase):
+    def test_every_gated_profile_has_a_ttl_default(self) -> None:
+        from heraldor_director import (
+            CONTROL_SCENE_PROFILE_PHASES,
+            SCENE_PROFILE_DEFAULT_TTL_TICKS,
+        )
+
+        self.assertEqual(
+            set(CONTROL_SCENE_PROFILE_PHASES),
+            set(SCENE_PROFILE_DEFAULT_TTL_TICKS),
+        )
+
+    def test_ttl_scales_up_with_phase_and_stays_bounded(self) -> None:
+        from heraldor_director import SCENE_MAX_TTL_TICKS, scene_ttl_ticks
+
+        self.assertEqual(scene_ttl_ticks("echo_01", "dormant"), 200)
+        self.assertEqual(scene_ttl_ticks("echo_01", "presence"), 200)
+        self.assertEqual(scene_ttl_ticks("echo_01", "servants"), 230)
+        self.assertEqual(scene_ttl_ticks("echo_01", "manifestation"), 270)
+        for profile in (
+            "echo_01",
+            "threshold_01",
+            "motion_echo_01",
+            "light_fault_01",
+            "peripheral_01",
+            "footsteps_01",
+        ):
+            for phase in ("dormant", "presence", "servants", "manifestation"):
+                ttl = scene_ttl_ticks(profile, phase)
+                self.assertGreaterEqual(ttl, 1)
+                self.assertLessEqual(ttl, SCENE_MAX_TTL_TICKS)
+        with self.assertRaises(ValueError):
+            scene_ttl_ticks("unknown_profile", "presence")
+        with self.assertRaises(ValueError):
+            scene_ttl_ticks("echo_01", "unknown_phase")
+
+    def test_trigger_command_carries_phase_scaled_ttl(self) -> None:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        store = DirectorStore(
+            Path(temp.name) / "heraldor.sqlite3", clock=FakeClock()
+        )
+        self.addCleanup(store.close)
+        heraldor_service.process_control_request(
+            store,
+            control_request("phase_start", "manifestation", nonce=90),
+            observed_world_token=WORLD_TOKEN,
+        )
+        request = control_request("scene_trigger", "echo_01", "Alice", nonce=91)
+        with patch.object(
+            heraldor_service,
+            "rcon",
+            return_value=f"scene dispatched event={request.event_id}",
+        ) as runtime:
+            outcome = heraldor_service.process_control_request(
+                store, request, observed_world_token=WORLD_TOKEN
+            )
+        self.assertEqual(outcome.status, "delivered")
+        command = runtime.call_args.args[0]
+        self.assertEqual(
+            command,
+            f"zapegscene trigger Alice {request.event_id} echo_01 270",
+        )
+
+    def test_rehearse_command_keeps_runtime_default_ttl(self) -> None:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        store = DirectorStore(
+            Path(temp.name) / "heraldor.sqlite3", clock=FakeClock()
+        )
+        self.addCleanup(store.close)
+        heraldor_service.process_control_request(
+            store,
+            control_request("phase_start", "presence", nonce=95),
+            observed_world_token=WORLD_TOKEN,
+        )
+        with patch.object(
+            heraldor_service,
+            "rcon",
+            return_value="scene dispatched event=00000000-0000-0000-0000-000000000099",
+        ) as runtime:
+            outcome = heraldor_service.process_control_request(
+                store,
+                control_request("scene_rehearse", "peripheral_01", "Alice", nonce=96),
+                observed_world_token=WORLD_TOKEN,
+            )
+        self.assertEqual(outcome.status, "delivered")
+        command = runtime.call_args.args[0]
+        self.assertEqual(command, "zapegscene rehearse Alice peripheral_01")
+
+
 class ServantScriptContractTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:

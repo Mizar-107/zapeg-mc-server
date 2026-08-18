@@ -44,6 +44,7 @@ from heraldor_director import (
     parse_control_request,
     parse_score_output,
     restore_snapshot,
+    scene_ttl_ticks,
 )
 
 RCON_HOST = os.environ.get("RCON_HOST", "mc")
@@ -397,8 +398,10 @@ def process_control_request(
     elif request.action == "scene_rehearse":
         command = f"zapegscene rehearse {request.target} {request.argument}"
     else:
+        ttl_ticks = scene_ttl_ticks(request.argument, state.phase)
         command = (
-            f"zapegscene trigger {request.target} {request.event_id} {request.argument}"
+            f"zapegscene trigger {request.target} {request.event_id} "
+            f"{request.argument} {ttl_ticks}"
         )
 
     try:

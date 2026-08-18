@@ -63,18 +63,25 @@ strings:
 /zapeg-lore director event rehearse apparition threshold <player>
 /zapeg-lore director event rehearse apparition motion-echo <player>
 /zapeg-lore director event rehearse apparition light-fault <player>
+/zapeg-lore director event rehearse apparition peripheral <player>
+/zapeg-lore director event rehearse apparition footsteps <player>
 
 /zapeg-lore director event trigger apparition echo <player>
 /zapeg-lore director event trigger apparition threshold <player>
 /zapeg-lore director event trigger apparition motion-echo <player>
 /zapeg-lore director event trigger apparition light-fault <player>
+/zapeg-lore director event trigger apparition peripheral <player>
+/zapeg-lore director event trigger apparition footsteps <player>
 ```
 
-`echo` and `threshold` require `presence`; `motion-echo` requires `servants`;
-`light-fault` requires `manifestation`. These phase gates apply to both the
-high-level rehearsal and live forms. Raw OP `/zapegscene` commands remain an
-effects-only manual test/override: they consume only the runtime UUID ledger
-and never mutate the Python campaign phase or pause state.
+`echo`, `threshold` and `peripheral` require `presence`; `motion-echo` and
+`footsteps` require `servants`; `light-fault` requires `manifestation`. These
+phase gates apply to both the high-level rehearsal and live forms. Live
+triggers carry a Director-computed, phase-scaled scene length (presence ×1.0,
+servants ×1.15, manifestation ×1.35 of the profile default, clamped to
+1200 ticks); rehearsals always use the profile default. Raw OP `/zapegscene`
+commands remain an effects-only manual test/override: they consume only the
+runtime UUID ledger and never mutate the Python campaign phase or pause state.
 
 The high-level command is asynchronous. Its immediate response says **queued**,
 not executed. KubeJS writes one allowlisted token tied to the current hidden

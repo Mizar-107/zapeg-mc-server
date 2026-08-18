@@ -113,7 +113,8 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   ]
   const allowedArguments = [
     '-', 'presence', 'servants', 'manifestation',
-    'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01'
+    'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
+    'peripheral_01', 'footsteps_01'
   ]
   if (allowedActions.indexOf(action) < 0 || allowedArguments.indexOf(argument) < 0) {
     zhReply(source, 'The Director request was not allowlisted.', true)
@@ -121,7 +122,10 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   }
   const noArgumentActions = ['status', 'pause', 'resume', 'phase_advance', 'cancel']
   const phases = ['presence', 'servants', 'manifestation']
-  const profiles = ['echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01']
+  const profiles = [
+    'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
+    'peripheral_01', 'footsteps_01'
+  ]
   const sceneAction = action === 'scene_rehearse' || action === 'scene_trigger'
   const validShape =
     (noArgumentActions.indexOf(action) >= 0 && argument === '-' && !target) ||
@@ -184,7 +188,9 @@ function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
     ['echo', 'echo_01'],
     ['threshold', 'threshold_01'],
     ['motion-echo', 'motion_echo_01'],
-    ['light-fault', 'light_fault_01']
+    ['light-fault', 'light_fault_01'],
+    ['peripheral', 'peripheral_01'],
+    ['footsteps', 'footsteps_01']
   ]
   profiles.forEach(profile => {
     apparition.then(Commands.literal(profile[0])
