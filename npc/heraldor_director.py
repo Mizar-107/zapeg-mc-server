@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import json
+import math
 import os
+import random
 import re
 import shutil
 import sqlite3
@@ -16,7 +18,7 @@ from pathlib import Path
 from typing import Iterator
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 SERVANT_SOURCE_PREFIX = "minecraft:scoreboard:zapeg_hsvc:#total:v1:world:"
 SERVANT_STORY_FLAG_PREFIX = "heraldor_servants_defeated_3_v1_world_"
 SERVANT_STORY_EVENT_PREFIX = "story:heraldor-servants:defeated:3:v1:world:"
@@ -24,6 +26,10 @@ SERVANT_AUDIO_CLIP_ID = "servants_after_three_v1"
 SERVANT_THRESHOLD = 3
 SERVANT_MAX_SCORE = 1_000_000
 SERVANT_MAX_INGEST_JUMP = 100
+DEATH_SOURCE_TEMPLATE = "minecraft:scoreboard:zh_death:{subject}:v1:world:{world}"
+DEATH_MAX_INGEST_JUMP = 5
+AFTERMATH_META_PREFIX = "aftermath:"
+AFTERMATH_PROFILE = "footsteps_01"
 AUDIO_SINK = "discord_voice"
 AUDIO_EVENT_TYPE = "heraldor.audio.requested"
 AUDIO_LIVE_TTL_SECONDS = 5 * 60
@@ -40,9 +46,14 @@ CONTROL_SCENE_PROFILE_PHASES = {
     "echo_01": "presence",
     "threshold_01": "presence",
     "peripheral_01": "presence",
+    "sky_mark_01": "presence",
+    "whisper_steps_01": "presence",
     "motion_echo_01": "servants",
     "footsteps_01": "servants",
+    "near_miss_01": "servants",
+    "false_passage_01": "servants",
     "light_fault_01": "manifestation",
+    "chroma_break_01": "manifestation",
 }
 # Mirrors SceneProfile.defaultTtlTicks() in zapeg-runtime; the Director scales
 # these by campaign phase and passes the result as the optional ttl_ticks
@@ -54,7 +65,23 @@ SCENE_PROFILE_DEFAULT_TTL_TICKS = {
     "light_fault_01": 140,
     "peripheral_01": 140,
     "footsteps_01": 160,
+    "sky_mark_01": 240,
+    "false_passage_01": 300,
+    "chroma_break_01": 120,
+    "near_miss_01": 110,
+    "whisper_steps_01": 180,
 }
+# Profiles whose runtime placement walks the ground around the target; only
+# these can take a stalking-memory or grave-site anchor hint.
+STALK_HINT_PROFILES = frozenset(
+    {
+        "echo_01",
+        "threshold_01",
+        "peripheral_01",
+        "footsteps_01",
+        "false_passage_01",
+    }
+)
 SCENE_TTL_PHASE_SCALE = {
     "dormant": 1.0,
     "presence": 1.0,
@@ -62,6 +89,13 @@ SCENE_TTL_PHASE_SCALE = {
     "manifestation": 1.35,
 }
 SCENE_MAX_TTL_TICKS = 1200
+# Stalking memory privacy boundary: positions are collapsed into 32-block
+# cells, kept per world and per player, capped per player, and purged the
+# moment a different world token is observed. Nothing finer than a cell ever
+# leaves the daemon, and nothing is ever sent back to the world.
+STALK_CELL_SIZE = 32
+STALK_MAX_CELLS_PER_SUBJECT = 48
+PLAYER_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,16}$")
 CONTROL_ACTIONS = frozenset(
     {
         "status",
@@ -97,6 +131,21 @@ class DirectorPolicy:
     major_quiet_seconds: int = 24 * 60 * 60
     discord_cooldown_seconds: int = 7 * 24 * 60 * 60
     shadows_cooldown_seconds: int = 7 * 24 * 60 * 60
+    # Scheduled beats: scenes cluster into one "night of activity". Each
+    # delivered scene keeps the night alive for cluster_open_seconds; once
+    # the night ends (or its budget is spent), at least
+    # cluster_silence_seconds of silence must pass before a new one opens.
+    cluster_open_seconds: int = 45 * 60
+    cluster_silence_seconds: int = 2 * 24 * 60 * 60
+    cluster_scene_budget: int = 5
+    cluster_subject_gap_seconds: int = 20 * 60
+    # Per scheduler tick: a long-quiet world rarely opens a night; an open
+    # night beats more freely but still waits between scenes.
+    scheduler_open_probability: float = 0.05
+    scheduler_beat_probability: float = 0.20
+    # Grave echoes never answer a fresh death and stay rare even then.
+    grave_echo_min_age_seconds: int = 20 * 60
+    grave_echo_probability: float = 0.5
 
 
 @dataclass(frozen=True)
@@ -123,6 +172,27 @@ class AudioDelivery:
     event_id: str
     payload: dict[str, object]
     rehearsal: bool
+
+
+@dataclass(frozen=True)
+class DeathIngestResult:
+    previous_high_water: int
+    high_water: int
+    death_event_ids: tuple[str, ...]
+    regression: bool = False
+    quarantined: bool = False
+
+
+@dataclass(frozen=True)
+class ScenePlan:
+    """One scheduler-planned live scene, already reserved in the ledger."""
+
+    event_id: str
+    profile: str
+    subject: str
+    ttl_ticks: int
+    hint: tuple[int, int] | None
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -362,6 +432,45 @@ def parse_score_output(output: str, objective: str = "zapeg_hsvc") -> int | None
     return int(values[-1]) if values else None
 
 
+def parse_pos_output(output: str) -> tuple[float, float, float] | None:
+    """Parse `data get entity <player> Pos` into exact doubles, or None."""
+
+    match = re.search(
+        r"\[\s*(-?\d+(?:\.\d+)?)d\s*,\s*(-?\d+(?:\.\d+)?)d\s*,"
+        r"\s*(-?\d+(?:\.\d+)?)d\s*\]",
+        output,
+    )
+    if not match:
+        return None
+    return (float(match.group(1)), float(match.group(2)), float(match.group(3)))
+
+
+def parse_death_site(output: str) -> tuple[int, int, int, str] | None:
+    """Parse the stored `death_<name>` compound into (x, y, z, dimension)."""
+
+    coords = {}
+    for axis in ("x", "y", "z"):
+        match = re.search(rf"\b{axis}:\s*(-?\d+)\b", output)
+        if not match:
+            return None
+        coords[axis] = int(match.group(1))
+    dimension = re.search(r'\bdim:\s*"([a-z0-9_:./-]+)"', output)
+    if not dimension:
+        return None
+    return (coords["x"], coords["y"], coords["z"], dimension.group(1))
+
+
+def parse_last_minion_kill(output: str) -> tuple[str, int, int] | None:
+    """Parse `last_minion_kill` into (player, sequence, world_token)."""
+
+    player = re.search(r'\bplayer:\s*"([A-Za-z0-9_]{1,16})"', output)
+    sequence = re.search(r"\bsequence:\s*(-?\d+)\b", output)
+    world = re.search(r"\bworld_token:\s*(-?\d+)\b", output)
+    if not player or not sequence or not world:
+        return None
+    return (player.group(1), int(sequence.group(1)), int(world.group(1)))
+
+
 class DirectorStore:
     def __init__(
         self,
@@ -417,59 +526,84 @@ class DirectorStore:
             raise RuntimeError(
                 f"Heraldor DB schema {version} is newer than supported {SCHEMA_VERSION}"
             )
-        if version == SCHEMA_VERSION:
-            return
 
-        with self._transaction() as db:
-            db.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS events (
-                    event_id TEXT PRIMARY KEY,
-                    kind TEXT NOT NULL,
-                    category TEXT NOT NULL,
-                    subject TEXT,
-                    rehearsal INTEGER NOT NULL DEFAULT 0 CHECK (rehearsal IN (0, 1)),
-                    payload_json TEXT NOT NULL DEFAULT '{}',
-                    status TEXT NOT NULL,
-                    created_at INTEGER NOT NULL,
-                    attempted_at INTEGER,
-                    finished_at INTEGER,
-                    error TEXT
-                );
-                CREATE INDEX IF NOT EXISTS events_policy_idx
-                    ON events (rehearsal, category, created_at);
-                CREATE INDEX IF NOT EXISTS events_kind_idx
-                    ON events (rehearsal, kind, created_at);
-                CREATE INDEX IF NOT EXISTS events_subject_idx
-                    ON events (rehearsal, subject, created_at);
+        if version < 1:
+            with self._transaction() as db:
+                db.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS events (
+                        event_id TEXT PRIMARY KEY,
+                        kind TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        subject TEXT,
+                        rehearsal INTEGER NOT NULL DEFAULT 0 CHECK (rehearsal IN (0, 1)),
+                        payload_json TEXT NOT NULL DEFAULT '{}',
+                        status TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        attempted_at INTEGER,
+                        finished_at INTEGER,
+                        error TEXT
+                    );
+                    CREATE INDEX IF NOT EXISTS events_policy_idx
+                        ON events (rehearsal, category, created_at);
+                    CREATE INDEX IF NOT EXISTS events_kind_idx
+                        ON events (rehearsal, kind, created_at);
+                    CREATE INDEX IF NOT EXISTS events_subject_idx
+                        ON events (rehearsal, subject, created_at);
 
-                CREATE TABLE IF NOT EXISTS source_offsets (
-                    source TEXT PRIMARY KEY,
-                    high_water INTEGER NOT NULL CHECK (high_water >= 0),
-                    updated_at INTEGER NOT NULL
-                );
+                    CREATE TABLE IF NOT EXISTS source_offsets (
+                        source TEXT PRIMARY KEY,
+                        high_water INTEGER NOT NULL CHECK (high_water >= 0),
+                        updated_at INTEGER NOT NULL
+                    );
 
-                CREATE TABLE IF NOT EXISTS story_flags (
-                    flag TEXT PRIMARY KEY,
-                    event_id TEXT NOT NULL REFERENCES events(event_id),
-                    created_at INTEGER NOT NULL
-                );
+                    CREATE TABLE IF NOT EXISTS story_flags (
+                        flag TEXT PRIMARY KEY,
+                        event_id TEXT NOT NULL REFERENCES events(event_id),
+                        created_at INTEGER NOT NULL
+                    );
 
-                CREATE TABLE IF NOT EXISTS outbox (
-                    event_id TEXT NOT NULL REFERENCES events(event_id),
-                    sink TEXT NOT NULL,
-                    event_type TEXT NOT NULL,
-                    payload_json TEXT NOT NULL,
-                    status TEXT NOT NULL,
-                    created_at INTEGER NOT NULL,
-                    attempted_at INTEGER,
-                    delivered_at INTEGER,
-                    error TEXT,
-                    PRIMARY KEY (event_id, sink)
-                );
-                """
-            )
-            db.execute(f"PRAGMA user_version={SCHEMA_VERSION}")
+                    CREATE TABLE IF NOT EXISTS outbox (
+                        event_id TEXT NOT NULL REFERENCES events(event_id),
+                        sink TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        payload_json TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        created_at INTEGER NOT NULL,
+                        attempted_at INTEGER,
+                        delivered_at INTEGER,
+                        error TEXT,
+                        PRIMARY KEY (event_id, sink)
+                    );
+                    """
+                )
+                db.execute("PRAGMA user_version=1")
+
+        if version < 2:
+            # v2: stalking memory (coarse per-world visit cells) and the
+            # Director's small pacing-memory key/value store (aftermath
+            # flags). Both are pacing state, never story state.
+            with self._transaction() as db:
+                db.executescript(
+                    """
+                    CREATE TABLE IF NOT EXISTS stalk_cells (
+                        world_token TEXT NOT NULL,
+                        subject TEXT NOT NULL,
+                        cell_x INTEGER NOT NULL,
+                        cell_z INTEGER NOT NULL,
+                        visits INTEGER NOT NULL DEFAULT 1 CHECK (visits >= 1),
+                        last_seen INTEGER NOT NULL,
+                        PRIMARY KEY (world_token, subject, cell_x, cell_z)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS director_meta (
+                        key TEXT PRIMARY KEY,
+                        value TEXT NOT NULL,
+                        updated_at INTEGER NOT NULL
+                    );
+                    """
+                )
+                db.execute("PRAGMA user_version=2")
 
     def _recover_interrupted_attempts(self) -> None:
         """Recover Director-owned ambient/directed attempts only.
@@ -943,6 +1077,476 @@ class DirectorStore:
         if changed:
             self.backup_snapshot()
         return result
+
+    def record_stalk_visit(
+        self,
+        world_token: int | str,
+        subject: str,
+        x: float,
+        z: float,
+        *,
+        now: int | None = None,
+    ) -> bool:
+        """Remember one coarse visit cell for the stalking memory.
+
+        Privacy boundary: positions collapse into 32-block cells, keyed per
+        world and per player, capped per player, and every cell from any
+        other world is purged the moment a different world token is seen.
+        Cells are disposable pacing memory, so they are deliberately not
+        snapshot-backed: a restore simply forgets where players have been.
+        """
+
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid stalk subject: {subject!r}")
+        if not math.isfinite(x) or not math.isfinite(z):
+            raise ValueError("stalk coordinates must be finite")
+        if abs(x) > 30_000_000 or abs(z) > 30_000_000:
+            raise ValueError("stalk coordinates outside the world border")
+        timestamp = int(self.clock() if now is None else now)
+        cell_x = math.floor(x / STALK_CELL_SIZE)
+        cell_z = math.floor(z / STALK_CELL_SIZE)
+        folded = subject.casefold()
+        with self._transaction() as db:
+            db.execute("DELETE FROM stalk_cells WHERE world_token <> ?", (token,))
+            db.execute(
+                """
+                INSERT INTO stalk_cells
+                    (world_token, subject, cell_x, cell_z, visits, last_seen)
+                VALUES (?, ?, ?, ?, 1, ?)
+                ON CONFLICT(world_token, subject, cell_x, cell_z) DO UPDATE
+                    SET visits = visits + 1, last_seen = excluded.last_seen
+                """,
+                (token, folded, cell_x, cell_z, timestamp),
+            )
+            db.execute(
+                """
+                DELETE FROM stalk_cells
+                 WHERE world_token = ? AND subject = ? AND rowid NOT IN (
+                     SELECT rowid FROM stalk_cells
+                      WHERE world_token = ? AND subject = ?
+                      ORDER BY last_seen DESC, rowid DESC
+                      LIMIT ?
+                 )
+                """,
+                (token, folded, token, folded, STALK_MAX_CELLS_PER_SUBJECT),
+            )
+        return True
+
+    @staticmethod
+    def _stalk_hint(
+        db: sqlite3.Connection,
+        world_token: str,
+        subject: str,
+        roll: random.Random,
+    ) -> tuple[int, int] | None:
+        rows = db.execute(
+            """
+            SELECT cell_x, cell_z, visits FROM stalk_cells
+             WHERE world_token = ? AND subject = ?
+             ORDER BY cell_x, cell_z
+            """,
+            (world_token, subject.casefold()),
+        ).fetchall()
+        if not rows:
+            return None
+        cells = [(int(row["cell_x"]), int(row["cell_z"])) for row in rows]
+        weights = [int(row["visits"]) for row in rows]
+        cell_x, cell_z = roll.choices(cells, weights=weights, k=1)[0]
+        # The hint is the cell centre: the runtime still chooses the exact
+        # anchor, so the memory never pins a precise position.
+        return (
+            cell_x * STALK_CELL_SIZE + STALK_CELL_SIZE // 2,
+            cell_z * STALK_CELL_SIZE + STALK_CELL_SIZE // 2,
+        )
+
+    def stalk_hint(
+        self,
+        world_token: int | str,
+        subject: str,
+        *,
+        rng: random.Random | None = None,
+    ) -> tuple[int, int] | None:
+        """A visit-weighted coarse anchor hint, or None when nowhere is known."""
+
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid stalk subject: {subject!r}")
+        return self._stalk_hint(
+            self.connection, token, subject, rng or random.Random()
+        )
+
+    def record_servant_aftermath(
+        self,
+        world_token: int | str,
+        subject: str,
+        ordinal: int,
+        *,
+        now: int | None = None,
+    ) -> bool:
+        """After a servant victory, that player's next scene is footsteps_01.
+
+        Pure pacing memory in director_meta plus an audit observation; the
+        scheduler honours and consumes the flag when it next plans a scene
+        for the subject. Operator-triggered scenes are never overridden.
+        """
+
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid aftermath subject: {subject!r}")
+        if ordinal < 1:
+            raise ValueError("aftermath ordinal must be positive")
+        timestamp = int(self.clock() if now is None else now)
+        key = AFTERMATH_META_PREFIX + token + ":" + subject.casefold()
+        with self._transaction() as db:
+            db.execute(
+                """
+                INSERT INTO director_meta (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE
+                    SET value = excluded.value, updated_at = excluded.updated_at
+                """,
+                (key, AFTERMATH_PROFILE, timestamp),
+            )
+            db.execute(
+                """
+                INSERT OR IGNORE INTO events
+                    (event_id, kind, category, subject, payload_json, status, created_at)
+                VALUES (?, 'servant_aftermath', 'observation', ?, ?, 'observed', ?)
+                """,
+                (
+                    f"mc:heraldor-servant:aftermath:v1:world:{token}:{ordinal}",
+                    subject.casefold(),
+                    compact_json(
+                        {
+                            "ordinal": ordinal,
+                            "world_token": token,
+                            "profile": AFTERMATH_PROFILE,
+                        }
+                    ),
+                    timestamp,
+                ),
+            )
+        self.backup_snapshot()
+        return True
+
+    def death_high_water(self, world_token: int | str, subject: str) -> int:
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid death subject: {subject!r}")
+        source = DEATH_SOURCE_TEMPLATE.format(
+            subject=subject.casefold(), world=token
+        )
+        row = self.connection.execute(
+            "SELECT high_water FROM source_offsets WHERE source = ?", (source,)
+        ).fetchone()
+        return int(row[0]) if row else 0
+
+    def ingest_death(
+        self,
+        world_token: int | str,
+        subject: str,
+        sequence: int,
+        site: tuple[int, int, int, str] | None = None,
+        *,
+        now: int | None = None,
+    ) -> DeathIngestResult:
+        """High-water ingestion of the per-player death counter.
+
+        Only the newest death has a known site (the world stores just the
+        last one); older skipped ordinals are recorded site-less so the log
+        tail stays complete without ever inventing coordinates.
+        """
+
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid death subject: {subject!r}")
+        if sequence < 0:
+            raise ValueError("death sequence cannot be negative")
+        timestamp = int(self.clock() if now is None else now)
+        source = DEATH_SOURCE_TEMPLATE.format(
+            subject=subject.casefold(), world=token
+        )
+        folded = subject.casefold()
+        deaths: list[str] = []
+        changed = False
+
+        with self._transaction() as db:
+            row = db.execute(
+                "SELECT high_water FROM source_offsets WHERE source = ?", (source,)
+            ).fetchone()
+            previous = int(row[0]) if row else 0
+            if sequence - previous > DEATH_MAX_INGEST_JUMP:
+                result = DeathIngestResult(previous, previous, (), quarantined=True)
+            elif sequence <= previous:
+                if row is None:
+                    db.execute(
+                        "INSERT INTO source_offsets (source, high_water, updated_at) VALUES (?, 0, ?)",
+                        (source, timestamp),
+                    )
+                    changed = True
+                result = DeathIngestResult(
+                    previous, previous, (), regression=sequence < previous
+                )
+            else:
+                for ordinal in range(previous + 1, sequence + 1):
+                    death_id = (
+                        f"mc:heraldor-death:v1:world:{token}:{folded}:{ordinal}"
+                    )
+                    payload: dict[str, object] = {
+                        "ordinal": ordinal,
+                        "world_token": token,
+                    }
+                    if ordinal == sequence and site is not None:
+                        payload["site"] = {"x": site[0], "y": site[1], "z": site[2]}
+                        payload["dimension"] = site[3]
+                    db.execute(
+                        """
+                        INSERT OR IGNORE INTO events
+                            (event_id, kind, category, subject, payload_json, status, created_at)
+                        VALUES (?, 'player_death', 'observation', ?, ?, 'observed', ?)
+                        """,
+                        (death_id, folded, compact_json(payload), timestamp),
+                    )
+                    deaths.append(death_id)
+                db.execute(
+                    """
+                    INSERT INTO source_offsets (source, high_water, updated_at)
+                    VALUES (?, ?, ?)
+                    ON CONFLICT(source) DO UPDATE
+                        SET high_water = excluded.high_water, updated_at = excluded.updated_at
+                    """,
+                    (source, sequence, timestamp),
+                )
+                changed = True
+                result = DeathIngestResult(previous, sequence, tuple(deaths))
+
+        if changed:
+            self.backup_snapshot()
+        return result
+
+    def plan_and_reserve_scene(
+        self,
+        world_token: int | str,
+        players: list[str],
+        *,
+        now: int | None = None,
+        rng: random.Random | None = None,
+    ) -> ScenePlan | None:
+        """Plan and atomically reserve one scheduler-driven live scene.
+
+        Scheduled beats: delivered scenes cluster into a night of activity —
+        each beat keeps the night alive for cluster_open_seconds — and once
+        the night ends or its budget is spent, cluster_silence_seconds of
+        silence must pass before a new one opens. Story quiet windows and
+        per-subject gaps still apply, and a scene already in flight anywhere
+        suppresses planning entirely.
+        """
+
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        roll = rng if rng is not None else random.Random()
+        names: dict[str, str] = {}
+        for name in players:
+            if PLAYER_NAME_RE.fullmatch(name):
+                names.setdefault(name.casefold(), name)
+        if not names:
+            return None
+        policy = self.policy
+
+        with self._transaction() as db:
+            state = self._campaign_state(db, token)
+            if state.phase == "dormant" or state.paused:
+                return None
+
+            if db.execute(
+                """
+                SELECT 1 FROM events
+                 WHERE rehearsal = 0 AND category = 'directed'
+                   AND status IN ('reserved', 'attempting')
+                 LIMIT 1
+                """
+            ).fetchone():
+                return None
+
+            scene_times = [
+                int(row["created_at"])
+                for row in db.execute(
+                    """
+                    SELECT created_at FROM events
+                     WHERE rehearsal = 0 AND category = 'directed'
+                       AND kind = 'director_scene' AND status = 'delivered'
+                     ORDER BY created_at
+                    """
+                )
+            ]
+            opening = (
+                not scene_times
+                or timestamp - scene_times[-1] >= policy.cluster_silence_seconds
+            )
+            if not opening:
+                if timestamp - scene_times[-1] > policy.cluster_open_seconds:
+                    # The night ended; the silence between nights has begun.
+                    return None
+                cluster_count = 1
+                for index in range(len(scene_times) - 1, 0, -1):
+                    if (
+                        scene_times[index] - scene_times[index - 1]
+                        <= policy.cluster_open_seconds
+                    ):
+                        cluster_count += 1
+                    else:
+                        break
+                if cluster_count >= policy.cluster_scene_budget:
+                    return None
+
+            if db.execute(
+                """
+                SELECT 1 FROM events
+                 WHERE rehearsal = 0 AND category = 'story' AND created_at > ?
+                 LIMIT 1
+                """,
+                (timestamp - policy.major_quiet_seconds,),
+            ).fetchone():
+                return None
+
+            chance = (
+                policy.scheduler_open_probability
+                if opening
+                else policy.scheduler_beat_probability
+            )
+            if roll.random() >= chance:
+                return None
+
+            gap = (
+                policy.targeted_gap_seconds
+                if opening
+                else policy.cluster_subject_gap_seconds
+            )
+            eligible = []
+            for folded in names:
+                if db.execute(
+                    """
+                    SELECT 1 FROM events
+                     WHERE rehearsal = 0 AND subject = ? AND created_at > ?
+                       AND status IN ('reserved', 'attempting', 'delivered', 'ambiguous')
+                     LIMIT 1
+                    """,
+                    (folded, timestamp - gap),
+                ).fetchone():
+                    continue
+                eligible.append(folded)
+            if not eligible:
+                return None
+            subject = roll.choice(eligible)
+
+            profile: str | None = None
+            hint: tuple[int, int] | None = None
+            echo_of: str | None = None
+            reason = "cluster_open" if opening else "cluster_beat"
+
+            # Servant aftermath: the next scene is always footsteps_01.
+            aftermath_key = AFTERMATH_META_PREFIX + token + ":" + subject
+            row = db.execute(
+                "SELECT value FROM director_meta WHERE key = ?", (aftermath_key,)
+            ).fetchone()
+            if row is not None:
+                candidate = str(row["value"])
+                if state.allows_profile(candidate):
+                    profile = candidate
+                    reason = "aftermath"
+                    db.execute(
+                        "DELETE FROM director_meta WHERE key = ?", (aftermath_key,)
+                    )
+
+            # Grave echo: rarely, a later scene answers an old death site.
+            if profile is None and roll.random() < policy.grave_echo_probability:
+                death_rows = db.execute(
+                    """
+                    SELECT event_id, payload_json, created_at FROM events
+                     WHERE kind = 'player_death' AND category = 'observation'
+                       AND subject = ? AND status = 'observed'
+                     ORDER BY created_at
+                    """,
+                    (subject,),
+                ).fetchall()
+                for death in death_rows:
+                    if int(death["created_at"]) > timestamp - policy.grave_echo_min_age_seconds:
+                        continue
+                    try:
+                        payload = json.loads(str(death["payload_json"]))
+                    except (ValueError, json.JSONDecodeError):
+                        continue
+                    if str(payload.get("world_token")) != token:
+                        continue
+                    candidate = roll.choice(("footsteps_01", "whisper_steps_01"))
+                    if not state.allows_profile(candidate):
+                        continue
+                    profile = candidate
+                    reason = "grave_echo"
+                    echo_of = str(death["event_id"])
+                    site = payload.get("site")
+                    if profile in STALK_HINT_PROFILES and isinstance(site, dict):
+                        try:
+                            hint = (int(site["x"]), int(site["z"]))
+                        except (KeyError, TypeError, ValueError):
+                            hint = None
+                    db.execute(
+                        """
+                        UPDATE events SET status = 'echoed'
+                         WHERE event_id = ? AND status = 'observed'
+                        """,
+                        (echo_of,),
+                    )
+                    break
+
+            if profile is None:
+                allowed = [
+                    name
+                    for name in CONTROL_SCENE_PROFILE_PHASES
+                    if state.allows_profile(name)
+                ]
+                if not allowed:
+                    return None
+                profile = roll.choice(allowed)
+
+            if hint is None and profile in STALK_HINT_PROFILES:
+                hint = self._stalk_hint(db, token, subject, roll)
+
+            ttl_ticks = scene_ttl_ticks(profile, state.phase)
+            event_id = f"director:scene:{token}:{timestamp}:{uuid.uuid4().hex}"
+            payload = {
+                "profile": profile,
+                "target": subject,
+                "planner": "scheduler",
+                "reason": reason,
+                "world_token": token,
+                "runtime_event_id": event_id,
+            }
+            if hint is not None:
+                payload["hint_x"] = hint[0]
+                payload["hint_z"] = hint[1]
+            if echo_of is not None:
+                payload["echo_of"] = echo_of
+            db.execute(
+                """
+                INSERT INTO events
+                    (event_id, kind, category, subject, rehearsal, payload_json,
+                     status, created_at)
+                VALUES (?, 'director_scene', 'directed', ?, 0, ?, 'reserved', ?)
+                """,
+                (event_id, subject, compact_json(payload), timestamp),
+            )
+
+        self.backup_snapshot()
+        return ScenePlan(
+            event_id=event_id,
+            profile=profile,
+            subject=names[subject],
+            ttl_ticks=ttl_ticks,
+            hint=hint,
+            reason=reason,
+        )
 
     def enqueue_audio_rehearsal(
         self,

@@ -78,7 +78,7 @@ class DirectorStoreTest(unittest.TestCase):
 
     def test_schema_reopen_and_consistent_snapshot(self) -> None:
         with self.open_store() as store:
-            self.assertEqual(store.status()["schema_version"], 1)
+            self.assertEqual(store.status()["schema_version"], 2)
             store.reserve_ambient("whisper", subject="Mizar__107", rehearsal=True)
             store.backup_snapshot()
 
@@ -970,6 +970,406 @@ class ServantScriptContractTest(unittest.TestCase):
             self.assertIn(f"['{public_name}', '{profile}']", self.script)
         self.assertNotIn("zapegscene ", self.script)
         self.assertNotIn("Commands.argument('profile'", self.script)
+
+
+class ScriptedRoll:
+    """Deterministic stand-in for random.Random in planner tests.
+
+    random() defaults to 0.0 (every probability gate opens) and choice/
+    choices default to the first element; queue explicit values to steer.
+    """
+
+    def __init__(self, randoms=(), picks=()):
+        self.randoms = list(randoms)
+        self.picks = list(picks)
+
+    def random(self):
+        return self.randoms.pop(0) if self.randoms else 0.0
+
+    def choice(self, seq):
+        items = list(seq)
+        return items[self.picks.pop(0) if self.picks else 0]
+
+    def choices(self, seq, weights=None, k=1):
+        items = list(seq)
+        return [items[self.picks.pop(0) if self.picks else 0]]
+
+
+class StalkMemoryTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.clock = FakeClock()
+        self.store = DirectorStore(
+            Path(self.temp.name) / "heraldor.sqlite3", clock=self.clock
+        )
+        self.addCleanup(self.store.close)
+
+    def test_visits_collapse_into_coarse_cells_and_hint_hits_cell_centre(self) -> None:
+        store = self.store
+        store.record_stalk_visit(WORLD_TOKEN, "Alice", 100.4, 200.6)
+        store.record_stalk_visit(WORLD_TOKEN, "Alice", 101.9, 201.1)
+        store.record_stalk_visit(WORLD_TOKEN, "Alice", 1600.0, 2400.0)
+
+        rows = store.connection.execute(
+            "SELECT cell_x, cell_z, visits FROM stalk_cells ORDER BY cell_x, cell_z"
+        ).fetchall()
+        self.assertEqual(len(rows), 2)
+        # 100/32 and 101/32 share cell (3, 6); the two visits merged.
+        self.assertEqual((rows[0]["cell_x"], rows[0]["cell_z"]), (3, 6))
+        self.assertEqual(rows[0]["visits"], 2)
+        self.assertEqual((rows[1]["cell_x"], rows[1]["cell_z"]), (50, 75))
+
+        hint = store.stalk_hint(WORLD_TOKEN, "Alice", rng=ScriptedRoll(picks=[0]))
+        self.assertEqual(hint, (3 * 32 + 16, 6 * 32 + 16))
+        hint = store.stalk_hint(WORLD_TOKEN, "Alice", rng=ScriptedRoll(picks=[1]))
+        self.assertEqual(hint, (50 * 32 + 16, 75 * 32 + 16))
+        self.assertIsNone(store.stalk_hint(WORLD_TOKEN, "Bob"))
+
+    def test_world_change_purges_every_other_worlds_cells(self) -> None:
+        store = self.store
+        store.record_stalk_visit(WORLD_TOKEN, "Alice", 100.0, 200.0)
+        store.record_stalk_visit(WORLD_TOKEN + 1, "Alice", 500.0, 600.0)
+        self.assertIsNone(store.stalk_hint(WORLD_TOKEN, "Alice"))
+        self.assertEqual(
+            store.stalk_hint(WORLD_TOKEN + 1, "Alice", rng=ScriptedRoll()),
+            (15 * 32 + 16, 18 * 32 + 16),
+        )
+
+    def test_cells_are_capped_and_the_oldest_are_forgotten(self) -> None:
+        store = self.store
+        for index in range(60):
+            self.clock.value += 1
+            store.record_stalk_visit(
+                WORLD_TOKEN, "Alice", index * 64.0, 0.0
+            )
+        remaining = int(
+            store.connection.execute(
+                "SELECT COUNT(*) FROM stalk_cells WHERE subject = 'alice'"
+            ).fetchone()[0]
+        )
+        self.assertEqual(remaining, 48)
+        # The first recorded cells were the oldest and are gone.
+        self.assertIsNone(
+            store.connection.execute(
+                "SELECT 1 FROM stalk_cells WHERE cell_x = 0 AND cell_z = 0"
+            ).fetchone()
+        )
+
+    def test_invalid_subjects_and_coordinates_are_refused(self) -> None:
+        store = self.store
+        with self.assertRaises(ValueError):
+            store.record_stalk_visit(WORLD_TOKEN, "bad name", 0.0, 0.0)
+        with self.assertRaises(ValueError):
+            store.record_stalk_visit(WORLD_TOKEN, "Alice", float("nan"), 0.0)
+        with self.assertRaises(ValueError):
+            store.record_stalk_visit(WORLD_TOKEN, "Alice", 40_000_000.0, 0.0)
+
+
+class DeathIngestTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.clock = FakeClock()
+        self.store = DirectorStore(
+            Path(self.temp.name) / "heraldor.sqlite3", clock=self.clock
+        )
+        self.addCleanup(self.store.close)
+
+    def test_only_the_newest_death_carries_a_site(self) -> None:
+        result = self.store.ingest_death(
+            WORLD_TOKEN, "Alice", 3, (100, 64, -30, "minecraft:overworld")
+        )
+        self.assertEqual(result.previous_high_water, 0)
+        self.assertEqual(result.high_water, 3)
+        self.assertEqual(len(result.death_event_ids), 3)
+        rows = self.store.connection.execute(
+            "SELECT payload_json FROM events WHERE kind = 'player_death' ORDER BY created_at, event_id"
+        ).fetchall()
+        payloads = [json.loads(str(row["payload_json"])) for row in rows]
+        self.assertNotIn("site", payloads[0])
+        self.assertNotIn("site", payloads[1])
+        self.assertEqual(payloads[2]["site"], {"x": 100, "y": 64, "z": -30})
+        self.assertEqual(payloads[2]["dimension"], "minecraft:overworld")
+
+    def test_reingestion_is_idempotent_and_regression_is_flagged(self) -> None:
+        first = self.store.ingest_death(WORLD_TOKEN, "Alice", 2, None)
+        again = self.store.ingest_death(WORLD_TOKEN, "Alice", 2, None)
+        self.assertEqual(again.death_event_ids, ())
+        self.assertFalse(again.regression)
+        regression = self.store.ingest_death(WORLD_TOKEN, "Alice", 1, None)
+        self.assertTrue(regression.regression)
+        self.assertEqual(self.store.death_high_water(WORLD_TOKEN, "Alice"), 2)
+        self.assertEqual(len(first.death_event_ids), 2)
+
+    def test_implausible_jumps_are_quarantined(self) -> None:
+        result = self.store.ingest_death(WORLD_TOKEN, "Alice", 99, None)
+        self.assertTrue(result.quarantined)
+        self.assertEqual(self.store.death_high_water(WORLD_TOKEN, "Alice"), 0)
+        self.assertEqual(
+            self.store.connection.execute(
+                "SELECT COUNT(*) FROM events WHERE kind = 'player_death'"
+            ).fetchone()[0],
+            0,
+        )
+
+    def test_death_counters_are_per_world_and_per_player(self) -> None:
+        self.store.ingest_death(WORLD_TOKEN, "Alice", 1, None)
+        self.assertEqual(self.store.death_high_water(WORLD_TOKEN + 1, "Alice"), 0)
+        self.assertEqual(self.store.death_high_water(WORLD_TOKEN, "Bob"), 0)
+
+
+class SceneSchedulerTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.clock = FakeClock()
+        self.store = DirectorStore(
+            Path(self.temp.name) / "heraldor.sqlite3", clock=self.clock
+        )
+        self.addCleanup(self.store.close)
+
+    def start_phase(self, phase: str, nonce: int = 900) -> None:
+        outcome = heraldor_service.process_control_request(
+            self.store,
+            control_request("phase_start", phase, nonce=nonce),
+            observed_world_token=WORLD_TOKEN,
+        )
+        self.assertEqual(outcome.status, "delivered")
+
+    def deliver_scene(self, subject: str, nonce: int) -> None:
+        request = control_request("scene_trigger", "echo_01", subject, nonce=nonce)
+        with patch.object(
+            heraldor_service,
+            "rcon",
+            return_value=f"scene dispatched event={request.event_id}",
+        ):
+            outcome = heraldor_service.process_control_request(
+                self.store, request, observed_world_token=WORLD_TOKEN
+            )
+        self.assertEqual(outcome.status, "delivered")
+
+    def test_dormant_and_paused_campaigns_never_plan(self) -> None:
+        self.assertIsNone(
+            self.store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        )
+        self.start_phase("presence")
+        heraldor_service.process_control_request(
+            self.store,
+            control_request("pause", nonce=901),
+            observed_world_token=WORLD_TOKEN,
+        )
+        self.assertIsNone(
+            self.store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        )
+
+    def test_opening_beat_then_cluster_beat_then_silence(self) -> None:
+        store = self.store
+        self.start_phase("presence")
+        policy = store.policy
+
+        opening = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(opening)
+        self.assertEqual(opening.reason, "cluster_open")
+        self.assertEqual(opening.profile, "echo_01")
+        self.assertEqual(opening.subject, "Alice")
+        # The reservation itself is a scene in flight: no double-planning.
+        self.assertIsNone(
+            store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        )
+        store.mark_attempting(opening.event_id)
+        store.finish_attempt(opening.event_id, delivered=True)
+
+        # Inside the night the per-subject gap relaxes to the cluster gap.
+        self.clock.value += policy.cluster_subject_gap_seconds + 1
+        beat = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(beat)
+        self.assertEqual(beat.reason, "cluster_beat")
+        store.mark_attempting(beat.event_id)
+        store.finish_attempt(beat.event_id, delivered=True)
+
+        # After the open window but before the silence: the night is over.
+        self.clock.value += policy.cluster_open_seconds + 60
+        self.assertIsNone(
+            store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        )
+
+        # After the full silence a new night may open.
+        self.clock.value += policy.cluster_silence_seconds
+        reopened = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(reopened)
+        self.assertEqual(reopened.reason, "cluster_open")
+
+    def test_cluster_budget_is_a_hard_cap(self) -> None:
+        store = self.store
+        self.start_phase("presence")
+        policy = store.policy
+        for index in range(policy.cluster_scene_budget):
+            plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+            self.assertIsNotNone(plan)
+            store.mark_attempting(plan.event_id)
+            store.finish_attempt(plan.event_id, delivered=True)
+            self.clock.value += policy.cluster_subject_gap_seconds + 1
+        self.assertIsNone(
+            store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        )
+
+    def test_story_events_impose_a_quiet_window(self) -> None:
+        store = self.store
+        self.start_phase("presence")
+        store.ingest_servant_score(3, world_token=WORLD_TOKEN)
+        self.assertIsNone(
+            store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        )
+        self.clock.value += store.policy.major_quiet_seconds + 1
+        self.assertIsNotNone(
+            store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        )
+
+    def test_probability_gate_keeps_quiet_nights_quiet(self) -> None:
+        store = self.store
+        self.start_phase("presence")
+        # random() above the open probability means no scene, even eligible.
+        reluctant = ScriptedRoll(randoms=[0.99])
+        self.assertIsNone(
+            store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=reluctant)
+        )
+
+    def test_aftermath_forces_footsteps_and_is_consumed(self) -> None:
+        store = self.store
+        self.start_phase("servants")
+        store.record_servant_aftermath(WORLD_TOKEN, "Alice", 1)
+
+        plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan.reason, "aftermath")
+        self.assertEqual(plan.profile, "footsteps_01")
+        store.mark_attempting(plan.event_id)
+        store.finish_attempt(plan.event_id, delivered=True)
+
+        # The flag was consumed: the next beat falls back to normal choice.
+        self.clock.value += store.policy.cluster_subject_gap_seconds + 1
+        followup = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(followup)
+        self.assertNotEqual(followup.reason, "aftermath")
+
+    def test_grave_echo_answers_an_old_death_at_its_site(self) -> None:
+        store = self.store
+        self.start_phase("servants")
+        store.ingest_death(WORLD_TOKEN, "Alice", 1, (100, 64, -30, "minecraft:overworld"))
+        self.clock.value += store.policy.grave_echo_min_age_seconds + 1
+
+        plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan.reason, "grave_echo")
+        self.assertEqual(plan.profile, "footsteps_01")
+        self.assertEqual(plan.hint, (100, -30))
+        death_status = store.connection.execute(
+            "SELECT status FROM events WHERE kind = 'player_death'"
+        ).fetchone()["status"]
+        self.assertEqual(death_status, "echoed")
+
+        store.mark_attempting(plan.event_id)
+        store.finish_attempt(plan.event_id, delivered=True)
+        self.clock.value += store.policy.cluster_subject_gap_seconds + 1
+        # The echoed death is spent; the next beat is an ordinary one.
+        followup = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(followup)
+        self.assertEqual(followup.reason, "cluster_beat")
+
+    def test_grave_echo_never_answers_a_fresh_death(self) -> None:
+        store = self.store
+        self.start_phase("servants")
+        store.ingest_death(WORLD_TOKEN, "Alice", 1, (100, 64, -30, "minecraft:overworld"))
+        plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(plan)
+        self.assertNotEqual(plan.reason, "grave_echo")
+
+    def test_ground_scenes_carry_a_stalking_hint_when_memory_exists(self) -> None:
+        store = self.store
+        self.start_phase("presence")
+        store.record_stalk_visit(WORLD_TOKEN, "Alice", 100.0, 200.0)
+        plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan.profile, "echo_01")
+        self.assertEqual(plan.hint, (3 * 32 + 16, 6 * 32 + 16))
+
+    def test_rehearsals_never_open_or_extend_a_cluster(self) -> None:
+        store = self.store
+        self.start_phase("presence")
+        request = control_request("scene_rehearse", "echo_01", "Alice", nonce=950)
+        with patch.object(
+            heraldor_service,
+            "rcon",
+            return_value="scene dispatched event=00000000-0000-0000-0000-000000000099",
+        ):
+            heraldor_service.process_control_request(
+                store, request, observed_world_token=WORLD_TOKEN
+            )
+        plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan.reason, "cluster_open")
+
+    def test_phase_gates_apply_to_planned_profiles(self) -> None:
+        store = self.store
+        self.start_phase("presence")
+        # Pick the last allowed profile: whisper_steps_01 (presence-allowed).
+        plan = store.plan_and_reserve_scene(
+            WORLD_TOKEN, ["Alice"], rng=ScriptedRoll(picks=[0, 4])
+        )
+        self.assertIsNotNone(plan)
+        self.assertEqual(plan.profile, "whisper_steps_01")
+        # manifestation-only profiles are never in the presence pool.
+        self.assertNotIn(plan.profile, {"light_fault_01", "chroma_break_01"})
+
+
+class SchedulerDispatchTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.clock = FakeClock()
+        self.store = DirectorStore(
+            Path(self.temp.name) / "heraldor.sqlite3", clock=self.clock
+        )
+        self.addCleanup(self.store.close)
+
+    def test_scheduler_cycle_dispatches_with_hint_and_closes_out(self) -> None:
+        store = self.store
+        heraldor_service.process_control_request(
+            store,
+            control_request("phase_start", "presence", nonce=970),
+            observed_world_token=WORLD_TOKEN,
+        )
+        store.record_stalk_visit(WORLD_TOKEN, "Alice", 100.0, 200.0)
+        commands: list[str] = []
+        with patch.object(
+            heraldor_service, "online_players", return_value=["Alice"]
+        ), patch.object(
+            heraldor_service,
+            "rcon",
+            side_effect=lambda command: commands.append(command)
+            or "scene dispatched event=x",
+        ), patch.object(
+            heraldor_service, "SCHEDULER_ENABLED", True
+        ), patch(
+            "heraldor_director.random"
+        ) as director_random:
+            director_random.Random.return_value = ScriptedRoll()
+            heraldor_service.scene_scheduler_cycle(store, WORLD_TOKEN)
+        self.assertEqual(len(commands), 1)
+        self.assertTrue(commands[0].startswith("zapegscene trigger Alice "))
+        self.assertIn(" echo_01 ", commands[0])
+        self.assertTrue(commands[0].endswith(f" {3 * 32 + 16} {6 * 32 + 16}"))
+        status = store.connection.execute(
+            "SELECT status FROM events WHERE kind = 'director_scene'"
+        ).fetchone()["status"]
+        self.assertEqual(status, "delivered")
+
+    def test_scheduler_cycle_stays_silent_when_disabled(self) -> None:
+        with patch.object(heraldor_service, "SCHEDULER_ENABLED", False):
+            with patch.object(heraldor_service, "online_players") as players:
+                heraldor_service.scene_scheduler_cycle(self.store, WORLD_TOKEN)
+        players.assert_not_called()
 
 
 if __name__ == "__main__":

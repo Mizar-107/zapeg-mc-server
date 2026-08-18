@@ -10,6 +10,7 @@ const ZH_EXPIRY_OBJECTIVE = 'zh_svc_exp'
 const ZH_KILL_OBJECTIVE = 'zapeg_hsvc'
 const ZH_WORLD_OBJECTIVE = 'zh_svc_world'
 const ZH_INSTANCE_OBJECTIVE = 'zh_svc_id'
+const ZH_DEATH_OBJECTIVE = 'zh_death'
 const ZH_CONTROL_STORAGE = 'zapeg:heraldor'
 const ZH_CONTROL_TOKEN_VERSION = 'zhctl1'
 const ZH_CONTROL_TTL_SECONDS = 90
@@ -114,7 +115,8 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   const allowedArguments = [
     '-', 'presence', 'servants', 'manifestation',
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
-    'peripheral_01', 'footsteps_01'
+    'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
+    'chroma_break_01', 'near_miss_01', 'whisper_steps_01'
   ]
   if (allowedActions.indexOf(action) < 0 || allowedArguments.indexOf(argument) < 0) {
     zhReply(source, 'The Director request was not allowlisted.', true)
@@ -124,7 +126,8 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   const phases = ['presence', 'servants', 'manifestation']
   const profiles = [
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
-    'peripheral_01', 'footsteps_01'
+    'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
+    'chroma_break_01', 'near_miss_01', 'whisper_steps_01'
   ]
   const sceneAction = action === 'scene_rehearse' || action === 'scene_trigger'
   const validShape =
@@ -190,7 +193,12 @@ function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
     ['motion-echo', 'motion_echo_01'],
     ['light-fault', 'light_fault_01'],
     ['peripheral', 'peripheral_01'],
-    ['footsteps', 'footsteps_01']
+    ['footsteps', 'footsteps_01'],
+    ['sky-mark', 'sky_mark_01'],
+    ['false-passage', 'false_passage_01'],
+    ['chroma-break', 'chroma_break_01'],
+    ['near-miss', 'near_miss_01'],
+    ['whisper-steps', 'whisper_steps_01']
   ]
   profiles.forEach(profile => {
     apparition.then(Commands.literal(profile[0])
@@ -219,6 +227,9 @@ function zhEnsureObjectives(server) {
   }
   if (!server.scoreboard.getObjective(ZH_INSTANCE_OBJECTIVE)) {
     server.runCommandSilent(`scoreboard objectives add ${ZH_INSTANCE_OBJECTIVE} dummy`)
+  }
+  if (!server.scoreboard.getObjective(ZH_DEATH_OBJECTIVE)) {
+    server.runCommandSilent(`scoreboard objectives add ${ZH_DEATH_OBJECTIVE} dummy`)
   }
   server.runCommandSilent(`scoreboard players add #now ${ZH_EXPIRY_OBJECTIVE} 0`)
   server.runCommandSilent(`scoreboard players add #active_until ${ZH_EXPIRY_OBJECTIVE} 0`)
@@ -577,6 +588,32 @@ EntityEvents.hurt(event => {
 
 EntityEvents.drops('minecraft:wither_skeleton', event => {
   if (zhHasTag(event.entity, ZH_SERVANT_TAG)) event.drops.clear()
+})
+
+// Grave echoes: the Director's log tail. Each real player death advances a
+// per-player counter and remembers the last death site; the Director polls
+// both over RCON and may answer an old site with a much later, quiet scene.
+// Nothing is shown to anyone here — no message, no sound, no mockery.
+EntityEvents.death('minecraft:player', event => {
+  const player = event.entity
+  if (zhIsNumenPlayer(player)) return
+  const name = zhSafePlayerName(player)
+  if (!name) return
+  const server = player.server
+  zhEnsureObjectives(server)
+  server.runCommandSilent(`scoreboard players add ${name} ${ZH_DEATH_OBJECTIVE} 1`)
+  const x = Math.floor(Number(player.x))
+  const y = Math.floor(Number(player.y))
+  const z = Math.floor(Number(player.z))
+  const dimension = zhDimensionId(player.level)
+  server.runCommandSilent(
+    `data modify storage ${ZH_CONTROL_STORAGE} death_${name} set value ` +
+    `{x:${x},y:${y},z:${z},dim:"${dimension}"}`
+  )
+  server.runCommandSilent(
+    `execute store result storage ${ZH_CONTROL_STORAGE} death_${name}.game_time long 1 ` +
+    `run time query gametime`
+  )
 })
 
 EntityEvents.death('minecraft:wither_skeleton', event => {

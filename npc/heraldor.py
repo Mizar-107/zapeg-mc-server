@@ -36,12 +36,16 @@ from heraldor_director import (
     CONTROL_PHASES,
     CONTROL_SCENE_PROFILE_PHASES,
     CONTROL_TOKEN_MAX_FUTURE_SECONDS,
+    STALK_HINT_PROFILES,
     ControlRequest,
     DirectorStateLock,
     DirectorStore,
     Reservation,
     extract_control_request_token,
     parse_control_request,
+    parse_death_site,
+    parse_last_minion_kill,
+    parse_pos_output,
     parse_score_output,
     restore_snapshot,
     scene_ttl_ticks,
@@ -58,6 +62,11 @@ VOICE_ENABLED = os.environ.get("HERALDOR_VOICE_ENABLED", "false").lower() == "tr
 CHECK_INTERVAL = max(10, int(os.environ.get("CHECK_INTERVAL", "300")))
 MINION_POLL_INTERVAL = max(5, int(os.environ.get("MINION_POLL_INTERVAL", "10")))
 CONTROL_POLL_INTERVAL = max(1, int(os.environ.get("CONTROL_POLL_INTERVAL", "2")))
+# Otonom sahne planlayıcısı (gece nöbetleri) varsayılan KAPALI; sahibi açar.
+SCHEDULER_ENABLED = os.environ.get("HERALDOR_SCENE_SCHEDULER", "false").lower() == "true"
+SCHEDULER_INTERVAL = max(20, int(os.environ.get("SCHEDULER_INTERVAL", "60")))
+STALK_SAMPLE_INTERVAL = max(15, int(os.environ.get("STALK_SAMPLE_INTERVAL", "45")))
+DEATH_POLL_INTERVAL = max(10, int(os.environ.get("DEATH_POLL_INTERVAL", "30")))
 DB_PATH = Path(os.environ.get("HERALDOR_DB_PATH", "/state/heraldor.sqlite3"))
 SNAPSHOT_PATH = Path(
     os.environ.get("HERALDOR_SNAPSHOT_PATH", "/state/backup/heraldor.sqlite3")
@@ -66,6 +75,7 @@ SERVANT_OBJECTIVE = "zapeg_hsvc"
 SERVANT_SCORE_HOLDER = "#total"
 SERVANT_WORLD_OBJECTIVE = "zh_svc_world"
 SERVANT_WORLD_HOLDER = "#world"
+DEATH_OBJECTIVE = "zh_death"
 PLAYER_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,16}$")
 CONTROL_STORAGE = "zapeg:heraldor"
 
@@ -364,6 +374,7 @@ def process_control_request(
             )
 
     payload: dict[str, object] = {}
+    scene_hint: tuple[int, int] | None = None
     if request.action in {"scene_rehearse", "scene_trigger"}:
         payload = {
             "profile": request.argument,
@@ -371,6 +382,13 @@ def process_control_request(
         }
         if request.action == "scene_trigger":
             payload["runtime_event_id"] = request.event_id
+            # Stalking memory: live scenes bias their anchor toward the
+            # places the target actually visits. Rehearsals never touch it.
+            if request.argument in STALK_HINT_PROFILES and request.target:
+                scene_hint = director.stalk_hint(request.world_token, request.target)
+                if scene_hint is not None:
+                    payload["hint_x"] = scene_hint[0]
+                    payload["hint_z"] = scene_hint[1]
         else:
             payload["runtime_event_id_policy"] = "runtime_generated"
     record = director.record_control_event(
@@ -403,6 +421,8 @@ def process_control_request(
             f"zapegscene trigger {request.target} {request.event_id} "
             f"{request.argument} {ttl_ticks}"
         )
+        if scene_hint is not None:
+            command += f" {scene_hint[0]} {scene_hint[1]}"
 
     try:
         output = str(rcon(command)).strip()
@@ -685,6 +705,30 @@ def poll_servant_score(director: DirectorStore):
             f"[heraldor] hizmetkâr zaferleri işlendi: "
             f"{result.previous_high_water} -> {result.high_water}"
         )
+        # Servant aftermath: the killer's next scene is always footsteps_01.
+        # The world stores only the latest kill, so a burst between polls
+        # attributes the newest one — the ordinals still close the gap.
+        try:
+            kill_output = str(
+                rcon(f"data get storage {CONTROL_STORAGE} last_minion_kill")
+            )
+            kill = parse_last_minion_kill(kill_output)
+        except Exception as exc:
+            kill = None
+            print(f"[heraldor] hizmetkâr katili okunamadı: {exc}")
+        if kill is not None:
+            killer, sequence, kill_world = kill
+            if (
+                kill_world == world_before
+                and result.previous_high_water < sequence <= result.high_water
+            ):
+                director.record_servant_aftermath(
+                    world_before, killer, sequence
+                )
+                print(
+                    f"[heraldor] hizmetkâr sonrası kaydedildi: {killer} "
+                    f"için sıradaki sahne her zaman footsteps_01"
+                )
     if result.story_event_id:
         output_state = result.story_output_status or "çıkış durumu bilinmiyor"
         print(
@@ -693,6 +737,109 @@ def poll_servant_score(director: DirectorStore):
             f"{output_state}"
         )
     return result, score, world_before
+
+
+def poll_stalk_samples(
+    director: DirectorStore, world_token: int | None
+) -> None:
+    """Sample online players' positions into the coarse stalking memory.
+
+    Only runs while the campaign is live; the store itself collapses every
+    fix into a 32-block cell and purges other worlds on sight.
+    """
+
+    if world_token is None:
+        return
+    campaign = director.campaign_state(world_token)
+    if campaign.phase == "dormant" or campaign.paused:
+        return
+    players = online_players()
+    if not players:
+        return
+    outputs = rcon_many([f"data get entity {name} Pos" for name in players])
+    for name, output in zip(players, outputs):
+        position = parse_pos_output(str(output))
+        if position is None:
+            continue
+        director.record_stalk_visit(world_token, name, position[0], position[2])
+
+
+def poll_death_log(director: DirectorStore, world_token: int | None) -> None:
+    """Ingest the per-player death counter and the last death site."""
+
+    if world_token is None:
+        return
+    for name in online_players():
+        try:
+            score_output = str(
+                rcon(f"scoreboard players get {name} {DEATH_OBJECTIVE}")
+            )
+            score = parse_score_output(score_output, DEATH_OBJECTIVE)
+            if score is None:
+                continue
+            if score <= director.death_high_water(world_token, name):
+                continue
+            site_output = str(
+                rcon(f"data get storage {CONTROL_STORAGE} death_{name}")
+            )
+            site = parse_death_site(site_output)
+            result = director.ingest_death(world_token, name, score, site)
+        except Exception as exc:
+            print(f"[heraldor] ölüm kaydı okunamadı ({name}): {exc}")
+            continue
+        if result.death_event_ids:
+            print(
+                f"[heraldor] ölüm kuyruğu işlendi: {name} "
+                f"{result.previous_high_water} -> {result.high_water}"
+            )
+        if result.regression or result.quarantined:
+            print(
+                f"[heraldor] ölüm skoru şüpheli ({name}); güvenli kapandı: "
+                f"kayıt={result.high_water}, görülen={score}"
+            )
+
+
+def scene_scheduler_cycle(
+    director: DirectorStore, world_token: int | None
+) -> None:
+    """The autonomous night-of-activity planner; disabled unless enabled."""
+
+    if not SCHEDULER_ENABLED or world_token is None:
+        return
+    players = online_players()
+    if not players:
+        return
+    plan = director.plan_and_reserve_scene(world_token, players)
+    if plan is None:
+        return
+    command = (
+        f"zapegscene trigger {plan.subject} {plan.event_id} "
+        f"{plan.profile} {plan.ttl_ticks}"
+    )
+    if plan.hint is not None:
+        command += f" {plan.hint[0]} {plan.hint[1]}"
+    if not director.mark_attempting(plan.event_id):
+        return
+    try:
+        output = str(rcon(command)).strip()
+    except Exception as exc:
+        director.finish_attempt(
+            plan.event_id,
+            delivered=None,
+            error=f"runtime response was uncertain: {exc}",
+        )
+        print(f"[heraldor] planlanan sahne belirsiz kaldı: {exc}")
+        return
+    success = output.startswith("scene dispatched event=")
+    director.finish_attempt(
+        plan.event_id,
+        delivered=success,
+        error=None if success else f"runtime rejected request: {output}",
+    )
+    print(
+        f"[heraldor] planlanan sahne ({plan.reason}): {plan.profile} -> "
+        f"{plan.subject}; durum={'gönderildi' if success else 'reddedildi'}"
+    )
 
 
 def _world_token_from_servant_poll(polled) -> int | None:
@@ -705,6 +852,8 @@ def run_daemon() -> None:
     print(
         f"[heraldor] uyanıyor — ambient={CHECK_INTERVAL}s, minion={MINION_POLL_INTERVAL}s, "
         f"director={CONTROL_POLL_INTERVAL}s, "
+        f"stalk={STALK_SAMPLE_INTERVAL}s, death={DEATH_POLL_INTERVAL}s, "
+        f"scheduler={'açık/' + str(SCHEDULER_INTERVAL) + 's' if SCHEDULER_ENABLED else 'kapalı'}, "
         f"webhook={'var' if WEBHOOK else 'yok'}, events={EVENTS}, llm={USE_LLM}, "
         f"voice={VOICE_ENABLED}, db={DB_PATH}"
     )
@@ -720,6 +869,9 @@ def run_daemon() -> None:
         next_ambient = time.monotonic() + CHECK_INTERVAL
         next_minion_poll = time.monotonic()
         next_control_poll = time.monotonic()
+        next_stalk_sample = time.monotonic() + STALK_SAMPLE_INTERVAL
+        next_death_poll = time.monotonic() + DEATH_POLL_INTERVAL
+        next_scheduler = time.monotonic() + SCHEDULER_INTERVAL
         active_world_token: int | None = None
         last_score_anomaly: tuple[str, int, int] | None = None
 
@@ -758,6 +910,30 @@ def run_daemon() -> None:
                     print(f"[heraldor] hizmetkâr skoru okunamadı: {exc}")
 
             now = time.monotonic()
+            if now >= next_stalk_sample:
+                next_stalk_sample = now + STALK_SAMPLE_INTERVAL
+                try:
+                    poll_stalk_samples(director, active_world_token)
+                except Exception as exc:
+                    print(f"[heraldor] takip belleği örneklemi hata: {exc}")
+
+            now = time.monotonic()
+            if now >= next_death_poll:
+                next_death_poll = now + DEATH_POLL_INTERVAL
+                try:
+                    poll_death_log(director, active_world_token)
+                except Exception as exc:
+                    print(f"[heraldor] ölüm kuyruğu döngüsü hata: {exc}")
+
+            now = time.monotonic()
+            if now >= next_scheduler:
+                next_scheduler = now + SCHEDULER_INTERVAL
+                try:
+                    scene_scheduler_cycle(director, active_world_token)
+                except Exception as exc:
+                    print(f"[heraldor] sahne planlayıcısı hata: {exc}")
+
+            now = time.monotonic()
             if now >= next_ambient:
                 next_ambient = now + CHECK_INTERVAL
                 try:
@@ -766,7 +942,14 @@ def run_daemon() -> None:
                     print(f"[heraldor] atmosfer döngüsü hata: {exc}")
 
             delay = (
-                min(next_ambient, next_minion_poll, next_control_poll)
+                min(
+                    next_ambient,
+                    next_minion_poll,
+                    next_control_poll,
+                    next_stalk_sample,
+                    next_death_poll,
+                    next_scheduler,
+                )
                 - time.monotonic()
             )
             time.sleep(max(0.25, min(delay, 5.0)))
