@@ -24,6 +24,24 @@ or explain the command, tags, counters, thresholds, or audio trigger.
   orthogonal pause state and hardcoded apparition profiles. Minecraft only
   writes one short-lived request; the Python Director is the authority that
   validates, records and dispatches it to the client/server runtime.
+- Eleven apparition profiles on runtime protocol `4`: the original six plus
+  `sky-mark`, `false-passage`, `chroma-break`, `near-miss` and
+  `whisper-steps`.
+- An opt-in autonomous scene scheduler (off by default) that clusters scenes
+  into a "night of activity" followed by days of silence, enforces a
+  per-subject gap, and never runs while dormant, paused, inside a story quiet
+  window, or while any scene is still in flight.
+- Stalking memory: the daemon samples online player positions on a slow
+  interval and collapses them into coarse 32-block cells, per world and per
+  player, capped per player. Ground-anchored live scenes then prefer anchors
+  near cells the target actually visits. Nothing finer than a cell is ever
+  stored, and every cell is purged the moment a different world token appears.
+- Grave echoes: player deaths are counted in a hidden scoreboard and the death
+  site is stored server-side. Rarely, long after a death, the scheduler may
+  answer it with one quiet scene near the site. Fresh deaths are never
+  answered, and the scene never mocks the player.
+- Servant aftermath: after a legitimate servant victory, that player's next
+  scheduled scene is always `footsteps_01`. Pure pacing; nothing else changes.
 
 There is no automatic servant schedule, custom Heraldor body, boss fight or
 LLM-driven combat in this slice. In an active, unpaused campaign with voice
@@ -65,6 +83,11 @@ strings:
 /zapeg-lore director event rehearse apparition light-fault <player>
 /zapeg-lore director event rehearse apparition peripheral <player>
 /zapeg-lore director event rehearse apparition footsteps <player>
+/zapeg-lore director event rehearse apparition sky-mark <player>
+/zapeg-lore director event rehearse apparition false-passage <player>
+/zapeg-lore director event rehearse apparition chroma-break <player>
+/zapeg-lore director event rehearse apparition near-miss <player>
+/zapeg-lore director event rehearse apparition whisper-steps <player>
 
 /zapeg-lore director event trigger apparition echo <player>
 /zapeg-lore director event trigger apparition threshold <player>
@@ -72,16 +95,26 @@ strings:
 /zapeg-lore director event trigger apparition light-fault <player>
 /zapeg-lore director event trigger apparition peripheral <player>
 /zapeg-lore director event trigger apparition footsteps <player>
+/zapeg-lore director event trigger apparition sky-mark <player>
+/zapeg-lore director event trigger apparition false-passage <player>
+/zapeg-lore director event trigger apparition chroma-break <player>
+/zapeg-lore director event trigger apparition near-miss <player>
+/zapeg-lore director event trigger apparition whisper-steps <player>
 ```
 
-`echo`, `threshold` and `peripheral` require `presence`; `motion-echo` and
-`footsteps` require `servants`; `light-fault` requires `manifestation`. These
-phase gates apply to both the high-level rehearsal and live forms. Live
+`echo`, `threshold`, `peripheral`, `sky-mark` and `whisper-steps` require
+`presence`; `motion-echo`, `footsteps`, `near-miss` and `false-passage`
+require `servants`; `light-fault` and `chroma-break` require `manifestation`.
+These phase gates apply to both the high-level rehearsal and live forms. Live
 triggers carry a Director-computed, phase-scaled scene length (presence ×1.0,
 servants ×1.15, manifestation ×1.35 of the profile default, clamped to
-1200 ticks); rehearsals always use the profile default. Raw OP `/zapegscene`
-commands remain an effects-only manual test/override: they consume only the
-runtime UUID ledger and never mutate the Python campaign phase or pause state.
+1200 ticks); rehearsals always use the profile default. Ground-anchored live
+profiles (`echo`, `threshold`, `peripheral`, `footsteps`, `false-passage`)
+additionally carry a coarse anchor hint from stalking memory when one exists,
+so the scene appears near a place the target actually visits. Raw OP
+`/zapegscene` commands remain an effects-only manual test/override: they
+consume only the runtime UUID ledger and never mutate the Python campaign
+phase or pause state.
 
 The high-level command is asynchronous. Its immediate response says **queued**,
 not executed. KubeJS writes one allowlisted token tied to the current hidden
@@ -114,6 +147,36 @@ exact path after confirming no valid request is pending:
 /data get storage zapeg:heraldor control_request
 /data remove storage zapeg:heraldor control_request
 ```
+
+## Configure the autonomous scene scheduler
+
+The scheduler is off by default. Enable it only after the two-client privacy
+gate below has passed, and only on a campaign that is already in an active
+phase:
+
+```dotenv
+HERALDOR_SCENE_SCHEDULER=true
+SCHEDULER_INTERVAL=60
+STALK_SAMPLE_INTERVAL=45
+DEATH_POLL_INTERVAL=30
+```
+
+With the scheduler on, the Director periodically considers one scene for one
+online player. A scene is planned only when all of these hold: the campaign is
+active and unpaused, no story quiet window is running, no scene is reserved or
+in flight, and the cluster pacing allows it — scenes cluster into a "night of
+activity" (a bounded budget of scenes with short gaps) followed by days of
+silence, and each subject has their own cooldown. Even then, two probability
+gates keep openings and follow-up beats rare. Every planned scene is a normal
+audited Director event with `planner=scheduler` and a reason of
+`cluster_open`, `cluster_beat`, `aftermath` or `grave_echo`.
+
+Stalking memory never stores exact positions: samples collapse into 32-block
+cells, capped per player, and the moment a new world token is observed every
+old cell is purged. Grave echoes require a death at least twenty minutes old,
+fire at most once per death, and mark the death event `echoed` so it is never
+answered twice. Disabling the scheduler stops new plans; stalk sampling and
+death ingestion keep running so the memory stays warm.
 
 ## Deploy
 
@@ -361,6 +424,24 @@ Before using it in the story, verify all of these in a copied/disposable world:
 15. Cross the third-servant threshold once while paused in the copy, resume and
     verify the story observation remains but its terminally suppressed audio is
     never delivered later.
+16. Two-client privacy for every protocol-4 profile: the target renders/hears
+    the full scene while a nearby observer receives no packet, no sound, no
+    GUI artifact and no sky/doorway geometry — verify with both clients in
+    first and third person, with shaders on and off (Embeddium/Oculus) and
+    Entity Culling enabled.
+17. Photosensitivity check on `chroma-break`: intensity stays capped, the
+    pulse stays slow, and there is no rapid full-screen flashing even at the
+    longest phase-scaled TTL.
+18. Cleanup paths: logout, death, dimension change and `/zapegscene
+    cancel-all` mid-scene remove every trace — sky mark, passage, chroma
+    overlay, camera unease and fog dip all decay to zero immediately.
+19. Scheduler dry run in the copy: enable `HERALDOR_SCENE_SCHEDULER`, confirm
+    scenes cluster then fall silent for days, confirm `planner=scheduler`
+    events in `admin status`, and confirm a fresh death is never echoed while
+    an old one is echoed at most once near its site.
+20. Stalking-memory boundary: inspect the SQLite `stalk_cells` table and
+    confirm only coarse 32-block cells exist, then change the world token and
+    confirm every old cell is purged.
 
 Use `/zapeg-lore servant cleanup` immediately if any targeting or drop invariant
 fails. Keep the feature manual until this gate passes.
