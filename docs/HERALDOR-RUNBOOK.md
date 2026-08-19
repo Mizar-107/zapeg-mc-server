@@ -445,10 +445,16 @@ Before using it in the story, verify all of these in a copied/disposable world:
     the full scene while a nearby observer receives no packet, no sound, no
     GUI artifact and no sky/doorway geometry — verify with both clients in
     first and third person, with shaders on and off (Embeddium/Oculus) and
-    Entity Culling enabled.
+    Entity Culling enabled. On every humanoid figure (`echo`, `threshold`,
+    `motion-echo`, `peripheral`, `near-miss`) confirm the two ember-orange
+    eyes ride the head: visible on the dark silhouettes, and on `motion-echo`
+    glowing on the newest copy's own face while the lag copies stay eyeless.
+    Walk around an `echo` figure: the eyes fade out past the front hemisphere
+    instead of shining through the back of the head.
 17. Photosensitivity check on `chroma-break`: intensity stays capped, the
     pulse stays slow, and there is no rapid full-screen flashing even at the
-    longest phase-scaled TTL.
+    longest phase-scaled TTL. The eye glow on every profile is steady — it
+    never strobes; the only motion is the colossus finale's slow narrowing.
 18. Cleanup paths: logout, death, dimension change and `/zapegscene
     cancel-all` mid-scene remove every trace — sky mark, passage, chroma
     overlay, camera unease and fog dip all decay to zero immediately.
@@ -464,7 +470,10 @@ Before using it in the story, verify all of these in a copied/disposable world:
     silhouette and feels the footfall pulses while a nearby observer — even
     standing beside the target and looking the same way — receives no packet,
     no silhouette, no boom, no heartbeat and no camera shake. Verify in first
-    and third person.
+    and third person. Confirm the two orange eyes read clearly at every stage
+    distance (280 → 70 blocks), by day and by night, sit slightly too far
+    apart, hold after the body starts fading, and slowly narrow during the
+    stage-4 watch.
 22. Shake comfort check: during a stage-3/4 rehearsal the footfall pulses read
     as deep ground thuds, not motion sickness — each pulse decays within about
     a second, the camera never drifts between steps, and the target keeps full
@@ -482,9 +491,10 @@ Before using it in the story, verify all of these in a copied/disposable world:
     the heartbeat immediately, with no residue after relog.
 25. Colossus shader matrix: rehearse stage 1 and stage 4 with shaders off,
     with Embeddium, and with Oculus + a common pack — the silhouette must read
-    as a dark shape in the fog (never invisible, never glowing), terrain in
-    front of it must occlude it honestly, and the fog dip prelude must not
-    fight the pack's own fog.
+    as a dark shape in the fog (never invisible, never body-glowing), the eyes
+    must punch through darkness and fog as steady orange glows at 280 blocks,
+    terrain in front of it must occlude it honestly, and the fog dip prelude
+    must not fight the pack's own fog.
 
 Use `/zapeg-lore servant cleanup` immediately if any targeting or drop invariant
 fails. Keep the feature manual until this gate passes.
