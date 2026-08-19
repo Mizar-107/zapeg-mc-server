@@ -24,9 +24,23 @@ or explain the command, tags, counters, thresholds, or audio trigger.
   orthogonal pause state and hardcoded apparition profiles. Minecraft only
   writes one short-lived request; the Python Director is the authority that
   validates, records and dispatches it to the client/server runtime.
-- Twelve apparition profiles on runtime protocol `5`: the original six plus
-  `sky-mark`, `false-passage`, `chroma-break`, `near-miss`, `whisper-steps`
-  and the staged, operator-only `colossus` escalation encounter.
+- Thirteen apparition profiles on runtime protocol `6`: the original six plus
+  `sky-mark`, `false-passage`, `chroma-break`, `near-miss`, `whisper-steps`,
+  the staged, operator-only `colossus` escalation encounter, and the
+  operator-only `visitation` OS-level scare (a brief face blink outside the
+  game window, a glitched window title, a small window pulse and an optional
+  taskbar flash — all exactly restored, per-client opt-out via the runtime's
+  `osScares` client config).
+- A client-side gaze-pull layer: during an allowlisted scene's pull window
+  the target's rendered camera is dragged toward the apparition's glowing
+  eyes at a slow bounded rate. The player can fight it, but the pull wins
+  smoothly, eases in and out, and releases cleanly with zero residual
+  rotation.
+- In-game Discord bridge actions: `/zapeg-lore director discord whisper`
+  posts one seeded Turkish unease line through the configured webhook
+  (fail-closed when unconfigured, audited, paced by a per-world cooldown),
+  and `/zapeg-lore director voice rehearse` enqueues a rehearsal-only voice
+  clip under the same gates as the host-side `admin voice-rehearse`.
 - An opt-in autonomous scene scheduler (off by default) that clusters scenes
   into a "night of activity" followed by days of silence, enforces a
   per-subject gap, and never runs while dormant, paused, inside a story quiet
@@ -67,8 +81,14 @@ step. Neither interface can rewind a phase, and `confrontation` is not released.
 /zapeg-lore director pause
 /zapeg-lore director resume
 /zapeg-lore director colossus reset <player>
+/zapeg-lore director discord whisper
+/zapeg-lore director voice rehearse
 /zapeg-lore director cancel
 ```
+
+A bare `/zapeg-lore director`, or any malformed or incomplete Director
+command, replies with a compact usage summary of the whole tree, including
+the rehearse-vs-trigger difference.
 
 `pause` does not alter the phase. It suppresses ambient rolls and new live
 Director scenes. Rehearsals and `cancel` remain available; `cancel` only stops
@@ -90,6 +110,7 @@ strings:
 /zapeg-lore director event rehearse apparition near-miss <player>
 /zapeg-lore director event rehearse apparition whisper-steps <player>
 /zapeg-lore director event rehearse apparition colossus <player>
+/zapeg-lore director event rehearse apparition visitation <player>
 
 /zapeg-lore director event trigger apparition echo <player>
 /zapeg-lore director event trigger apparition threshold <player>
@@ -103,13 +124,14 @@ strings:
 /zapeg-lore director event trigger apparition near-miss <player>
 /zapeg-lore director event trigger apparition whisper-steps <player>
 /zapeg-lore director event trigger apparition colossus <player>
+/zapeg-lore director event trigger apparition visitation <player>
 ```
 
 `echo`, `threshold`, `peripheral`, `sky-mark` and `whisper-steps` require
 `presence`; `motion-echo`, `footsteps`, `near-miss` and `false-passage`
-require `servants`; `light-fault`, `chroma-break` and `colossus` require
-`manifestation`. These phase gates apply to both the high-level rehearsal and
-live forms. Live triggers carry a Director-computed, phase-scaled scene length
+require `servants`; `light-fault`, `chroma-break`, `colossus` and
+`visitation` require `manifestation`. These phase gates apply to both the
+high-level rehearsal and live forms. Live triggers carry a Director-computed, phase-scaled scene length
 (presence ×1.0, servants ×1.15, manifestation ×1.35 of the profile default,
 clamped to 1200 ticks); rehearsals always use the profile default.
 Ground-anchored live profiles (`echo`, `threshold`, `peripheral`, `footsteps`,
@@ -129,6 +151,38 @@ stage without touching stored state, use the raw runtime form `/zapegscene
 rehearse <player> colossus_01 <0-4>`. Raw OP `/zapegscene` commands remain an
 effects-only manual test/override: they consume only the runtime UUID ledger
 and never mutate the Python campaign phase, pause state or colossus stage.
+
+The `visitation` apparition is the OS-level scare: the target's client
+briefly shows the bundled face in a borderless always-on-top window, glitches
+the game window title into block glyphs, pulses the window position and
+optionally flashes the taskbar — then restores everything exactly. It is
+operator-only like `colossus` (the scheduler never plans it), renders nothing
+in-game, and each player can disable any of its beats locally in the
+runtime's `osScares` client config. The two Discord bridge actions are
+operator beats too: `discord whisper` posts one seeded Turkish unease line as
+Heraldor through the configured webhook — it fails closed when no webhook is
+set, audits every attempt in SQLite, and enforces a per-world cooldown
+(`HERALDOR_DISCORD_MANUAL_GAP_SECONDS`, default 600) so the channel can never
+be spammed — and `voice rehearse` enqueues a rehearsal-only voice clip under
+exactly the same gates as the host-side `admin voice-rehearse`. Neither
+action takes arguments, and neither advances any story state.
+
+## How the campaign advances
+
+Everything the Director does is operator-driven; nothing advances on its own
+unless the optional scheduler is enabled. The model in one paragraph:
+**rehearse** is practice — it plays the effect for the target and records a
+rehearsal event, but never moves the campaign, the pacing memory or the
+colossus stage. **trigger** is live — it is validated, recorded, and counts:
+live scenes feed pacing, and each delivered live `colossus` trigger climbs
+the stored approach stage by one. The campaign itself only moves when an
+operator runs `phase start <phase>` or `phase advance`; profiles unlock at
+their documented phase gates, and the third legitimate servant victory arms
+the one-time voice clip. A typical evening is therefore: `phase start
+presence` once per world, then `event trigger apparition <profile> <player>`
+for live beats (rehearse first when unsure), `discord whisper` for an
+occasional channel beat, and `colossus` triggers spaced across sessions so
+the escalation reads as a slow approach.
 
 The high-level command is asynchronous. Its immediate response says **queued**,
 not executed. KubeJS writes one allowlisted token tied to the current hidden
@@ -441,7 +495,7 @@ Before using it in the story, verify all of these in a copied/disposable world:
 15. Cross the third-servant threshold once while paused in the copy, resume and
     verify the story observation remains but its terminally suppressed audio is
     never delivered later.
-16. Two-client privacy for every protocol-5 profile: the target renders/hears
+16. Two-client privacy for every protocol-6 profile: the target renders/hears
     the full scene while a nearby observer receives no packet, no sound, no
     GUI artifact and no sky/doorway geometry — verify with both clients in
     first and third person, with shaders on and off (Embeddium/Oculus) and
@@ -495,6 +549,35 @@ Before using it in the story, verify all of these in a copied/disposable world:
     must punch through darkness and fog as steady orange glows at 280 blocks,
     terrain in front of it must occlude it honestly, and the fog dip prelude
     must not fight the pack's own fog.
+26. Gaze-pull comfort and release: during an `echo` live scene the pull
+    window drags the camera toward the figure's eyes slowly enough to fight;
+    the target can still walk, and resisting mouse input is visibly partial —
+    the pull wins over seconds, never snaps. When the scene resolves (or is
+    cancelled, or the target logs out, dies or changes dimension) the camera
+    is exactly where the player's own input left it: no residual drift, no
+    velocity, no offset. Repeat for the colossus stage-4 finale. If anyone
+    reports nausea, treat it as a tuning bug.
+27. Two-client privacy for `visitation`: rehearse it with a bystander beside
+    the target — the bystander's PC shows no popup, no title flicker, no
+    window pulse and no taskbar flash, and receives no packet. On the target,
+    the face blink fades in and out in under two seconds, never steals
+    keyboard or mouse focus, the title and window geometry restore exactly,
+    and nothing persists after the scene.
+28. Visitation opt-out and platform matrix: on the target's client set
+    `osScares.enabled=false` in `zapeg_runtime-client.toml` and confirm a
+    rehearsal does absolutely nothing; re-enable and flip each sub-toggle
+    (`facePopup`, `windowWrongness`, `taskbarFlash`) to confirm each beat is
+    independently suppressed. Run once on each platform in the group
+    (Windows primary; macOS/Linux must fail silent or behave — never error,
+    never steal focus, never leave a changed title).
+29. Discord bridge behavior: with `HERALDOR_WEBHOOK` unset, `discord whisper`
+    fails closed and audits the refusal; with it set, one whisper posts one
+    Turkish unease line as Heraldor, a second immediate whisper is held by
+    the per-world cooldown, and the audit rows appear in `admin status`.
+    Confirm the posted text never explains Heraldor.
+30. Voice bridge behavior: `voice rehearse` from in-game enqueues exactly one
+    rehearsal-only clip (visible in `admin status`), respects the rehearsal
+    pacing gate, and never arms or advances the live third-victory event.
 
 Use `/zapeg-lore servant cleanup` immediately if any targeting or drop invariant
 fails. Keep the feature manual until this gate passes.
