@@ -131,9 +131,9 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   const allowedArguments = [
     '-',
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
-    'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
+    'peripheral_01', 'footsteps_01', 'closing_steps_01', 'sky_mark_01', 'false_passage_01',
     'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01',
-    'visitation_01'
+    'visitation_01', 'eclipse_01', 'unmoor_01', 'witness_01', 'rift_01'
   ]
   if (allowedActions.indexOf(action) < 0 || allowedArguments.indexOf(argument) < 0) {
     zhReply(source, 'The Heraldor request was not allowlisted.', true)
@@ -145,9 +145,9 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   ]
   const profiles = [
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
-    'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
+    'peripheral_01', 'footsteps_01', 'closing_steps_01', 'sky_mark_01', 'false_passage_01',
     'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01',
-    'visitation_01'
+    'visitation_01', 'eclipse_01', 'unmoor_01', 'witness_01', 'rift_01'
   ]
   const sceneAction = action === 'scene_rehearse' || action === 'scene_trigger'
   const validShape =
@@ -214,12 +214,12 @@ function zhLoreUsage(source) {
     source,
     'Heraldor usage:\n' +
       '/zapeg-lore servant rehearse|awaken|cleanup\n' +
-      '/zapeg-lore rehearse apparition <profile> <player> — practice only; never advances the story\n' +
-      '/zapeg-lore trigger apparition <profile> <player> — LIVE: recorded, pacing and campaign memory move forward\n' +
+      '/zapeg-lore rehearse <profile> <player> — practice only; never advances the story\n' +
+      '/zapeg-lore trigger <profile> <player> — LIVE: recorded, pacing and campaign memory move forward\n' +
       '/zapeg-lore cancel — stop the current runtime scene\n' +
       '/zapeg-lore discord whisper — one-way Heraldor post (cooldown-gated)\n' +
       '/zapeg-lore voice rehearse — test-channel voice rehearsal only\n' +
-      'profiles: echo, threshold, motion-echo, light-fault, peripheral, footsteps, sky-mark, false-passage, chroma-break, near-miss, whisper-steps, colossus, visitation',
+      'profiles: echo, threshold, peripheral, sky-mark, motion-echo, near-miss, footsteps, closing-steps, whisper-steps, false-passage, rift, eclipse, unmoor, witness, light-fault, chroma-break, colossus, visitation',
     false
   )
 }
@@ -235,12 +235,10 @@ function zhServantUsage(source) {
   )
 }
 
-function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
-  const apparition = Commands.literal('apparition')
-    .executes(ctx => {
-      zhDirectorUsage(ctx.source)
-      return 1
-    })
+function zhAttachDirectorProfiles(parent, Commands, Arguments, event, action) {
+  // Attach each profile on the held parent. Do not return a then-chain from
+  // this helper — Rhino then() can return the child, which would nest the next
+  // profile under the previous one instead of under rehearse/trigger.
   const profiles = [
     ['echo', 'echo_01'],
     ['threshold', 'threshold_01'],
@@ -248,16 +246,21 @@ function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
     ['light-fault', 'light_fault_01'],
     ['peripheral', 'peripheral_01'],
     ['footsteps', 'footsteps_01'],
+    ['closing-steps', 'closing_steps_01'],
     ['sky-mark', 'sky_mark_01'],
     ['false-passage', 'false_passage_01'],
     ['chroma-break', 'chroma_break_01'],
     ['near-miss', 'near_miss_01'],
     ['whisper-steps', 'whisper_steps_01'],
     ['colossus', 'colossus_01'],
-    ['visitation', 'visitation_01']
+    ['visitation', 'visitation_01'],
+    ['eclipse', 'eclipse_01'],
+    ['unmoor', 'unmoor_01'],
+    ['witness', 'witness_01'],
+    ['rift', 'rift_01']
   ]
   profiles.forEach(profile => {
-    apparition.then(Commands.literal(profile[0])
+    parent.then(Commands.literal(profile[0])
       .executes(ctx => {
         zhDirectorUsage(ctx.source)
         return 1
@@ -272,7 +275,6 @@ function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
       )
     )
   })
-  return apparition
 }
 
 function zhEnsureObjectives(server) {
@@ -601,18 +603,18 @@ ServerEvents.commandRegistry(event => {
       zhLoreUsage(ctx.source)
       return 1
     })
-    .then(zhDirectorApparitionBranch(
-      Commands, Arguments, event, 'scene_rehearse'
-    ))
+  zhAttachDirectorProfiles(
+    rehearse, Commands, Arguments, event, 'scene_rehearse'
+  )
 
   const trigger = Commands.literal('trigger')
     .executes(ctx => {
       zhLoreUsage(ctx.source)
       return 1
     })
-    .then(zhDirectorApparitionBranch(
-      Commands, Arguments, event, 'scene_trigger'
-    ))
+  zhAttachDirectorProfiles(
+    trigger, Commands, Arguments, event, 'scene_trigger'
+  )
 
   const cancel = Commands.literal('cancel')
     .executes(ctx => zhQueueDirectorRequest(ctx.source, 'cancel', '-', null))

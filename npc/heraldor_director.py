@@ -37,9 +37,34 @@ COLOSSUS_PROFILE = "colossus_01"
 COLOSSUS_MAX_STAGE = 4
 COLOSSUS_META_PREFIX = "colossus:"
 VISITATION_PROFILE = "visitation_01"
+RIFT_PROFILE = "rift_01"
 # Operator-only profiles: the scheduler never plans these on its own; they
 # exist for deliberate OP/Director beats (rehearsal stays available).
 OPERATOR_ONLY_PROFILES = frozenset({COLOSSUS_PROFILE, VISITATION_PROFILE})
+# Public/token aliases that collapse into a family on the wire. The
+# scheduler never picks these names; OP still may.
+SCENE_ALIAS_ARGUMENTS = frozenset(
+    {
+        "light_fault_01",
+        "eclipse_01",
+        "chroma_break_01",
+        "unmoor_01",
+        "witness_01",
+        "whisper_steps_01",
+        "closing_steps_01",
+    }
+)
+# Token argument → (runtime profile, default stage). Canonical names that
+# are not listed dispatch as themselves at stage 0.
+SCENE_RUNTIME_DISPATCH = {
+    "light_fault_01": (RIFT_PROFILE, 0),
+    "eclipse_01": (RIFT_PROFILE, 0),
+    "chroma_break_01": (RIFT_PROFILE, 1),
+    "unmoor_01": (RIFT_PROFILE, 2),
+    "witness_01": (RIFT_PROFILE, 3),
+    "whisper_steps_01": ("footsteps_01", 2),
+    "closing_steps_01": ("footsteps_01", 1),
+}
 # Manual Discord whispers share one world-tokened cooldown marker so the
 # in-game bridge action can never spam the channel.
 MANUAL_DISCORD_META_PREFIX = "discord_manual:"
@@ -64,10 +89,15 @@ CONTROL_SCENE_PROFILE_PHASES = {
     "whisper_steps_01": "presence",
     "motion_echo_01": "servants",
     "footsteps_01": "servants",
+    "closing_steps_01": "servants",
     "near_miss_01": "servants",
     "false_passage_01": "servants",
     "light_fault_01": "manifestation",
+    "eclipse_01": "manifestation",
     "chroma_break_01": "manifestation",
+    "unmoor_01": "manifestation",
+    "witness_01": "manifestation",
+    "rift_01": "manifestation",
     "colossus_01": "manifestation",
     "visitation_01": "manifestation",
 }
@@ -86,8 +116,13 @@ SCENE_PROFILE_DEFAULT_TTL_TICKS = {
     "chroma_break_01": 120,
     "near_miss_01": 110,
     "whisper_steps_01": 180,
+    "closing_steps_01": 160,
     "colossus_01": 320,
     "visitation_01": 70,
+    "eclipse_01": 200,
+    "unmoor_01": 200,
+    "witness_01": 200,
+    "rift_01": 200,
 }
 # Profiles whose runtime placement walks the ground around the target; only
 # these can take a stalking-memory or grave-site anchor hint.
@@ -265,6 +300,17 @@ def normalize_world_token(value: int | str) -> str:
     if not re.fullmatch(r"[1-9]\d{0,9}", token) or int(token) > 2_000_000_000:
         raise ValueError(f"invalid Heraldor world token: {value!r}")
     return token
+
+
+def resolve_scene_dispatch(argument: str) -> tuple[str, int]:
+    """Map an OP/token argument onto the runtime profile and default stage."""
+
+    if argument not in CONTROL_SCENE_PROFILE_PHASES:
+        raise ValueError(f"unknown Heraldor scene profile: {argument!r}")
+    mapped = SCENE_RUNTIME_DISPATCH.get(argument)
+    if mapped is None:
+        return argument, 0
+    return mapped
 
 
 def effective_scene_phase(current_phase: str, profile: str) -> str:
@@ -1707,7 +1753,7 @@ class DirectorStore:
                         continue
                     if str(payload.get("world_token")) != token:
                         continue
-                    candidate = roll.choice(("footsteps_01", "whisper_steps_01"))
+                    candidate = "footsteps_01"
                     if not state.allows_profile(candidate):
                         continue
                     profile = candidate
@@ -1732,7 +1778,9 @@ class DirectorStore:
                 allowed = [
                     name
                     for name in CONTROL_SCENE_PROFILE_PHASES
-                    if state.allows_profile(name) and name not in OPERATOR_ONLY_PROFILES
+                    if state.allows_profile(name)
+                    and name not in OPERATOR_ONLY_PROFILES
+                    and name not in SCENE_ALIAS_ARGUMENTS
                 ]
                 if not allowed:
                     return None

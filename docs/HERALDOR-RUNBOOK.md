@@ -24,13 +24,15 @@ or explain the command, tags, counters, thresholds, or audio trigger.
   orthogonal pause state and hardcoded apparition profiles. Minecraft only
   writes one short-lived request; the Python Director is the authority that
   validates, records and dispatches it to the client/server runtime.
-- Thirteen apparition profiles on runtime protocol `6`: the original six plus
-  `sky-mark`, `false-passage`, `chroma-break`, `near-miss`, `whisper-steps`,
-  the staged, operator-only `colossus` escalation encounter, and the
+- Fourteen apparition profiles on runtime protocol `7` (v0.4): the original
+  families plus `rift` (eclipse / tear / unmoor / witness). Protocol 6 clients
+  fail the handshake rather than mis-decoding wire id 13 or a non-colossus
+  stage. `light-fault` and `chroma-break` remain public aliases of rift
+  stages 0 and 1; `whisper-steps` is haunt stage 2 of `footsteps`. The
   operator-only `visitation` OS-level scare (a brief face blink outside the
   game window, a glitched window title, a small window pulse and an optional
   taskbar flash — all exactly restored, per-client opt-out via the runtime's
-  `osScares` client config).
+  `osScares` client config) is unchanged.
 - A client-side gaze-pull layer: during an allowlisted scene's pull window
   the target's rendered camera is dragged toward the apparition's glowing
   eyes at a slow bounded rate. The player can fight it, but the pull wins
@@ -78,8 +80,8 @@ never does.
 /zapeg-lore servant rehearse <player>
 /zapeg-lore servant awaken <player>
 /zapeg-lore servant cleanup
-/zapeg-lore rehearse apparition <profile> <player>
-/zapeg-lore trigger apparition <profile> <player>
+/zapeg-lore rehearse <profile> <player>
+/zapeg-lore trigger <profile> <player>
 /zapeg-lore cancel
 /zapeg-lore discord whisper
 /zapeg-lore voice rehearse
@@ -92,9 +94,13 @@ Raw `/zapegscene` remains effects-only.
 Apparition names are command literals:
 
 ```text
-/zapeg-lore rehearse apparition echo|threshold|motion-echo|light-fault|peripheral|footsteps|sky-mark|false-passage|chroma-break|near-miss|whisper-steps|colossus|visitation <player>
-/zapeg-lore trigger apparition echo|threshold|motion-echo|light-fault|peripheral|footsteps|sky-mark|false-passage|chroma-break|near-miss|whisper-steps|colossus|visitation <player>
+/zapeg-lore rehearse echo|threshold|peripheral|sky-mark|motion-echo|near-miss|footsteps|closing-steps|whisper-steps|false-passage|rift|eclipse|unmoor|witness|light-fault|chroma-break|colossus|visitation <player>
+/zapeg-lore trigger echo|threshold|peripheral|sky-mark|motion-echo|near-miss|footsteps|closing-steps|whisper-steps|false-passage|rift|eclipse|unmoor|witness|light-fault|chroma-break|colossus|visitation <player>
 ```
+
+`rift` / `eclipse` / `light-fault` are the same eclipse beat; `chroma-break` is
+rift tear; `unmoor` is the slow acid warp; `witness` is HUD-off fullscreen
+eyes. `whisper-steps` and `closing-steps` are haunt stages of `footsteps`.
 
 Live triggers carry a Director-computed, phase-scaled scene length using at
 least the profile floor (presence ×1.0, servants ×1.15, manifestation ×1.35,
@@ -142,9 +148,9 @@ immediately from dormant: live scenes feed pacing, campaign memory rises to
 the profile floor, and each delivered live `colossus` trigger climbs the
 stored approach stage by one. The third legitimate servant victory still arms
 the one-time voice clip once the world is no longer dormant. A typical evening
-is: `trigger apparition <profile> <player>` for live beats (rehearse first
-when unsure), `servant awaken` when you want the minion, `discord whisper` for
-an occasional channel beat, and `colossus` triggers spaced across sessions.
+is: `trigger <profile> <player>` for live beats (rehearse first when unsure),
+`servant awaken` when you want the minion, `discord whisper` for an occasional
+channel beat, and `colossus` triggers spaced across sessions.
 
 The high-level command is asynchronous. Its immediate response says **queued**,
 not executed. KubeJS writes one allowlisted token tied to the current hidden

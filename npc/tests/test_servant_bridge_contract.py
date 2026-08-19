@@ -194,6 +194,9 @@ class DirectorBridgeContractTest(unittest.TestCase):
         self.assertIn("root.then(cancel)", self.source)
         self.assertIn("root.then(discord)", self.source)
         self.assertIn("root.then(voice)", self.source)
+        self.assertIn("zhAttachDirectorProfiles(\n    rehearse,", self.source)
+        self.assertIn("zhAttachDirectorProfiles(\n    trigger,", self.source)
+        self.assertNotIn("Commands.literal('apparition')", self.source)
         self.assertNotIn(
             ".requires(source => zhDirectorSourceAllowed(source))",
             self.source,

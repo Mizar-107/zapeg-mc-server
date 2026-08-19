@@ -832,7 +832,7 @@ class SceneTtlScalingTest(unittest.TestCase):
             "echo_01",
             "threshold_01",
             "motion_echo_01",
-            "light_fault_01",
+            "rift_01",
             "peripheral_01",
             "footsteps_01",
         ):
@@ -896,7 +896,7 @@ class SceneTtlScalingTest(unittest.TestCase):
         command = runtime.call_args.args[0]
         self.assertEqual(
             command,
-            f"zapegscene trigger Alice {request.event_id} light_fault_01 189",
+            f"zapegscene trigger Alice {request.event_id} rift_01 stage 0 270",
         )
 
     def test_rehearse_command_keeps_runtime_default_ttl(self) -> None:
@@ -996,7 +996,7 @@ class ServantScriptContractTest(unittest.TestCase):
         self.assertIn("control_request", self.script)
         queue = self.script[
             self.script.index("function zhQueueDirectorRequest") :
-            self.script.index("function zhDirectorApparitionBranch")
+            self.script.index("function zhAttachDirectorProfiles")
         ]
         self.assertIn(
             "run scoreboard players get #world ${ZH_WORLD_OBJECTIVE}", queue
@@ -1005,11 +1005,26 @@ class ServantScriptContractTest(unittest.TestCase):
             "run data get storage ${ZH_CONTROL_STORAGE} control_request", queue
         )
         self.assertIn("this is not an execution receipt", self.script)
+        self.assertIn(
+            "/zapeg-lore rehearse <profile> <player>", self.script
+        )
+        self.assertIn(
+            "/zapeg-lore trigger <profile> <player>", self.script
+        )
+        self.assertNotIn("Commands.literal('apparition')", self.script)
+        self.assertNotIn("rehearse apparition", self.script)
+        self.assertNotIn("trigger apparition", self.script)
+        self.assertIn("zhAttachDirectorProfiles(\n    rehearse,", self.script)
+        self.assertIn("zhAttachDirectorProfiles(\n    trigger,", self.script)
         for public_name, profile in (
             ("echo", "echo_01"),
             ("threshold", "threshold_01"),
             ("motion-echo", "motion_echo_01"),
             ("light-fault", "light_fault_01"),
+            ("eclipse", "eclipse_01"),
+            ("unmoor", "unmoor_01"),
+            ("witness", "witness_01"),
+            ("rift", "rift_01"),
         ):
             self.assertIn(f"['{public_name}', '{profile}']", self.script)
         self.assertNotIn("zapegscene ", self.script)
@@ -1357,14 +1372,14 @@ class SceneSchedulerTest(unittest.TestCase):
     def test_phase_gates_apply_to_planned_profiles(self) -> None:
         store = self.store
         self.start_phase("presence")
-        # Pick the last allowed profile: whisper_steps_01 (presence-allowed).
+        # Pick the last allowed presence profile: sky_mark_01.
         plan = store.plan_and_reserve_scene(
-            WORLD_TOKEN, ["Alice"], rng=ScriptedRoll(picks=[0, 4])
+            WORLD_TOKEN, ["Alice"], rng=ScriptedRoll(picks=[0, 3])
         )
         self.assertIsNotNone(plan)
-        self.assertEqual(plan.profile, "whisper_steps_01")
+        self.assertEqual(plan.profile, "sky_mark_01")
         # manifestation-only profiles are never in the presence pool.
-        self.assertNotIn(plan.profile, {"light_fault_01", "chroma_break_01"})
+        self.assertNotIn(plan.profile, {"light_fault_01", "chroma_break_01", "rift_01"})
 
 
 class SchedulerDispatchTest(unittest.TestCase):

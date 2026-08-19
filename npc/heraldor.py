@@ -37,12 +37,14 @@ from heraldor_director import (
     CONTROL_PHASES,
     CONTROL_TOKEN_MAX_FUTURE_SECONDS,
     MANUAL_DISCORD_MIN_GAP_SECONDS,
+    SCENE_RUNTIME_DISPATCH,
     STALK_HINT_PROFILES,
     ControlRequest,
     DirectorStateLock,
     DirectorStore,
     Reservation,
     effective_scene_phase,
+    resolve_scene_dispatch,
     extract_control_request_token,
     parse_control_request,
     parse_death_site,
@@ -471,21 +473,35 @@ def process_control_request(
     payload: dict[str, object] = {}
     scene_hint: tuple[int, int] | None = None
     colossus_stage: int | None = None
+    runtime_profile = request.argument
+    dispatch_stage: int | None = None
     if request.action in {"scene_rehearse", "scene_trigger"}:
         payload = {
             "profile": request.argument,
             "target": request.target,
         }
+        runtime_profile, alias_stage = resolve_scene_dispatch(request.argument)
+        payload["runtime_profile"] = runtime_profile
         if request.argument == COLOSSUS_PROFILE and request.target:
             # The encounter comes closer each time: live triggers carry and
             # then advance the stored stage; rehearsals only ever read it.
             colossus_stage = director.colossus_stage(request.world_token, request.target)
             payload["colossus_stage"] = colossus_stage
+            dispatch_stage = colossus_stage
+        elif request.argument in SCENE_RUNTIME_DISPATCH:
+            dispatch_stage = alias_stage
+            payload["scene_stage"] = alias_stage
         if request.action == "scene_trigger":
             payload["runtime_event_id"] = request.event_id
             # Stalking memory: live scenes bias their anchor toward the
             # places the target actually visits. Rehearsals never touch it.
-            if request.argument in STALK_HINT_PROFILES and request.target:
+            # Staged commands cannot also carry a hint (the runtime tree
+            # forks stage vs hint), so remapped aliases skip the hint.
+            if (
+                dispatch_stage is None
+                and runtime_profile in STALK_HINT_PROFILES
+                and request.target
+            ):
                 scene_hint = director.stalk_hint(request.world_token, request.target)
                 if scene_hint is not None:
                     payload["hint_x"] = scene_hint[0]
@@ -515,23 +531,23 @@ def process_control_request(
     if request.action == "cancel":
         command = "zapegscene cancel-all"
     elif request.action == "scene_rehearse":
-        command = f"zapegscene rehearse {request.target} {request.argument}"
-        if colossus_stage is not None:
-            command += f" {colossus_stage}"
+        command = f"zapegscene rehearse {request.target} {runtime_profile}"
+        if dispatch_stage is not None:
+            command += f" {dispatch_stage}"
     else:
         ttl_ticks = scene_ttl_ticks(
-            request.argument,
+            runtime_profile,
             effective_scene_phase(state.phase, request.argument),
         )
-        if colossus_stage is not None:
+        if dispatch_stage is not None:
             command = (
                 f"zapegscene trigger {request.target} {request.event_id} "
-                f"{request.argument} stage {colossus_stage} {ttl_ticks}"
+                f"{runtime_profile} stage {dispatch_stage} {ttl_ticks}"
             )
         else:
             command = (
                 f"zapegscene trigger {request.target} {request.event_id} "
-                f"{request.argument} {ttl_ticks}"
+                f"{runtime_profile} {ttl_ticks}"
             )
             if scene_hint is not None:
                 command += f" {scene_hint[0]} {scene_hint[1]}"
