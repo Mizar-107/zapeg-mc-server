@@ -59,17 +59,29 @@ function zhDimensionId(level) {
   return String(level.dimension)
 }
 
+function zhRawCommandSource(source) {
+  try {
+    const raw = source.source
+    return raw || null
+  } catch (_) {
+    return null
+  }
+}
+
 function zhDirectorSourceAllowed(source) {
   if (!source.hasPermission(2)) return false
+  const rawSource = zhRawCommandSource(source)
   try {
     const player = source.player
     if (player && zhSafePlayerName(player)) {
-      // `execute as <op>` changes the effective player but retains the command
-      // block/function as source.source. Admit only a command typed by this
-      // exact real ServerPlayer.
-      const rawSource = source.source
-      return Boolean(
-        rawSource &&
+      // `execute as <op>` changes the effective player but keeps a command
+      // block/function as CommandSourceStack.source. When KubeJS actually
+      // exposes that field, admit only a command typed by this ServerPlayer.
+      // The field is private and is not a Rhino bean — treating a missing
+      // raw source as a command block hid `/zapeg-lore director` from every
+      // in-game OP (Brigadier omits failed .requires() children).
+      if (!rawSource) return true
+      return (
         String(rawSource.getClass().getName()) ===
           'net.minecraft.server.level.ServerPlayer' &&
         String(rawSource.getUUID()) === zhEntityUuid(player)
@@ -82,7 +94,7 @@ function zhDirectorSourceAllowed(source) {
     // This exact class check admits RCON but rejects command blocks. The local
     // server console is intentionally left to host-side admin/raw commands;
     // KubeJS cannot reliably distinguish it from every function context.
-    return String(source.source.getClass().getName()) ===
+    return String(rawSource.getClass().getName()) ===
       'net.minecraft.server.rcon.RconConsoleSource'
   } catch (_) {
     return false
@@ -106,6 +118,10 @@ function zhControlNonce() {
 }
 
 function zhQueueDirectorRequest(source, action, argument, target) {
+  if (!zhDirectorSourceAllowed(source)) {
+    zhReply(source, 'The Director does not accept this command source.', true)
+    return 0
+  }
   const server = source.server
   zhEnsureObjectives(server)
   const allowedActions = [
@@ -207,6 +223,29 @@ function zhDirectorUsage(source) {
       '/zapeg-lore director discord whisper — one-way Heraldor post (cooldown-gated)\n' +
       '/zapeg-lore director voice rehearse — test-channel voice rehearsal only\n' +
       'profiles: echo, threshold, motion-echo, light-fault, peripheral, footsteps, sky-mark, false-passage, chroma-break, near-miss, whisper-steps, colossus, visitation',
+    false
+  )
+}
+
+function zhLoreUsage(source) {
+  zhReply(
+    source,
+    'Heraldor usage:\n' +
+      '/zapeg-lore director … — campaign mailbox (OP or RCON)\n' +
+      '/zapeg-lore servant rehearse <player> — practice minion, never counts\n' +
+      '/zapeg-lore servant awaken <player> — live minion, counts victories\n' +
+      '/zapeg-lore servant cleanup — despawn loaded Heraldor servants',
+    false
+  )
+}
+
+function zhServantUsage(source) {
+  zhReply(
+    source,
+    'Servant usage:\n' +
+      '/zapeg-lore servant rehearse <player>\n' +
+      '/zapeg-lore servant awaken <player>\n' +
+      '/zapeg-lore servant cleanup',
     false
   )
 }
@@ -534,38 +573,50 @@ ServerEvents.tick(event => {
 
 ServerEvents.commandRegistry(event => {
   const { commands: Commands, arguments: Arguments } = event
-  event.register(
-    Commands.literal('zapeg-lore')
-      .requires(source => source.hasPermission(2))
-      .then(Commands.literal('servant')
-        .then(Commands.literal('rehearse')
-          .then(Commands.argument('target', Arguments.PLAYER.create(event))
-            .executes(ctx => zhSpawnServant(
-              ctx.source,
-              Arguments.PLAYER.getResult(ctx, 'target'),
-              true
-            ))
-          )
-        )
-        .then(Commands.literal('awaken')
-          .then(Commands.argument('target', Arguments.PLAYER.create(event))
-            .executes(ctx => zhSpawnServant(
-              ctx.source,
-              Arguments.PLAYER.getResult(ctx, 'target'),
-              false
-            ))
-          )
-        )
-        .then(Commands.literal('cleanup')
-          .executes(ctx => zhCleanupServants(ctx.source))
-        )
+  // Attach children on a held root. Some KubeJS/Rhino then() wrappers return
+  // the child, so chaining .then(servant).then(director) would nest director
+  // under servant and/or register the wrong node — `/zapeg-lore` then rejects
+  // both literals as its next argument.
+  const root = Commands.literal('zapeg-lore')
+    .requires(source => source.hasPermission(2))
+    .executes(ctx => {
+      zhLoreUsage(ctx.source)
+      return 1
+    })
+
+  const servant = Commands.literal('servant')
+    .executes(ctx => {
+      zhServantUsage(ctx.source)
+      return 1
+    })
+    .then(Commands.literal('rehearse')
+      .then(Commands.argument('target', Arguments.PLAYER.create(event))
+        .executes(ctx => zhSpawnServant(
+          ctx.source,
+          Arguments.PLAYER.getResult(ctx, 'target'),
+          true
+        ))
       )
-      .then(Commands.literal('director')
-        .requires(source => zhDirectorSourceAllowed(source))
-        .executes(ctx => {
-          zhDirectorUsage(ctx.source)
-          return 1
-        })
+    )
+    .then(Commands.literal('awaken')
+      .then(Commands.argument('target', Arguments.PLAYER.create(event))
+        .executes(ctx => zhSpawnServant(
+          ctx.source,
+          Arguments.PLAYER.getResult(ctx, 'target'),
+          false
+        ))
+      )
+    )
+    .then(Commands.literal('cleanup')
+      .executes(ctx => zhCleanupServants(ctx.source))
+    )
+
+  const director = Commands.literal('director')
+    .requires(source => source.hasPermission(2))
+    .executes(ctx => {
+      zhDirectorUsage(ctx.source)
+      return 1
+    })
         .then(Commands.literal('status')
           .executes(ctx => zhQueueDirectorRequest(ctx.source, 'status', '-', null))
         )
@@ -672,8 +723,10 @@ ServerEvents.commandRegistry(event => {
             ))
           )
         )
-      )
-  )
+
+  root.then(servant)
+  root.then(director)
+  event.register(root)
 })
 
 EntityEvents.hurt(event => {

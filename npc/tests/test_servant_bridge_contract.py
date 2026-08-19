@@ -183,6 +183,23 @@ class DirectorBridgeContractTest(unittest.TestCase):
         self.assertEqual(SERVANT_THRESHOLD, 3)
         self.assertEqual(SERVANT_AUDIO_CLIP_ID, "servants_after_three_v1")
 
+    def test_lore_root_attaches_director_and_servant_as_siblings(self) -> None:
+        self.assertIn("Commands.literal('zapeg-lore')", self.source)
+        self.assertIn("Commands.literal('servant')", self.source)
+        self.assertIn("Commands.literal('director')", self.source)
+        self.assertIn("root.then(servant)", self.source)
+        self.assertIn("root.then(director)", self.source)
+        self.assertNotIn(
+            ".requires(source => zhDirectorSourceAllowed(source))",
+            self.source,
+        )
+        queue = self.source[
+            self.source.index("function zhQueueDirectorRequest") :
+            self.source.index("function zhDirectorUsage")
+        ]
+        self.assertIn("zhDirectorSourceAllowed(source)", queue)
+        self.assertIn("if (!rawSource) return true", self.source)
+
 
 if __name__ == "__main__":
     unittest.main()

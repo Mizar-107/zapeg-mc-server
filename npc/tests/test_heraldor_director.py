@@ -948,6 +948,12 @@ class ServantScriptContractTest(unittest.TestCase):
         self.assertIn(
             "String(rawSource.getUUID()) === zhEntityUuid(player)", self.script
         )
+        self.assertIn("if (!rawSource) return true", self.script)
+        self.assertNotIn(
+            ".requires(source => zhDirectorSourceAllowed(source))", self.script
+        )
+        self.assertIn("root.then(servant)", self.script)
+        self.assertIn("root.then(director)", self.script)
         self.assertIn("const ZH_CONTROL_TTL_SECONDS = 90", self.script)
         self.assertIn("control_request", self.script)
         queue = self.script[
