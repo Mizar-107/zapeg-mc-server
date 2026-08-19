@@ -56,7 +56,7 @@ function zhSafePlayerName(player) {
 }
 
 function zhDimensionId(level) {
-  return String(level.dimension().location())
+  return String(level.dimension)
 }
 
 function zhDirectorSourceAllowed(source) {
