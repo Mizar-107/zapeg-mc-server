@@ -24,8 +24,7 @@ if "mcrcon" not in sys.modules:
 
 import heraldor as heraldor_service  # noqa: E402
 from heraldor_director import (  # noqa: E402
-    CONTROL_ACTIONS,
-    CONTROL_PHASES,
+    CONTROL_BRIDGE_ACTIONS,
     CONTROL_SCENE_PROFILE_PHASES,
     SERVANT_AUDIO_CLIP_ID,
     SERVANT_SOURCE_PREFIX,
@@ -162,7 +161,7 @@ class DirectorBridgeContractTest(unittest.TestCase):
         )
         self.assertIsNotNone(match)
         actions = set(re.findall(r"'([a-z_]+)'", match.group(1)))
-        self.assertEqual(actions, set(CONTROL_ACTIONS))
+        self.assertEqual(actions, set(CONTROL_BRIDGE_ACTIONS))
 
     def test_control_argument_allowlist_matches_director(self) -> None:
         match = re.search(
@@ -170,9 +169,7 @@ class DirectorBridgeContractTest(unittest.TestCase):
         )
         self.assertIsNotNone(match)
         arguments = set(re.findall(r"'([a-z0-9_\-]+)'", match.group(1)))
-        expected = {"-"} | set(CONTROL_PHASES[1:]) | set(
-            CONTROL_SCENE_PROFILE_PHASES
-        )
+        expected = {"-"} | set(CONTROL_SCENE_PROFILE_PHASES)
         self.assertEqual(arguments, expected)
 
     def test_scene_literals_cover_every_director_profile(self) -> None:
@@ -183,12 +180,20 @@ class DirectorBridgeContractTest(unittest.TestCase):
         self.assertEqual(SERVANT_THRESHOLD, 3)
         self.assertEqual(SERVANT_AUDIO_CLIP_ID, "servants_after_three_v1")
 
-    def test_lore_root_attaches_director_and_servant_as_siblings(self) -> None:
+    def test_lore_root_attaches_op_story_literals_as_siblings(self) -> None:
         self.assertIn("Commands.literal('zapeg-lore')", self.source)
         self.assertIn("Commands.literal('servant')", self.source)
-        self.assertIn("Commands.literal('director')", self.source)
+        self.assertNotIn("Commands.literal('director')", self.source)
+        self.assertNotIn("Commands.literal('phase')", self.source)
+        self.assertNotIn("Commands.literal('pause')", self.source)
+        self.assertNotIn("Commands.literal('resume')", self.source)
+        self.assertNotIn("Commands.literal('status')", self.source)
         self.assertIn("root.then(servant)", self.source)
-        self.assertIn("root.then(director)", self.source)
+        self.assertIn("root.then(rehearse)", self.source)
+        self.assertIn("root.then(trigger)", self.source)
+        self.assertIn("root.then(cancel)", self.source)
+        self.assertIn("root.then(discord)", self.source)
+        self.assertIn("root.then(voice)", self.source)
         self.assertNotIn(
             ".requires(source => zhDirectorSourceAllowed(source))",
             self.source,

@@ -35,7 +35,6 @@ from mcrcon import MCRcon
 from heraldor_director import (
     COLOSSUS_PROFILE,
     CONTROL_PHASES,
-    CONTROL_SCENE_PROFILE_PHASES,
     CONTROL_TOKEN_MAX_FUTURE_SECONDS,
     MANUAL_DISCORD_MIN_GAP_SECONDS,
     STALK_HINT_PROFILES,
@@ -43,6 +42,7 @@ from heraldor_director import (
     DirectorStateLock,
     DirectorStore,
     Reservation,
+    effective_scene_phase,
     extract_control_request_token,
     parse_control_request,
     parse_death_site,
@@ -464,22 +464,9 @@ def process_control_request(
         director.record_manual_discord_post(request.world_token, now=timestamp)
         return ControlOutcome(record.event_id, "delivered", "Discord whisper posted")
 
-    if request.action in {"scene_rehearse", "scene_trigger"}:
-        minimum = CONTROL_SCENE_PROFILE_PHASES[request.argument]
-        if not state.allows_profile(request.argument):
-            return _reject_control(
-                director,
-                request,
-                f"{request.argument} requires campaign phase {minimum} or later",
-                now=timestamp,
-            )
-        if request.action == "scene_trigger" and state.paused:
-            return _reject_control(
-                director,
-                request,
-                "campaign is paused; new live scenes are suppressed",
-                now=timestamp,
-            )
+    # OP story drive: rehearse and trigger are usable immediately, including
+    # from dormant. Pause still silences the autonomous scheduler, not the
+    # operator mailbox — there is no in-game resume anymore.
 
     payload: dict[str, object] = {}
     scene_hint: tuple[int, int] | None = None
@@ -532,7 +519,10 @@ def process_control_request(
         if colossus_stage is not None:
             command += f" {colossus_stage}"
     else:
-        ttl_ticks = scene_ttl_ticks(request.argument, state.phase)
+        ttl_ticks = scene_ttl_ticks(
+            request.argument,
+            effective_scene_phase(state.phase, request.argument),
+        )
         if colossus_stage is not None:
             command = (
                 f"zapegscene trigger {request.target} {request.event_id} "
@@ -589,7 +579,7 @@ def _clear_control_request(request: ControlRequest) -> None:
 
 
 def _reply_to_control_operator(request: ControlRequest, outcome: ControlOutcome) -> None:
-    text = f"[Heraldor Director] {outcome.message} ({outcome.status})"
+    text = f"[Heraldor] {outcome.message} ({outcome.status})"
     if request.operator == "console":
         print(f"[heraldor] {text}")
         return

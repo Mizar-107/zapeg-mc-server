@@ -78,8 +78,8 @@ function zhDirectorSourceAllowed(source) {
       // block/function as CommandSourceStack.source. When KubeJS actually
       // exposes that field, admit only a command typed by this ServerPlayer.
       // The field is private and is not a Rhino bean — treating a missing
-      // raw source as a command block hid `/zapeg-lore director` from every
-      // in-game OP (Brigadier omits failed .requires() children).
+      // raw source as a command block hid `/zapeg-lore` mailbox children from
+      // every in-game OP (Brigadier omits failed .requires() children).
       if (!rawSource) return true
       return (
         String(rawSource.getClass().getName()) ===
@@ -119,33 +119,30 @@ function zhControlNonce() {
 
 function zhQueueDirectorRequest(source, action, argument, target) {
   if (!zhDirectorSourceAllowed(source)) {
-    zhReply(source, 'The Director does not accept this command source.', true)
+    zhReply(source, 'Heraldor does not accept this command source.', true)
     return 0
   }
   const server = source.server
   zhEnsureObjectives(server)
   const allowedActions = [
-    'status', 'pause', 'resume', 'phase_start', 'phase_advance',
-    'scene_rehearse', 'scene_trigger', 'cancel', 'colossus_reset',
+    'scene_rehearse', 'scene_trigger', 'cancel',
     'discord_post', 'voice_rehearse'
   ]
   const allowedArguments = [
-    '-', 'presence', 'servants', 'manifestation',
+    '-',
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
     'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
     'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01',
     'visitation_01'
   ]
   if (allowedActions.indexOf(action) < 0 || allowedArguments.indexOf(argument) < 0) {
-    zhReply(source, 'The Director request was not allowlisted.', true)
+    zhReply(source, 'The Heraldor request was not allowlisted.', true)
     zhDirectorUsage(source)
     return 0
   }
   const noArgumentActions = [
-    'status', 'pause', 'resume', 'phase_advance', 'cancel',
-    'discord_post', 'voice_rehearse'
+    'cancel', 'discord_post', 'voice_rehearse'
   ]
-  const phases = ['presence', 'servants', 'manifestation']
   const profiles = [
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
     'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
@@ -155,11 +152,9 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   const sceneAction = action === 'scene_rehearse' || action === 'scene_trigger'
   const validShape =
     (noArgumentActions.indexOf(action) >= 0 && argument === '-' && !target) ||
-    (action === 'phase_start' && phases.indexOf(argument) >= 0 && !target) ||
-    (sceneAction && profiles.indexOf(argument) >= 0 && Boolean(target)) ||
-    (action === 'colossus_reset' && argument === '-' && Boolean(target))
+    (sceneAction && profiles.indexOf(argument) >= 0 && Boolean(target))
   if (!validShape) {
-    zhReply(source, 'The Director request arguments were not allowlisted.', true)
+    zhReply(source, 'The Heraldor request arguments were not allowlisted.', true)
     zhDirectorUsage(source)
     return 0
   }
@@ -175,7 +170,7 @@ function zhQueueDirectorRequest(source, action, argument, target) {
     `run scoreboard players get #world ${ZH_WORLD_OBJECTIVE}`
   ) > 0
   if (occupied) {
-    zhReply(source, 'The Director already has one request waiting for acknowledgement.', true)
+    zhReply(source, 'Heraldor already has one request waiting for acknowledgement.', true)
     return 0
   }
 
@@ -183,7 +178,7 @@ function zhQueueDirectorRequest(source, action, argument, target) {
     `scoreboard players get #world ${ZH_WORLD_OBJECTIVE}`
   ))
   if (worldToken !== Math.floor(worldToken) || worldToken < 1 || worldToken > 2000000000) {
-    zhReply(source, 'The Director world token is unavailable.', true)
+    zhReply(source, 'The Heraldor world token is unavailable.', true)
     return 0
   }
 
@@ -203,38 +198,28 @@ function zhQueueDirectorRequest(source, action, argument, target) {
     `set value ${JSON.stringify(token)}`
   )
   if (changed < 1) {
-    zhReply(source, 'The Director request could not be queued.', true)
+    zhReply(source, 'The Heraldor request could not be queued.', true)
     return 0
   }
-  zhReply(source, `Director request queued for ${action}; this is not an execution receipt.`, false)
+  zhReply(source, `Heraldor request queued for ${action}; this is not an execution receipt.`, false)
   return 1
 }
 
 function zhDirectorUsage(source) {
-  zhReply(
-    source,
-    'Director usage:\n' +
-      '/zapeg-lore director status | pause | resume | cancel\n' +
-      '/zapeg-lore director phase start <presence|servants|manifestation> — move the campaign\n' +
-      '/zapeg-lore director phase advance — move to the next phase\n' +
-      '/zapeg-lore director event rehearse <profile> <player> — practice only; never advances the story\n' +
-      '/zapeg-lore director event trigger <profile> <player> — LIVE: recorded, and advances pacing (colossus stage climbs per delivered live trigger)\n' +
-      '/zapeg-lore director colossus reset <player>\n' +
-      '/zapeg-lore director discord whisper — one-way Heraldor post (cooldown-gated)\n' +
-      '/zapeg-lore director voice rehearse — test-channel voice rehearsal only\n' +
-      'profiles: echo, threshold, motion-echo, light-fault, peripheral, footsteps, sky-mark, false-passage, chroma-break, near-miss, whisper-steps, colossus, visitation',
-    false
-  )
+  zhLoreUsage(source)
 }
 
 function zhLoreUsage(source) {
   zhReply(
     source,
     'Heraldor usage:\n' +
-      '/zapeg-lore director … — campaign mailbox (OP or RCON)\n' +
-      '/zapeg-lore servant rehearse <player> — practice minion, never counts\n' +
-      '/zapeg-lore servant awaken <player> — live minion, counts victories\n' +
-      '/zapeg-lore servant cleanup — despawn loaded Heraldor servants',
+      '/zapeg-lore servant rehearse|awaken|cleanup\n' +
+      '/zapeg-lore rehearse apparition <profile> <player> — practice only; never advances the story\n' +
+      '/zapeg-lore trigger apparition <profile> <player> — LIVE: recorded, pacing and campaign memory move forward\n' +
+      '/zapeg-lore cancel — stop the current runtime scene\n' +
+      '/zapeg-lore discord whisper — one-way Heraldor post (cooldown-gated)\n' +
+      '/zapeg-lore voice rehearse — test-channel voice rehearsal only\n' +
+      'profiles: echo, threshold, motion-echo, light-fault, peripheral, footsteps, sky-mark, false-passage, chroma-break, near-miss, whisper-steps, colossus, visitation',
     false
   )
 }
@@ -574,7 +559,7 @@ ServerEvents.tick(event => {
 ServerEvents.commandRegistry(event => {
   const { commands: Commands, arguments: Arguments } = event
   // Attach children on a held root. Some KubeJS/Rhino then() wrappers return
-  // the child, so chaining .then(servant).then(director) would nest director
+  // the child, so chaining .then(servant).then(rehearse) would nest rehearse
   // under servant and/or register the wrong node — `/zapeg-lore` then rejects
   // both literals as its next argument.
   const root = Commands.literal('zapeg-lore')
@@ -611,121 +596,55 @@ ServerEvents.commandRegistry(event => {
       .executes(ctx => zhCleanupServants(ctx.source))
     )
 
-  const director = Commands.literal('director')
-    .requires(source => source.hasPermission(2))
+  const rehearse = Commands.literal('rehearse')
     .executes(ctx => {
-      zhDirectorUsage(ctx.source)
+      zhLoreUsage(ctx.source)
       return 1
     })
-        .then(Commands.literal('status')
-          .executes(ctx => zhQueueDirectorRequest(ctx.source, 'status', '-', null))
-        )
-        .then(Commands.literal('pause')
-          .executes(ctx => zhQueueDirectorRequest(ctx.source, 'pause', '-', null))
-        )
-        .then(Commands.literal('resume')
-          .executes(ctx => zhQueueDirectorRequest(ctx.source, 'resume', '-', null))
-        )
-        .then(Commands.literal('phase')
-          .executes(ctx => {
-            zhDirectorUsage(ctx.source)
-            return 1
-          })
-          .then(Commands.literal('start')
-            .executes(ctx => {
-              zhDirectorUsage(ctx.source)
-              return 1
-            })
-            .then(Commands.literal('presence')
-              .executes(ctx => zhQueueDirectorRequest(
-                ctx.source, 'phase_start', 'presence', null
-              ))
-            )
-            .then(Commands.literal('servants')
-              .executes(ctx => zhQueueDirectorRequest(
-                ctx.source, 'phase_start', 'servants', null
-              ))
-            )
-            .then(Commands.literal('manifestation')
-              .executes(ctx => zhQueueDirectorRequest(
-                ctx.source, 'phase_start', 'manifestation', null
-              ))
-            )
-          )
-          .then(Commands.literal('advance')
-            .executes(ctx => zhQueueDirectorRequest(
-              ctx.source, 'phase_advance', '-', null
-            ))
-          )
-        )
-        .then(Commands.literal('event')
-          .executes(ctx => {
-            zhDirectorUsage(ctx.source)
-            return 1
-          })
-          .then(Commands.literal('rehearse')
-            .executes(ctx => {
-              zhDirectorUsage(ctx.source)
-              return 1
-            })
-            .then(zhDirectorApparitionBranch(
-              Commands, Arguments, event, 'scene_rehearse'
-            ))
-          )
-          .then(Commands.literal('trigger')
-            .executes(ctx => {
-              zhDirectorUsage(ctx.source)
-              return 1
-            })
-            .then(zhDirectorApparitionBranch(
-              Commands, Arguments, event, 'scene_trigger'
-            ))
-          )
-        )
-        .then(Commands.literal('cancel')
-          .executes(ctx => zhQueueDirectorRequest(ctx.source, 'cancel', '-', null))
-        )
-        .then(Commands.literal('colossus')
-          .executes(ctx => {
-            zhDirectorUsage(ctx.source)
-            return 1
-          })
-          .then(Commands.literal('reset')
-            .then(Commands.argument('target', Arguments.PLAYER.create(event))
-              .executes(ctx => zhQueueDirectorRequest(
-                ctx.source,
-                'colossus_reset',
-                '-',
-                Arguments.PLAYER.getResult(ctx, 'target')
-              ))
-            )
-          )
-        )
-        .then(Commands.literal('discord')
-          .executes(ctx => {
-            zhDirectorUsage(ctx.source)
-            return 1
-          })
-          .then(Commands.literal('whisper')
-            .executes(ctx => zhQueueDirectorRequest(
-              ctx.source, 'discord_post', '-', null
-            ))
-          )
-        )
-        .then(Commands.literal('voice')
-          .executes(ctx => {
-            zhDirectorUsage(ctx.source)
-            return 1
-          })
-          .then(Commands.literal('rehearse')
-            .executes(ctx => zhQueueDirectorRequest(
-              ctx.source, 'voice_rehearse', '-', null
-            ))
-          )
-        )
+    .then(zhDirectorApparitionBranch(
+      Commands, Arguments, event, 'scene_rehearse'
+    ))
+
+  const trigger = Commands.literal('trigger')
+    .executes(ctx => {
+      zhLoreUsage(ctx.source)
+      return 1
+    })
+    .then(zhDirectorApparitionBranch(
+      Commands, Arguments, event, 'scene_trigger'
+    ))
+
+  const cancel = Commands.literal('cancel')
+    .executes(ctx => zhQueueDirectorRequest(ctx.source, 'cancel', '-', null))
+
+  const discord = Commands.literal('discord')
+    .executes(ctx => {
+      zhLoreUsage(ctx.source)
+      return 1
+    })
+    .then(Commands.literal('whisper')
+      .executes(ctx => zhQueueDirectorRequest(
+        ctx.source, 'discord_post', '-', null
+      ))
+    )
+
+  const voice = Commands.literal('voice')
+    .executes(ctx => {
+      zhLoreUsage(ctx.source)
+      return 1
+    })
+    .then(Commands.literal('rehearse')
+      .executes(ctx => zhQueueDirectorRequest(
+        ctx.source, 'voice_rehearse', '-', null
+      ))
+    )
 
   root.then(servant)
-  root.then(director)
+  root.then(rehearse)
+  root.then(trigger)
+  root.then(cancel)
+  root.then(discord)
+  root.then(voice)
   event.register(root)
 })
 

@@ -420,7 +420,7 @@ class DirectorControlBridgeTest(unittest.TestCase):
             store, request, observed_world_token=WORLD_TOKEN
         )
 
-    def test_phase_pause_gates_and_world_separation(self) -> None:
+    def test_phase_pause_no_longer_blocks_manual_live_trigger(self) -> None:
         with self.open_store() as store:
             self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "dormant")
             presence = self.process(
@@ -431,13 +431,17 @@ class DirectorControlBridgeTest(unittest.TestCase):
 
             pause = self.process(store, control_request("pause", nonce=31))
             self.assertEqual(pause.status, "delivered")
-            with patch.object(heraldor_service, "rcon") as runtime:
+            with patch.object(
+                heraldor_service,
+                "rcon",
+                return_value="scene dispatched event=00000000-0000-0000-0000-000000000001",
+            ) as runtime:
                 live = self.process(
                     store,
                     control_request("scene_trigger", "echo_01", "Alice", nonce=32),
                 )
-            self.assertEqual(live.status, "rejected")
-            runtime.assert_not_called()
+            self.assertEqual(live.status, "delivered")
+            runtime.assert_called_once()
 
             advanced_while_paused = self.process(
                 store, control_request("phase_advance", nonce=37)
@@ -474,44 +478,47 @@ class DirectorControlBridgeTest(unittest.TestCase):
                 CampaignState(str(WORLD_TOKEN + 1), "dormant", False),
             )
 
-    def test_profile_phase_gates_are_hard_boundaries(self) -> None:
+    def test_live_trigger_from_dormant_promotes_campaign_rehearse_does_not(self) -> None:
         with self.open_store() as store:
-            self.process(store, control_request("phase_advance", nonce=40))
-            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "presence")
-            with patch.object(heraldor_service, "rcon") as runtime:
-                motion = self.process(
-                    store,
-                    control_request(
-                        "scene_trigger", "motion_echo_01", "Alice", nonce=41
-                    ),
-                )
-            self.assertEqual(motion.status, "rejected")
-            runtime.assert_not_called()
-
-            self.process(store, control_request("phase_advance", nonce=42))
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "dormant")
             with patch.object(
                 heraldor_service,
                 "rcon",
-                return_value="scene dispatched event=00000000-0000-0000-0000-000000000002",
+                return_value="scene dispatched event=00000000-0000-0000-0000-000000000044",
+            ):
+                rehearsal = self.process(
+                    store,
+                    control_request("scene_rehearse", "light_fault_01", "Alice", nonce=44),
+                )
+            self.assertEqual(rehearsal.status, "delivered")
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "dormant")
+
+            with patch.object(
+                heraldor_service,
+                "rcon",
+                return_value="scene dispatched event=00000000-0000-0000-0000-000000000043",
             ) as runtime:
-                motion = self.process(
+                live = self.process(
                     store,
                     control_request(
                         "scene_trigger", "motion_echo_01", "Alice", nonce=43
                     ),
                 )
-            self.assertEqual(motion.status, "delivered")
+            self.assertEqual(live.status, "delivered")
             runtime.assert_called_once()
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "servants")
 
-            with patch.object(heraldor_service, "rcon") as runtime:
-                light = self.process(
+            with patch.object(
+                heraldor_service,
+                "rcon",
+                return_value="scene dispatched event=00000000-0000-0000-0000-000000000041",
+            ):
+                later = self.process(
                     store,
-                    control_request(
-                        "scene_rehearse", "light_fault_01", "Alice", nonce=44
-                    ),
+                    control_request("scene_trigger", "echo_01", "Alice", nonce=41),
                 )
-            self.assertEqual(light.status, "rejected")
-            runtime.assert_not_called()
+            self.assertEqual(later.status, "delivered")
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "servants")
 
     def test_live_dispatch_is_at_most_once_and_uncertain_transport_is_ambiguous(self) -> None:
         with self.open_store() as store:
@@ -572,12 +579,6 @@ class DirectorControlBridgeTest(unittest.TestCase):
 
     def test_wrong_world_and_expired_requests_are_terminal_without_runtime(self) -> None:
         with self.open_store() as store, patch.object(heraldor_service, "rcon") as runtime:
-            wrong_world = self.process(
-                store,
-                control_request("scene_trigger", "echo_01", "Alice", nonce=70),
-            )
-            # Still dormant, so establish that the earlier rejection was a phase gate.
-            self.assertEqual(wrong_world.status, "rejected")
             mismatch = heraldor_service.process_control_request(
                 store,
                 control_request(
@@ -607,13 +608,18 @@ class DirectorControlBridgeTest(unittest.TestCase):
             self.process(
                 store, control_request("phase_start", "presence", nonce=73)
             )
-            self.process(store, control_request("pause", nonce=74))
-            rejected = self.process(
+            rejected = heraldor_service.process_control_request(
                 store,
-                control_request("scene_trigger", "echo_01", "Alice", nonce=75),
+                control_request(
+                    "scene_trigger",
+                    "echo_01",
+                    "Alice",
+                    nonce=75,
+                    world_token=WORLD_TOKEN + 1,
+                ),
+                observed_world_token=WORLD_TOKEN,
             )
             self.assertEqual(rejected.status, "rejected")
-            self.process(store, control_request("resume", nonce=76))
             self.assertIsNotNone(
                 store.reserve_ambient(
                     "whisper", subject="Alice", world_token=WORLD_TOKEN
@@ -867,6 +873,32 @@ class SceneTtlScalingTest(unittest.TestCase):
             f"zapegscene trigger Alice {request.event_id} echo_01 270",
         )
 
+    def test_trigger_from_dormant_uses_profile_floor_ttl(self) -> None:
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        store = DirectorStore(
+            Path(temp.name) / "heraldor.sqlite3", clock=FakeClock()
+        )
+        self.addCleanup(store.close)
+        request = control_request(
+            "scene_trigger", "light_fault_01", "Alice", nonce=92
+        )
+        with patch.object(
+            heraldor_service,
+            "rcon",
+            return_value=f"scene dispatched event={request.event_id}",
+        ) as runtime:
+            outcome = heraldor_service.process_control_request(
+                store, request, observed_world_token=WORLD_TOKEN
+            )
+        self.assertEqual(outcome.status, "delivered")
+        self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "manifestation")
+        command = runtime.call_args.args[0]
+        self.assertEqual(
+            command,
+            f"zapegscene trigger Alice {request.event_id} light_fault_01 189",
+        )
+
     def test_rehearse_command_keeps_runtime_default_ttl(self) -> None:
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
@@ -874,11 +906,6 @@ class SceneTtlScalingTest(unittest.TestCase):
             Path(temp.name) / "heraldor.sqlite3", clock=FakeClock()
         )
         self.addCleanup(store.close)
-        heraldor_service.process_control_request(
-            store,
-            control_request("phase_start", "presence", nonce=95),
-            observed_world_token=WORLD_TOKEN,
-        )
         with patch.object(
             heraldor_service,
             "rcon",
@@ -940,8 +967,15 @@ class ServantScriptContractTest(unittest.TestCase):
         self.assertIn("/^[A-Za-z0-9_]{1,16}$/.test(name)", self.script)
         self.assertIn("server.runCommandSilent(\n      `execute in ${dimension}", self.script)
 
-    def test_director_bridge_is_allowlisted_queued_and_never_calls_runtime(self) -> None:
-        self.assertIn("Commands.literal('director')", self.script)
+    def test_op_mailbox_is_allowlisted_queued_and_never_calls_runtime(self) -> None:
+        self.assertNotIn("Commands.literal('director')", self.script)
+        self.assertNotIn("Commands.literal('phase')", self.script)
+        self.assertIn("Commands.literal('rehearse')", self.script)
+        self.assertIn("Commands.literal('trigger')", self.script)
+        self.assertIn("Commands.literal('cancel')", self.script)
+        self.assertIn("Commands.literal('discord')", self.script)
+        self.assertIn("Commands.literal('whisper')", self.script)
+        self.assertIn("Commands.literal('voice')", self.script)
         self.assertIn("zhDirectorSourceAllowed", self.script)
         self.assertIn("net.minecraft.server.rcon.RconConsoleSource", self.script)
         self.assertIn("net.minecraft.server.level.ServerPlayer", self.script)
@@ -953,7 +987,11 @@ class ServantScriptContractTest(unittest.TestCase):
             ".requires(source => zhDirectorSourceAllowed(source))", self.script
         )
         self.assertIn("root.then(servant)", self.script)
-        self.assertIn("root.then(director)", self.script)
+        self.assertIn("root.then(rehearse)", self.script)
+        self.assertIn("root.then(trigger)", self.script)
+        self.assertIn("root.then(cancel)", self.script)
+        self.assertIn("root.then(discord)", self.script)
+        self.assertIn("root.then(voice)", self.script)
         self.assertIn("const ZH_CONTROL_TTL_SECONDS = 90", self.script)
         self.assertIn("control_request", self.script)
         queue = self.script[
@@ -1451,7 +1489,6 @@ class ColossusEscalationTest(unittest.TestCase):
         )
 
     def test_rehearsal_carries_but_never_advances_the_stage(self) -> None:
-        self.start_manifestation()
         store = self.store
         store.advance_colossus_stage(WORLD_TOKEN, "Alice")
         store.advance_colossus_stage(WORLD_TOKEN, "Alice")
@@ -1463,7 +1500,6 @@ class ColossusEscalationTest(unittest.TestCase):
         self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 2)
 
     def test_live_trigger_carries_then_advances_the_stage(self) -> None:
-        self.start_manifestation()
         store = self.store
         outcome, commands, request = self.process_scene(
             "scene_trigger",
@@ -1493,7 +1529,6 @@ class ColossusEscalationTest(unittest.TestCase):
         self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 2)
 
     def test_failed_trigger_leaves_the_stage_untouched(self) -> None:
-        self.start_manifestation()
         store = self.store
         outcome, _, _ = self.process_scene(
             "scene_trigger",
@@ -1518,18 +1553,22 @@ class ColossusEscalationTest(unittest.TestCase):
         self.assertIn("reset", outcome.message)
         self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 0)
 
-    def test_colossus_is_manifestation_gated_for_bridge_scenes(self) -> None:
-        heraldor_service.process_control_request(
-            self.store,
-            control_request("phase_start", "servants", nonce=966),
-            observed_world_token=WORLD_TOKEN,
+    def test_colossus_live_trigger_from_dormant_is_usable(self) -> None:
+        self.assertEqual(self.store.campaign_state(WORLD_TOKEN).phase, "dormant")
+        outcome, commands, request = self.process_scene(
+            "scene_trigger",
+            "Alice",
+            nonce=967,
+            rcon_output="scene dispatched event=x",
         )
-        outcome, commands, _ = self.process_scene(
-            "scene_rehearse", "Alice", nonce=967, rcon_output="scene dispatched event=x"
+        self.assertEqual(outcome.status, "delivered")
+        self.assertEqual(len(commands), 1)
+        self.assertIn(
+            f"zapegscene trigger Alice {request.event_id} colossus_01 stage 0 ",
+            commands[0],
         )
-        self.assertEqual(outcome.status, "rejected")
-        self.assertIn("manifestation", outcome.message)
-        self.assertEqual(commands, [])
+        self.assertEqual(self.store.campaign_state(WORLD_TOKEN).phase, "manifestation")
+        self.assertEqual(self.store.colossus_stage(WORLD_TOKEN, "Alice"), 1)
 
     def test_scheduler_never_plans_the_colossus_on_its_own(self) -> None:
         self.start_manifestation()

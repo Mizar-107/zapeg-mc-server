@@ -114,19 +114,23 @@ SCENE_MAX_TTL_TICKS = 1200
 STALK_CELL_SIZE = 32
 STALK_MAX_CELLS_PER_SUBJECT = 48
 PLAYER_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,16}$")
-CONTROL_ACTIONS = frozenset(
+CONTROL_BRIDGE_ACTIONS = frozenset(
+    {
+        "scene_rehearse",
+        "scene_trigger",
+        "cancel",
+        "discord_post",
+        "voice_rehearse",
+    }
+)
+CONTROL_ACTIONS = CONTROL_BRIDGE_ACTIONS | frozenset(
     {
         "status",
         "pause",
         "resume",
         "phase_start",
         "phase_advance",
-        "scene_rehearse",
-        "scene_trigger",
-        "cancel",
         "colossus_reset",
-        "discord_post",
-        "voice_rehearse",
     }
 )
 CONTROL_EVENT_NAMESPACE = uuid.UUID("da548502-11dd-5b05-886a-650c4b74596c")
@@ -261,6 +265,20 @@ def normalize_world_token(value: int | str) -> str:
     if not re.fullmatch(r"[1-9]\d{0,9}", token) or int(token) > 2_000_000_000:
         raise ValueError(f"invalid Heraldor world token: {value!r}")
     return token
+
+
+def effective_scene_phase(current_phase: str, profile: str) -> str:
+    """Live OP triggers may fire while dormant; TTL and campaign memory use
+    at least the profile's documented floor, never a rewind."""
+
+    minimum = CONTROL_SCENE_PROFILE_PHASES.get(profile)
+    if minimum is None:
+        raise ValueError(f"unknown Heraldor scene profile: {profile!r}")
+    if current_phase not in CONTROL_PHASES:
+        raise ValueError(f"unknown Heraldor campaign phase: {current_phase!r}")
+    return CONTROL_PHASES[
+        max(CONTROL_PHASES.index(current_phase), CONTROL_PHASES.index(minimum))
+    ]
 
 
 def scene_ttl_ticks(profile: str, phase: str) -> int:
@@ -690,8 +708,9 @@ class DirectorStore:
         paused = False
         rows = db.execute(
             """
-            SELECT kind, payload_json FROM events
-             WHERE category = 'campaign' AND status = 'delivered'
+            SELECT kind, rehearsal, payload_json FROM events
+             WHERE status = 'delivered'
+               AND (category = 'campaign' OR kind = 'director_scene')
              ORDER BY created_at, rowid
             """
         )
@@ -716,6 +735,17 @@ class DirectorStore:
                 paused = True
             elif kind == "director_resume":
                 paused = False
+            elif kind == "director_scene":
+                # Delivered live triggers are the story: rehearsals never
+                # promote the campaign, so OP can practice from dormant.
+                if int(row["rehearsal"] or 0):
+                    continue
+                profile = payload.get("profile")
+                minimum = CONTROL_SCENE_PROFILE_PHASES.get(str(profile))
+                if minimum in CONTROL_PHASES:
+                    phase = CONTROL_PHASES[
+                        max(CONTROL_PHASES.index(phase), CONTROL_PHASES.index(minimum))
+                    ]
         return CampaignState(world_token, phase, paused)
 
     def campaign_state(self, world_token: int | str) -> CampaignState:

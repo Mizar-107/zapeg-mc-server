@@ -36,10 +36,10 @@ or explain the command, tags, counters, thresholds, or audio trigger.
   eyes at a slow bounded rate. The player can fight it, but the pull wins
   smoothly, eases in and out, and releases cleanly with zero residual
   rotation.
-- In-game Discord bridge actions: `/zapeg-lore director discord whisper`
+- In-game Discord bridge actions: `/zapeg-lore discord whisper`
   posts one seeded Turkish unease line through the configured webhook
   (fail-closed when unconfigured, audited, paced by a per-world cooldown),
-  and `/zapeg-lore director voice rehearse` enqueues a rehearsal-only voice
+  and `/zapeg-lore voice rehearse` enqueues a rehearsal-only voice
   clip under the same gates as the host-side `admin voice-rehearse`.
 - An opt-in autonomous scene scheduler (off by default) that clusters scenes
   into a "night of activity" followed by days of silence, enforces a
@@ -64,75 +64,40 @@ relay later never revives an old event. Dormant/paused suppression is described
 below. Pending live requests expire after five minutes rather than ambushing a
 channel hours later.
 
-## Operate the campaign Director
+## Operate Heraldor from in-game OP
 
-Every new Minecraft world starts implicitly at `dormant`. In that phase the
-old ambient whisper/global/Discord/shadow roll is suppressed. Phases only move
-forward through `presence`, `servants` and `manifestation`; an explicit
-`phase start` may intentionally skip forward, while `phase advance` moves one
-step. Neither interface can rewind a phase, and `confrontation` is not released.
-
-```text
-/zapeg-lore director status
-/zapeg-lore director phase start presence
-/zapeg-lore director phase start servants
-/zapeg-lore director phase start manifestation
-/zapeg-lore director phase advance
-/zapeg-lore director pause
-/zapeg-lore director resume
-/zapeg-lore director colossus reset <player>
-/zapeg-lore director discord whisper
-/zapeg-lore director voice rehearse
-/zapeg-lore director cancel
-```
-
-A bare `/zapeg-lore director`, or any malformed or incomplete Director
-command, replies with a compact usage summary of the whole tree, including
-the rehearse-vs-trigger difference.
-
-`pause` does not alter the phase. It suppresses ambient rolls and new live
-Director scenes. Rehearsals and `cancel` remain available; `cancel` only stops
-the runtime's current scene and never resets, pauses or rewinds the campaign.
-
-The apparition names are command literals, not user-controlled runtime profile
-strings:
+OP drives the story by hand. There is no `/zapeg-lore director` tree, and no
+in-game `status` / `pause` / `resume` / `phase` / `colossus reset`. A new
+world still starts `dormant` (ambient rolls stay quiet). Delivered **live
+triggers** promote campaign memory to at least that profile's floor so the
+daemon can ingest servant kills and optional scheduler beats; **rehearse**
+never does.
 
 ```text
-/zapeg-lore director event rehearse apparition echo <player>
-/zapeg-lore director event rehearse apparition threshold <player>
-/zapeg-lore director event rehearse apparition motion-echo <player>
-/zapeg-lore director event rehearse apparition light-fault <player>
-/zapeg-lore director event rehearse apparition peripheral <player>
-/zapeg-lore director event rehearse apparition footsteps <player>
-/zapeg-lore director event rehearse apparition sky-mark <player>
-/zapeg-lore director event rehearse apparition false-passage <player>
-/zapeg-lore director event rehearse apparition chroma-break <player>
-/zapeg-lore director event rehearse apparition near-miss <player>
-/zapeg-lore director event rehearse apparition whisper-steps <player>
-/zapeg-lore director event rehearse apparition colossus <player>
-/zapeg-lore director event rehearse apparition visitation <player>
-
-/zapeg-lore director event trigger apparition echo <player>
-/zapeg-lore director event trigger apparition threshold <player>
-/zapeg-lore director event trigger apparition motion-echo <player>
-/zapeg-lore director event trigger apparition light-fault <player>
-/zapeg-lore director event trigger apparition peripheral <player>
-/zapeg-lore director event trigger apparition footsteps <player>
-/zapeg-lore director event trigger apparition sky-mark <player>
-/zapeg-lore director event trigger apparition false-passage <player>
-/zapeg-lore director event trigger apparition chroma-break <player>
-/zapeg-lore director event trigger apparition near-miss <player>
-/zapeg-lore director event trigger apparition whisper-steps <player>
-/zapeg-lore director event trigger apparition colossus <player>
-/zapeg-lore director event trigger apparition visitation <player>
+/zapeg-lore
+/zapeg-lore servant rehearse <player>
+/zapeg-lore servant awaken <player>
+/zapeg-lore servant cleanup
+/zapeg-lore rehearse apparition <profile> <player>
+/zapeg-lore trigger apparition <profile> <player>
+/zapeg-lore cancel
+/zapeg-lore discord whisper
+/zapeg-lore voice rehearse
 ```
 
-`echo`, `threshold`, `peripheral`, `sky-mark` and `whisper-steps` require
-`presence`; `motion-echo`, `footsteps`, `near-miss` and `false-passage`
-require `servants`; `light-fault`, `chroma-break`, `colossus` and
-`visitation` require `manifestation`. These phase gates apply to both the
-high-level rehearsal and live forms. Live triggers carry a Director-computed, phase-scaled scene length
-(presence ×1.0, servants ×1.15, manifestation ×1.35 of the profile default,
+A bare `/zapeg-lore`, or any incomplete OP command, replies with that usage.
+`cancel` only stops the runtime's current scene (`zapegscene cancel-all`).
+Raw `/zapegscene` remains effects-only.
+
+Apparition names are command literals:
+
+```text
+/zapeg-lore rehearse apparition echo|threshold|motion-echo|light-fault|peripheral|footsteps|sky-mark|false-passage|chroma-break|near-miss|whisper-steps|colossus|visitation <player>
+/zapeg-lore trigger apparition echo|threshold|motion-echo|light-fault|peripheral|footsteps|sky-mark|false-passage|chroma-break|near-miss|whisper-steps|colossus|visitation <player>
+```
+
+Live triggers carry a Director-computed, phase-scaled scene length using at
+least the profile floor (presence ×1.0, servants ×1.15, manifestation ×1.35,
 clamped to 1200 ticks); rehearsals always use the profile default.
 Ground-anchored live profiles (`echo`, `threshold`, `peripheral`, `footsteps`,
 `false-passage`) additionally carry a coarse anchor hint from stalking memory
@@ -144,8 +109,8 @@ delivered live trigger advances the stage by one — horizon silhouette, distant
 figure, looming, towering near-presence, then the watching finale — and the
 trigger after the finale wraps back to the horizon. Rehearsals play at the
 stored stage without advancing it, a rejected or failed trigger leaves it
-untouched, and `/zapeg-lore director colossus reset <player>` clears it back
-to the horizon. The autonomous scheduler can never pick `colossus` on its
+untouched. There is no in-game colossus reset; host SQLite remains the
+authority if a stage must be cleared. The autonomous scheduler can never pick `colossus` on its
 own; it only ever moves when an operator triggers it. To preview a specific
 stage without touching stored state, use the raw runtime form `/zapegscene
 rehearse <player> colossus_01 <0-4>`. Raw OP `/zapegscene` commands remain an
@@ -169,20 +134,17 @@ action takes arguments, and neither advances any story state.
 
 ## How the campaign advances
 
-Everything the Director does is operator-driven; nothing advances on its own
-unless the optional scheduler is enabled. The model in one paragraph:
-**rehearse** is practice — it plays the effect for the target and records a
-rehearsal event, but never moves the campaign, the pacing memory or the
-colossus stage. **trigger** is live — it is validated, recorded, and counts:
-live scenes feed pacing, and each delivered live `colossus` trigger climbs
-the stored approach stage by one. The campaign itself only moves when an
-operator runs `phase start <phase>` or `phase advance`; profiles unlock at
-their documented phase gates, and the third legitimate servant victory arms
-the one-time voice clip. A typical evening is therefore: `phase start
-presence` once per world, then `event trigger apparition <profile> <player>`
-for live beats (rehearse first when unsure), `discord whisper` for an
-occasional channel beat, and `colossus` triggers spaced across sessions so
-the escalation reads as a slow approach.
+Everything is operator-driven; nothing advances on its own unless the optional
+scheduler is enabled. **rehearse** is practice — it plays the effect and
+records a rehearsal event, but never moves campaign memory, pacing or the
+colossus stage. **trigger** is live — it is validated, recorded, and counts
+immediately from dormant: live scenes feed pacing, campaign memory rises to
+the profile floor, and each delivered live `colossus` trigger climbs the
+stored approach stage by one. The third legitimate servant victory still arms
+the one-time voice clip once the world is no longer dormant. A typical evening
+is: `trigger apparition <profile> <player>` for live beats (rehearse first
+when unsure), `servant awaken` when you want the minion, `discord whisper` for
+an occasional channel beat, and `colossus` triggers spaced across sessions.
 
 The high-level command is asynchronous. Its immediate response says **queued**,
 not executed. KubeJS writes one allowlisted token tied to the current hidden
@@ -194,7 +156,7 @@ anything interrupted after the replay barrier is `ambiguous` and is never
 retried automatically. Issue a fresh command if an `ambiguous` cancel or scene
 must be attempted again.
 
-The Director subtree accepts an actual permission-level-2 player command source
+The `/zapeg-lore` mailbox accepts an actual permission-level-2 player command source
 or the exact RCON console source. Command-block sources fail closed. The local
 server console is intentionally not admitted through KubeJS because its source
 cannot be separated reliably from every function context; use authenticated
@@ -483,8 +445,8 @@ Before using it in the story, verify all of these in a copied/disposable world:
 11. Stop the relay during a mocked/private playback, restart it and verify the
     uncertain row becomes `ambiguous` without replay. Verify restore refuses
     while the voice relay lock is held.
-12. On a fresh copied world, `director status` reports `dormant` and no ambient
-    output is rolled until `phase start presence` is acknowledged.
+12. On a fresh copied world, campaign memory stays `dormant` and no ambient
+    output is rolled until a live `/zapeg-lore trigger` is delivered.
 13. Verify each hardcoded scene profile opens only at its documented phase.
     Pause the campaign: live triggers and ambient stop, rehearsal remains
     available, and `cancel` leaves both phase and pause unchanged.
@@ -535,9 +497,7 @@ Before using it in the story, verify all of these in a copied/disposable world:
     discomfort, stop using stages 3–4 until the caps are re-tuned.
 23. Stage progression, rehearsal vs live: rehearse `colossus` twice and
     confirm both play at the same stored stage; live-trigger once and confirm
-    the next rehearsal has moved one stage closer; reset with
-    `/zapeg-lore director colossus reset <player>` and confirm the next
-    rehearsal is back on the horizon. Restart the Director between steps and
+    the next rehearsal has moved one stage closer. Restart the Director between steps and
     confirm the stage survives in SQLite, and confirm a second player has an
     independent stage.
 24. Colossus cleanup paths: logout, death, dimension change and
