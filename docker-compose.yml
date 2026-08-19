@@ -75,7 +75,7 @@ services:
       CITIZENS_JOB_MAX_ACTIVE_SECONDS: "${CITIZENS_JOB_MAX_ACTIVE_SECONDS:-10800}"
 
       # ---- resources (brief §6) --------------------------------------------
-      MEMORY: 12G                          # ATM guidance 8–12G; do NOT exceed ~12G (GC degrades)
+      MEMORY: 22G                          # ATM guidance 8–12G; bumped for player-count headroom (WSL2 ceiling raised to match)
       USE_AIKAR_FLAGS: "true"
 
       # ---- server.properties -----------------------------------------------
@@ -100,8 +100,10 @@ services:
       OPS: ${OPS-Mizar__107}                # explicit OPS= clears it; default is accepted spoofable admin
 
       # ---- rcon (backup sidecar + scripts) ----------------------------------
-      # Null = pass through only when the host explicitly defines it. Otherwise
-      # itzg generates a random secret in /data/.rcon-cli.env; 25575 is not public.
+      # Passed through from .env's RCON_PASSWORD, pinned there deliberately so
+      # it survives future recreates/restarts (a blank value here would let
+      # itzg regenerate a random secret in /data/.rcon-cli.env on every start,
+      # breaking metrics-exporter's login each time). 25575 is not public.
       RCON_PASSWORD:
       STOP_SERVER_ANNOUNCE_DELAY: "20"
     volumes:
@@ -139,7 +141,7 @@ services:
   citizen-brain:
     image: zapeg/citizen-brain:0.4.0
     build:
-      context: https://github.com/Mizar-107/zapeg-citizens.git#v0.4.0:brain
+      context: https://github.com/Mizar-107/zapeg-citizens.git#0d7e6fc:brain
     container_name: atm9-citizen-brain
     profiles: ["citizens"]
     restart: unless-stopped
