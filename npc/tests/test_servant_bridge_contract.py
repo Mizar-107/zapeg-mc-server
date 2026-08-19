@@ -71,11 +71,15 @@ class RhinoPropertyMappingTest(unittest.TestCase):
         self.assertIsNone(re.search(r"\.uuid\b", self.source))
         self.assertIn(".getUUID()", self.source)
 
-    def test_dimension_is_always_invoked(self) -> None:
-        # Level#dimension is a no-arg method; as a property it is a function
-        # object whose String() form silently poisons `execute in <dim>`.
-        self.assertIsNone(re.search(r"\.dimension(?!\()", self.source))
-        self.assertIn(".dimension().location()", self.source)
+    def test_dimension_reads_stay_on_the_kubejs_wrapper_property(self) -> None:
+        # Every level flowing through this script is a KubeJS LevelJS
+        # wrapper — proven by `level.getBlock(x, y, z)`, which only exists on
+        # the wrapper — so `level.dimension` is the real getDimension() bean
+        # property, and the raw ServerLevel#dimension() method form must
+        # never appear. The single sanctioned read is the zhDimensionId
+        # helper.
+        self.assertIsNone(re.search(r"\.dimension\(\)", self.source))
+        self.assertIn("String(level.dimension)", self.source)
 
     def test_every_string_interpolation_dimension_uses_helper(self) -> None:
         for match in re.finditer(r"execute in \$\{([^}]+)\}", self.source):

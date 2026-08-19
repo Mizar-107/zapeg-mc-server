@@ -37,6 +37,7 @@ from heraldor_director import (
     CONTROL_PHASES,
     CONTROL_SCENE_PROFILE_PHASES,
     CONTROL_TOKEN_MAX_FUTURE_SECONDS,
+    MANUAL_DISCORD_MIN_GAP_SECONDS,
     STALK_HINT_PROFILES,
     ControlRequest,
     DirectorStateLock,
@@ -68,6 +69,16 @@ SCHEDULER_ENABLED = os.environ.get("HERALDOR_SCENE_SCHEDULER", "false").lower() 
 SCHEDULER_INTERVAL = max(20, int(os.environ.get("SCHEDULER_INTERVAL", "60")))
 STALK_SAMPLE_INTERVAL = max(15, int(os.environ.get("STALK_SAMPLE_INTERVAL", "45")))
 DEATH_POLL_INTERVAL = max(10, int(os.environ.get("DEATH_POLL_INTERVAL", "30")))
+# In-game "discord whisper" bridge action: one world-tokened cooldown so the
+# channel can never be spammed, even by an enthusiastic operator.
+DISCORD_MANUAL_GAP_SECONDS = max(
+    30,
+    int(
+        os.environ.get(
+            "HERALDOR_DISCORD_MANUAL_GAP_SECONDS", str(MANUAL_DISCORD_MIN_GAP_SECONDS)
+        )
+    ),
+)
 DB_PATH = Path(os.environ.get("HERALDOR_DB_PATH", "/state/heraldor.sqlite3"))
 SNAPSHOT_PATH = Path(
     os.environ.get("HERALDOR_SNAPSHOT_PATH", "/state/backup/heraldor.sqlite3")
@@ -186,6 +197,10 @@ def _control_event_shape(request: ControlRequest) -> tuple[str, str, bool]:
         return "director_cancel", "operator", False
     if request.action == "colossus_reset":
         return "director_colossus_reset", "operator", False
+    if request.action == "discord_post":
+        return "director_discord", "operator", False
+    if request.action == "voice_rehearse":
+        return "director_voice_rehearse", "operator", False
     return "director_status", "operator", False
 
 
@@ -376,6 +391,78 @@ def process_control_request(
             record.status,
             f"colossus stage reset for {request.target}",
         )
+
+    if request.action == "voice_rehearse":
+        # The in-game equivalent of host-side `admin voice-rehearse`: it only
+        # ever queues a test-channel rehearsal; live voice stays governed by
+        # its own gates. Rehearsals never advance story state.
+        audio_event_id = director.enqueue_audio_rehearsal(now=timestamp)
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="delivered",
+            payload={"audio_event_id": audio_event_id, "rehearsal_only": True},
+            now=timestamp,
+        )
+        return ControlOutcome(
+            record.event_id,
+            record.status,
+            "voice rehearsal queued; it can only play in the test channel",
+        )
+
+    if request.action == "discord_post":
+        # One-way webhook whisper as "Heraldor": fail-closed without a
+        # configured webhook, paced by a world-tokened cooldown, and the
+        # posted line is audited in the control event payload.
+        if not WEBHOOK:
+            return _reject_control(
+                director,
+                request,
+                "Discord webhook is not configured",
+                now=timestamp,
+            )
+        remaining = director.manual_discord_cooldown_remaining(
+            request.world_token,
+            gap_seconds=DISCORD_MANUAL_GAP_SECONDS,
+            now=timestamp,
+        )
+        if remaining > 0:
+            return _reject_control(
+                director,
+                request,
+                f"Discord whisper is on cooldown for {remaining}s",
+                now=timestamp,
+            )
+        # The nonce seeds the line, so a replayed token can never pick a
+        # different message than the one already audited.
+        line = DISCORDS[int(request.nonce, 16) % len(DISCORDS)]
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="reserved",
+            payload={"line": line},
+            now=timestamp,
+        )
+        if record.status != "reserved":
+            return ControlOutcome(
+                record.event_id,
+                record.status,
+                f"request already {record.status}; it was not replayed",
+            )
+        if not director.mark_attempting(record.event_id, now=timestamp):
+            terminal = director.control_event_status(record.event_id) or "ambiguous"
+            return ControlOutcome(record.event_id, terminal, "request could not be claimed")
+        try:
+            discord_post_line(line)
+        except Exception as exc:
+            error = f"Discord post outcome was uncertain: {exc}"
+            director.finish_attempt(record.event_id, delivered=None, error=error)
+            return ControlOutcome(record.event_id, "ambiguous", error)
+        director.finish_attempt(record.event_id, delivered=True, error=None)
+        director.record_manual_discord_post(request.world_token, now=timestamp)
+        return ControlOutcome(record.event_id, "delivered", "Discord whisper posted")
 
     if request.action in {"scene_rehearse", "scene_trigger"}:
         minimum = CONTROL_SCENE_PROFILE_PHASES[request.argument]
@@ -636,16 +723,22 @@ def global_msg() -> None:
     print(f"[heraldor] global: {line}")
 
 
-def discord_msg() -> None:
+def discord_post_line(line: str) -> None:
+    """One-way webhook post as 'Heraldor'; fails closed when unconfigured."""
+
     if not WEBHOOK:
         raise RuntimeError("Discord webhook is not configured")
-    line = llm_line("Discord kanalına yazılmış tekinsiz mesaj") or random.choice(DISCORDS)
     req = urllib.request.Request(
         WEBHOOK,
         data=json.dumps({"content": line, "username": "Heraldor"}).encode("utf-8"),
         headers={"Content-Type": "application/json", "User-Agent": "heraldor/2.0"},
     )
     urllib.request.urlopen(req, timeout=15).read()
+
+
+def discord_msg() -> None:
+    line = llm_line("Discord kanalına yazılmış tekinsiz mesaj") or random.choice(DISCORDS)
+    discord_post_line(line)
     print(f"[heraldor] discord: {line}")
 
 

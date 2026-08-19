@@ -1563,5 +1563,175 @@ class ColossusEscalationTest(unittest.TestCase):
         )
 
 
+class DiscordBridgeTest(unittest.TestCase):
+    """The in-game Discord whisper: fail-closed without a webhook, paced by
+    a world-tokened cooldown, audited with the exact posted line, and never
+    free-text — the nonce seeds one of the allowlisted unease lines."""
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.clock = FakeClock()
+        self.store = DirectorStore(
+            Path(self.temp.name) / "heraldor.sqlite3", clock=self.clock
+        )
+        self.addCleanup(self.store.close)
+
+    def process(self, nonce: int):
+        request = control_request("discord_post", nonce=nonce)
+        with patch.object(
+            heraldor_service, "WEBHOOK", "https://unused.invalid"
+        ), patch.object(heraldor_service, "discord_post_line") as post:
+            outcome = heraldor_service.process_control_request(
+                self.store, request, observed_world_token=WORLD_TOKEN
+            )
+        return outcome, post, request
+
+    def test_fail_closed_without_webhook(self) -> None:
+        request = control_request("discord_post", nonce=1)
+        with patch.object(heraldor_service, "WEBHOOK", ""), patch.object(
+            heraldor_service, "discord_post_line"
+        ) as post:
+            outcome = heraldor_service.process_control_request(
+                self.store, request, observed_world_token=WORLD_TOKEN
+            )
+        self.assertEqual(outcome.status, "rejected")
+        self.assertIn("not configured", outcome.message)
+        post.assert_not_called()
+
+    def test_posts_allowlisted_line_and_audits_it(self) -> None:
+        outcome, post, request = self.process(nonce=2)
+        self.assertEqual(outcome.status, "delivered")
+        post.assert_called_once()
+        line = post.call_args.args[0]
+        self.assertIn(line, heraldor_service.DISCORDS)
+        # The nonce seeds the line: the same request always picks it.
+        self.assertEqual(
+            line,
+            heraldor_service.DISCORDS[
+                int(request.nonce, 16) % len(heraldor_service.DISCORDS)
+            ],
+        )
+        row = self.store.connection.execute(
+            "SELECT kind, payload_json FROM events WHERE kind = 'director_discord'"
+        ).fetchone()
+        self.assertIsNotNone(row)
+        self.assertEqual(json.loads(str(row["payload_json"]))["line"], line)
+
+    def test_cooldown_paces_the_channel_per_world(self) -> None:
+        first, post, _ = self.process(nonce=3)
+        self.assertEqual(first.status, "delivered")
+        self.assertEqual(post.call_count, 1)
+
+        second, post2, _ = self.process(nonce=4)
+        self.assertEqual(second.status, "rejected")
+        self.assertIn("cooldown", second.message)
+        post2.assert_not_called()
+
+        # Another world is not paced by this one's marker.
+        other_world = control_request("discord_post", nonce=5, world_token=999999999)
+        with patch.object(
+            heraldor_service, "WEBHOOK", "https://unused.invalid"
+        ), patch.object(heraldor_service, "discord_post_line") as post3:
+            third = heraldor_service.process_control_request(
+                self.store, other_world, observed_world_token=999999999
+            )
+        self.assertEqual(third.status, "delivered")
+        post3.assert_called_once()
+
+        # After the gap the same world may whisper again.
+        self.clock.value += heraldor_service.DISCORD_MANUAL_GAP_SECONDS + 1
+        request = control_request(
+            "discord_post", nonce=6, expires_at=self.clock.value + 60
+        )
+        with patch.object(
+            heraldor_service, "WEBHOOK", "https://unused.invalid"
+        ), patch.object(heraldor_service, "discord_post_line") as post4:
+            fourth = heraldor_service.process_control_request(
+                self.store, request, observed_world_token=WORLD_TOKEN
+            )
+        self.assertEqual(fourth.status, "delivered")
+        post4.assert_called_once()
+
+    def test_uncertain_post_is_ambiguous_and_holds_no_cooldown(self) -> None:
+        request = control_request("discord_post", nonce=7)
+        with patch.object(
+            heraldor_service, "WEBHOOK", "https://unused.invalid"
+        ), patch.object(
+            heraldor_service,
+            "discord_post_line",
+            side_effect=RuntimeError("connection reset"),
+        ):
+            outcome = heraldor_service.process_control_request(
+                self.store, request, observed_world_token=WORLD_TOKEN
+            )
+        self.assertEqual(outcome.status, "ambiguous")
+        # The post may or may not have happened; the cooldown marker is only
+        # written for a known-delivered whisper, so a retry is possible.
+        remaining = self.store.manual_discord_cooldown_remaining(
+            WORLD_TOKEN,
+            gap_seconds=heraldor_service.DISCORD_MANUAL_GAP_SECONDS,
+        )
+        self.assertEqual(remaining, 0)
+
+    def test_arguments_are_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            control_request("discord_post", "echo_01", nonce=8)
+        with self.assertRaises(ValueError):
+            control_request("discord_post", "-", "Alice", nonce=9)
+
+
+class VoiceRehearseBridgeTest(unittest.TestCase):
+    """The in-game voice rehearsal: equivalent to host-side admin
+    voice-rehearse, rehearsal-only, audited, and never touching live gates."""
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.clock = FakeClock()
+        self.store = DirectorStore(
+            Path(self.temp.name) / "heraldor.sqlite3", clock=self.clock
+        )
+        self.addCleanup(self.store.close)
+
+    def test_queues_a_rehearsal_only_clip_and_audits(self) -> None:
+        request = control_request("voice_rehearse", nonce=10)
+        outcome = heraldor_service.process_control_request(
+            self.store, request, observed_world_token=WORLD_TOKEN
+        )
+        self.assertEqual(outcome.status, "delivered")
+        self.assertIn("rehearsal", outcome.message)
+
+        audio = self.store.connection.execute(
+            "SELECT event_id, rehearsal, payload_json FROM events "
+            "WHERE kind = 'audio_rehearsal'"
+        ).fetchone()
+        self.assertIsNotNone(audio)
+        self.assertEqual(audio["rehearsal"], 1)
+        self.assertTrue(str(audio["event_id"]).startswith("rehearsal:audio:"))
+        self.assertEqual(
+            json.loads(str(audio["payload_json"]))["clip_id"], SERVANT_AUDIO_CLIP_ID
+        )
+        outbox = self.store.connection.execute(
+            "SELECT payload_json FROM outbox"
+        ).fetchone()
+        self.assertIsNotNone(outbox)
+        self.assertTrue(json.loads(str(outbox["payload_json"]))["rehearsal"])
+
+        control = self.store.connection.execute(
+            "SELECT payload_json FROM events WHERE kind = 'director_voice_rehearse'"
+        ).fetchone()
+        self.assertIsNotNone(control)
+        payload = json.loads(str(control["payload_json"]))
+        self.assertTrue(payload["rehearsal_only"])
+        self.assertEqual(payload["audio_event_id"], audio["event_id"])
+
+    def test_arguments_are_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            control_request("voice_rehearse", "servants", nonce=11)
+        with self.assertRaises(ValueError):
+            control_request("voice_rehearse", "-", "Alice", nonce=12)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -36,7 +36,14 @@ AFTERMATH_PROFILE = "footsteps_01"
 COLOSSUS_PROFILE = "colossus_01"
 COLOSSUS_MAX_STAGE = 4
 COLOSSUS_META_PREFIX = "colossus:"
-OPERATOR_ONLY_PROFILES = frozenset({COLOSSUS_PROFILE})
+VISITATION_PROFILE = "visitation_01"
+# Operator-only profiles: the scheduler never plans these on its own; they
+# exist for deliberate OP/Director beats (rehearsal stays available).
+OPERATOR_ONLY_PROFILES = frozenset({COLOSSUS_PROFILE, VISITATION_PROFILE})
+# Manual Discord whispers share one world-tokened cooldown marker so the
+# in-game bridge action can never spam the channel.
+MANUAL_DISCORD_META_PREFIX = "discord_manual:"
+MANUAL_DISCORD_MIN_GAP_SECONDS = 10 * 60
 AUDIO_SINK = "discord_voice"
 AUDIO_EVENT_TYPE = "heraldor.audio.requested"
 AUDIO_LIVE_TTL_SECONDS = 5 * 60
@@ -62,6 +69,7 @@ CONTROL_SCENE_PROFILE_PHASES = {
     "light_fault_01": "manifestation",
     "chroma_break_01": "manifestation",
     "colossus_01": "manifestation",
+    "visitation_01": "manifestation",
 }
 # Mirrors SceneProfile.defaultTtlTicks() in zapeg-runtime; the Director scales
 # these by campaign phase and passes the result as the optional ttl_ticks
@@ -79,6 +87,7 @@ SCENE_PROFILE_DEFAULT_TTL_TICKS = {
     "near_miss_01": 110,
     "whisper_steps_01": 180,
     "colossus_01": 320,
+    "visitation_01": 70,
 }
 # Profiles whose runtime placement walks the ground around the target; only
 # these can take a stalking-memory or grave-site anchor hint.
@@ -116,6 +125,8 @@ CONTROL_ACTIONS = frozenset(
         "scene_trigger",
         "cancel",
         "colossus_reset",
+        "discord_post",
+        "voice_rehearse",
     }
 )
 CONTROL_EVENT_NAMESPACE = uuid.UUID("da548502-11dd-5b05-886a-650c4b74596c")
@@ -283,7 +294,15 @@ def parse_control_request(token: str) -> ControlRequest:
     if operator != "console" and not re.fullmatch(r"[A-Za-z0-9_]{1,16}", operator):
         raise ValueError("invalid Heraldor control operator")
 
-    no_argument_actions = {"status", "pause", "resume", "phase_advance", "cancel"}
+    no_argument_actions = {
+        "status",
+        "pause",
+        "resume",
+        "phase_advance",
+        "cancel",
+        "discord_post",
+        "voice_rehearse",
+    }
     if action in no_argument_actions:
         if argument != "-" or raw_target != "-":
             raise ValueError("unexpected Heraldor control arguments")
@@ -1355,6 +1374,57 @@ class DirectorStore:
                     compact_json({"world_token": token, "reset": True}),
                     timestamp,
                 ),
+            )
+        self.backup_snapshot()
+
+    def manual_discord_cooldown_remaining(
+        self,
+        world_token: int | str,
+        *,
+        gap_seconds: int,
+        now: int | None = None,
+    ) -> int:
+        """Seconds left before another operator Discord whisper may post.
+
+        One world-tokened marker paces the in-game bridge action so the
+        channel can never be spammed; zero means a post may go now.
+        """
+
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        key = MANUAL_DISCORD_META_PREFIX + token
+        with self._transaction() as db:
+            row = db.execute(
+                "SELECT value FROM director_meta WHERE key = ?", (key,)
+            ).fetchone()
+        if row is None:
+            return 0
+        try:
+            last = int(str(row["value"]))
+        except ValueError:
+            return 0
+        return max(0, gap_seconds - (timestamp - last))
+
+    def record_manual_discord_post(
+        self,
+        world_token: int | str,
+        *,
+        now: int | None = None,
+    ) -> None:
+        """Mark the world-tokened manual Discord whisper cooldown."""
+
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        key = MANUAL_DISCORD_META_PREFIX + token
+        with self._transaction() as db:
+            db.execute(
+                """
+                INSERT INTO director_meta (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE
+                    SET value = excluded.value, updated_at = excluded.updated_at
+                """,
+                (key, str(timestamp), timestamp),
             )
         self.backup_snapshot()
 

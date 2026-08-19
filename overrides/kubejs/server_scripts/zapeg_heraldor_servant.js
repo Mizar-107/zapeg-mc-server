@@ -110,24 +110,31 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   zhEnsureObjectives(server)
   const allowedActions = [
     'status', 'pause', 'resume', 'phase_start', 'phase_advance',
-    'scene_rehearse', 'scene_trigger', 'cancel', 'colossus_reset'
+    'scene_rehearse', 'scene_trigger', 'cancel', 'colossus_reset',
+    'discord_post', 'voice_rehearse'
   ]
   const allowedArguments = [
     '-', 'presence', 'servants', 'manifestation',
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
     'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
-    'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01'
+    'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01',
+    'visitation_01'
   ]
   if (allowedActions.indexOf(action) < 0 || allowedArguments.indexOf(argument) < 0) {
     zhReply(source, 'The Director request was not allowlisted.', true)
+    zhDirectorUsage(source)
     return 0
   }
-  const noArgumentActions = ['status', 'pause', 'resume', 'phase_advance', 'cancel']
+  const noArgumentActions = [
+    'status', 'pause', 'resume', 'phase_advance', 'cancel',
+    'discord_post', 'voice_rehearse'
+  ]
   const phases = ['presence', 'servants', 'manifestation']
   const profiles = [
     'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
     'peripheral_01', 'footsteps_01', 'sky_mark_01', 'false_passage_01',
-    'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01'
+    'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01',
+    'visitation_01'
   ]
   const sceneAction = action === 'scene_rehearse' || action === 'scene_trigger'
   const validShape =
@@ -137,6 +144,7 @@ function zhQueueDirectorRequest(source, action, argument, target) {
     (action === 'colossus_reset' && argument === '-' && Boolean(target))
   if (!validShape) {
     zhReply(source, 'The Director request arguments were not allowlisted.', true)
+    zhDirectorUsage(source)
     return 0
   }
 
@@ -186,8 +194,29 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   return 1
 }
 
+function zhDirectorUsage(source) {
+  zhReply(
+    source,
+    'Director usage:\n' +
+      '/zapeg-lore director status | pause | resume | cancel\n' +
+      '/zapeg-lore director phase start <presence|servants|manifestation> — move the campaign\n' +
+      '/zapeg-lore director phase advance — move to the next phase\n' +
+      '/zapeg-lore director event rehearse <profile> <player> — practice only; never advances the story\n' +
+      '/zapeg-lore director event trigger <profile> <player> — LIVE: recorded, and advances pacing (colossus stage climbs per delivered live trigger)\n' +
+      '/zapeg-lore director colossus reset <player>\n' +
+      '/zapeg-lore director discord whisper — one-way Heraldor post (cooldown-gated)\n' +
+      '/zapeg-lore director voice rehearse — test-channel voice rehearsal only\n' +
+      'profiles: echo, threshold, motion-echo, light-fault, peripheral, footsteps, sky-mark, false-passage, chroma-break, near-miss, whisper-steps, colossus, visitation',
+    false
+  )
+}
+
 function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
   const apparition = Commands.literal('apparition')
+    .executes(ctx => {
+      zhDirectorUsage(ctx.source)
+      return 1
+    })
   const profiles = [
     ['echo', 'echo_01'],
     ['threshold', 'threshold_01'],
@@ -200,10 +229,15 @@ function zhDirectorApparitionBranch(Commands, Arguments, event, action) {
     ['chroma-break', 'chroma_break_01'],
     ['near-miss', 'near_miss_01'],
     ['whisper-steps', 'whisper_steps_01'],
-    ['colossus', 'colossus_01']
+    ['colossus', 'colossus_01'],
+    ['visitation', 'visitation_01']
   ]
   profiles.forEach(profile => {
     apparition.then(Commands.literal(profile[0])
+      .executes(ctx => {
+        zhDirectorUsage(ctx.source)
+        return 1
+      })
       .then(Commands.argument('target', Arguments.PLAYER.create(event))
         .executes(ctx => zhQueueDirectorRequest(
           ctx.source,
@@ -528,6 +562,10 @@ ServerEvents.commandRegistry(event => {
       )
       .then(Commands.literal('director')
         .requires(source => zhDirectorSourceAllowed(source))
+        .executes(ctx => {
+          zhDirectorUsage(ctx.source)
+          return 1
+        })
         .then(Commands.literal('status')
           .executes(ctx => zhQueueDirectorRequest(ctx.source, 'status', '-', null))
         )
@@ -538,7 +576,15 @@ ServerEvents.commandRegistry(event => {
           .executes(ctx => zhQueueDirectorRequest(ctx.source, 'resume', '-', null))
         )
         .then(Commands.literal('phase')
+          .executes(ctx => {
+            zhDirectorUsage(ctx.source)
+            return 1
+          })
           .then(Commands.literal('start')
+            .executes(ctx => {
+              zhDirectorUsage(ctx.source)
+              return 1
+            })
             .then(Commands.literal('presence')
               .executes(ctx => zhQueueDirectorRequest(
                 ctx.source, 'phase_start', 'presence', null
@@ -562,12 +608,24 @@ ServerEvents.commandRegistry(event => {
           )
         )
         .then(Commands.literal('event')
+          .executes(ctx => {
+            zhDirectorUsage(ctx.source)
+            return 1
+          })
           .then(Commands.literal('rehearse')
+            .executes(ctx => {
+              zhDirectorUsage(ctx.source)
+              return 1
+            })
             .then(zhDirectorApparitionBranch(
               Commands, Arguments, event, 'scene_rehearse'
             ))
           )
           .then(Commands.literal('trigger')
+            .executes(ctx => {
+              zhDirectorUsage(ctx.source)
+              return 1
+            })
             .then(zhDirectorApparitionBranch(
               Commands, Arguments, event, 'scene_trigger'
             ))
@@ -577,6 +635,10 @@ ServerEvents.commandRegistry(event => {
           .executes(ctx => zhQueueDirectorRequest(ctx.source, 'cancel', '-', null))
         )
         .then(Commands.literal('colossus')
+          .executes(ctx => {
+            zhDirectorUsage(ctx.source)
+            return 1
+          })
           .then(Commands.literal('reset')
             .then(Commands.argument('target', Arguments.PLAYER.create(event))
               .executes(ctx => zhQueueDirectorRequest(
@@ -586,6 +648,28 @@ ServerEvents.commandRegistry(event => {
                 Arguments.PLAYER.getResult(ctx, 'target')
               ))
             )
+          )
+        )
+        .then(Commands.literal('discord')
+          .executes(ctx => {
+            zhDirectorUsage(ctx.source)
+            return 1
+          })
+          .then(Commands.literal('whisper')
+            .executes(ctx => zhQueueDirectorRequest(
+              ctx.source, 'discord_post', '-', null
+            ))
+          )
+        )
+        .then(Commands.literal('voice')
+          .executes(ctx => {
+            zhDirectorUsage(ctx.source)
+            return 1
+          })
+          .then(Commands.literal('rehearse')
+            .executes(ctx => zhQueueDirectorRequest(
+              ctx.source, 'voice_rehearse', '-', null
+            ))
           )
         )
       )
