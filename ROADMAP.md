@@ -40,7 +40,7 @@ Not everything in v1 — each phase ships through the UPDATING.md ritual. World-
 ## ✅ v0.8.0 (now) — content drop 2 + Heraldor awakens
 
 - **Combat/exploration work** (all pre-world, verified 1.20.1 Forge): Aquamirae, Born in Chaos, Simply Swords and Better Combat were manual additions; Incendium is server-only. WDA and playerAnimator were initially declared here but v0.8.1 established that ATM9 already supplies both. Magic deliberately skipped — ATM9 already ships Eidolon, Forbidden & Arcanus, Mahou Tsukai and Ars Elemental.
-- **Heraldor presence engine** (`--profile heraldor`): night-biased whispers only the target sees (+ cave sounds at their position), rare global lines, rarest Discord webhook posts. Staged: midnight shadow visits (self-despawning named vexes; `HERALDOR_EVENTS`). Optional LLM-generated lines (`HERALDOR_LLM`).
+- **Heraldor presence engine** (`--profile heraldor`): night-biased whispers only the target sees (+ cave sounds at their position), rare global lines, rarest Discord webhook posts, and the authored 5-chapter campaign (`npc/campaign-heraldor.yml`, driven by `/zapeg-lore story`). Staged: midnight shadow visits (self-despawning named vexes; `HERALDOR_EVENTS`). No LLM.
 
 ### Heraldor arc (the long game)
 

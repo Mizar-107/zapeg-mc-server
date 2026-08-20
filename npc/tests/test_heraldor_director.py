@@ -28,6 +28,7 @@ from heraldor_director import (  # noqa: E402
     servant_story_event_id,
 )
 import heraldor as heraldor_service  # noqa: E402
+from heraldor_voice import VoiceStore  # noqa: E402
 
 WORLD_TOKEN = 17082026
 STORY_EVENT_ID = servant_story_event_id(WORLD_TOKEN)
@@ -78,7 +79,7 @@ class DirectorStoreTest(unittest.TestCase):
 
     def test_schema_reopen_and_consistent_snapshot(self) -> None:
         with self.open_store() as store:
-            self.assertEqual(store.status()["schema_version"], 2)
+            self.assertEqual(store.status()["schema_version"], 3)
             store.reserve_ambient("whisper", subject="Mizar__107", rehearsal=True)
             store.backup_snapshot()
 
@@ -219,34 +220,31 @@ class DirectorStoreTest(unittest.TestCase):
         self.assertNotIn("url", payload)
         self.assertNotIn("path", payload)
 
-        with self.open_store(audio_sink_enabled=True) as store:
-            heraldor_service.process_control_request(
-                store,
-                control_request("phase_start", "presence", nonce=1),
-                observed_world_token=WORLD_TOKEN,
-            )
+        # Only the detached voice worker (VoiceStore) can claim outbox rows.
+        with VoiceStore(
+            self.db_path, snapshot_path=self.snapshot_path, clock=self.clock,
+            audio_sink_enabled=True,
+        ) as store:
+            store.promote_campaign_tier(WORLD_TOKEN, "presence")
             self.assertIsNone(store.claim_next_audio(now=self.clock.value + 1))
+        self.assertFalse(hasattr(DirectorStore, "claim_next_audio"))
 
-    def test_paused_threshold_is_observed_but_never_delivered_after_resume(self) -> None:
-        with self.open_store(audio_sink_enabled=True) as store:
-            heraldor_service.process_control_request(
-                store,
-                control_request("phase_start", "presence", nonce=2),
-                observed_world_token=WORLD_TOKEN,
-            )
-            heraldor_service.process_control_request(
-                store,
-                control_request("pause", nonce=3),
-                observed_world_token=WORLD_TOKEN,
-            )
+    def test_active_threshold_is_pending_and_reset_never_revives_audio(self) -> None:
+        with VoiceStore(
+            self.db_path, snapshot_path=self.snapshot_path, clock=self.clock,
+            audio_sink_enabled=True,
+        ) as store:
+            store.promote_campaign_tier(WORLD_TOKEN, "presence")
             result = store.ingest_servant_score(3, world_token=WORLD_TOKEN)
-            self.assertEqual(result.story_output_status, "suppressed_campaign_paused")
-            heraldor_service.process_control_request(
-                store,
-                control_request("resume", nonce=4),
-                observed_world_token=WORLD_TOKEN,
-            )
-            self.assertIsNone(store.claim_next_audio(now=self.clock.value + 1))
+            self.assertEqual(result.story_output_status, "pending")
+            delivery = store.claim_next_audio(now=self.clock.value + 1)
+            self.assertIsNotNone(delivery)
+            store.finish_audio(delivery.event_id, status="delivered")
+            # `story reset` returns the world to dormant, but a consumed or
+            # suppressed audio event can never be revived by later activity.
+            store.reset_campaign(WORLD_TOKEN)
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "dormant")
+            self.assertIsNone(store.claim_next_audio(now=self.clock.value + 2))
 
     def test_pacing_cooldowns_budget_and_rehearsal(self) -> None:
         policy = DirectorPolicy(
@@ -259,11 +257,7 @@ class DirectorStoreTest(unittest.TestCase):
             shadows_cooldown_seconds=50,
         )
         with self.open_store(policy=policy) as store:
-            heraldor_service.process_control_request(
-                store,
-                control_request("phase_start", "presence", nonce=10),
-                observed_world_token=WORLD_TOKEN,
-            )
+            store.promote_campaign_tier(WORLD_TOKEN, "presence")
             self.assertIsNotNone(
                 store.reserve_ambient(
                     "whisper", subject="Alice", world_token=WORLD_TOKEN
@@ -304,11 +298,7 @@ class DirectorStoreTest(unittest.TestCase):
             shadows_cooldown_seconds=0,
         )
         with self.open_store(policy=policy) as store:
-            heraldor_service.process_control_request(
-                store,
-                control_request("phase_start", "presence", nonce=11),
-                observed_world_token=WORLD_TOKEN,
-            )
+            store.promote_campaign_tier(WORLD_TOKEN, "presence")
             store.ingest_servant_score(3, world_token=WORLD_TOKEN)
             self.clock.value += 39
             self.assertIsNone(
@@ -319,26 +309,19 @@ class DirectorStoreTest(unittest.TestCase):
                 store.reserve_ambient("global", world_token=WORLD_TOKEN)
             )
 
-    def test_live_ambient_requires_an_active_unpaused_world(self) -> None:
+    def test_live_ambient_requires_an_active_world(self) -> None:
         with self.open_store() as store:
             with self.assertRaisesRegex(ValueError, "requires a world token"):
                 store.reserve_ambient("global")
             self.assertIsNone(
                 store.reserve_ambient("global", world_token=WORLD_TOKEN)
             )
-            heraldor_service.process_control_request(
-                store,
-                control_request("phase_start", "presence", nonce=12),
-                observed_world_token=WORLD_TOKEN,
-            )
+            store.promote_campaign_tier(WORLD_TOKEN, "presence")
             self.assertIsNotNone(
                 store.reserve_ambient("global", world_token=WORLD_TOKEN)
             )
-            heraldor_service.process_control_request(
-                store,
-                control_request("pause", nonce=13),
-                observed_world_token=WORLD_TOKEN,
-            )
+            # `story reset` silences ambient rolls again (back to dormant).
+            store.reset_campaign(WORLD_TOKEN)
             self.assertIsNone(
                 store.reserve_ambient("whisper", world_token=WORLD_TOKEN)
             )
@@ -420,62 +403,53 @@ class DirectorControlBridgeTest(unittest.TestCase):
             store, request, observed_world_token=WORLD_TOKEN
         )
 
-    def test_phase_pause_no_longer_blocks_manual_live_trigger(self) -> None:
+    def test_story_controls_replace_the_phase_tree(self) -> None:
         with self.open_store() as store:
             self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "dormant")
-            presence = self.process(
-                store, control_request("phase_start", "presence", nonce=30)
+
+            status = self.process(store, control_request("story", "status", nonce=30))
+            self.assertEqual(status.status, "delivered")
+            self.assertIn("not started", status.message)
+
+            # auto before start fails closed; the campaign must be running.
+            early_auto = self.process(
+                store, control_request("story", "auto_on", nonce=31)
             )
-            self.assertEqual(presence.status, "delivered")
+            self.assertEqual(early_auto.status, "rejected")
+
+            started = self.process(store, control_request("story", "start", nonce=32))
+            self.assertEqual(started.status, "delivered")
+            # Chapter 1 of the shipped campaign is a presence-tier chapter.
             self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "presence")
 
-            pause = self.process(store, control_request("pause", nonce=31))
-            self.assertEqual(pause.status, "delivered")
-            with patch.object(
-                heraldor_service,
-                "rcon",
-                return_value="scene dispatched event=00000000-0000-0000-0000-000000000001",
-            ) as runtime:
-                live = self.process(
-                    store,
-                    control_request("scene_trigger", "echo_01", "Alice", nonce=32),
-                )
-            self.assertEqual(live.status, "delivered")
-            runtime.assert_called_once()
-
-            advanced_while_paused = self.process(
-                store, control_request("phase_advance", nonce=37)
+            second_start = self.process(
+                store, control_request("story", "start", nonce=33)
             )
-            self.assertEqual(advanced_while_paused.status, "delivered")
-            self.assertEqual(
-                store.campaign_state(WORLD_TOKEN),
-                CampaignState(str(WORLD_TOKEN), "servants", True),
+            self.assertEqual(second_start.status, "rejected")
+
+            auto_on = self.process(store, control_request("story", "auto_on", nonce=34))
+            self.assertEqual(auto_on.status, "delivered")
+            auto_off = self.process(
+                store, control_request("story", "auto_off", nonce=35)
             )
+            self.assertEqual(auto_off.status, "delivered")
 
-            with patch.object(
-                heraldor_service,
-                "rcon",
-                return_value="scene dispatched event=00000000-0000-0000-0000-000000000001",
-            ):
-                rehearsal = self.process(
-                    store,
-                    control_request("scene_rehearse", "echo_01", "Alice", nonce=33),
-                )
-            self.assertEqual(rehearsal.status, "delivered")
-
-            self.process(store, control_request("resume", nonce=34))
             jumped = self.process(
-                store, control_request("phase_start", "manifestation", nonce=35)
+                store, control_request("story", "goto", "5", nonce=36)
             )
             self.assertEqual(jumped.status, "delivered")
-            backwards = self.process(
-                store, control_request("phase_start", "servants", nonce=36)
-            )
-            self.assertEqual(backwards.status, "rejected")
             self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "manifestation")
+            bad_jump = self.process(
+                store, control_request("story", "goto", "99", nonce=37)
+            )
+            self.assertEqual(bad_jump.status, "rejected")
+
+            reset = self.process(store, control_request("story", "reset", nonce=38))
+            self.assertEqual(reset.status, "delivered")
+            self.assertEqual(store.campaign_state(WORLD_TOKEN).phase, "dormant")
             self.assertEqual(
                 store.campaign_state(WORLD_TOKEN + 1),
-                CampaignState(str(WORLD_TOKEN + 1), "dormant", False),
+                CampaignState(str(WORLD_TOKEN + 1), "dormant"),
             )
 
     def test_live_trigger_from_dormant_promotes_campaign_rehearse_does_not(self) -> None:
@@ -522,9 +496,7 @@ class DirectorControlBridgeTest(unittest.TestCase):
 
     def test_live_dispatch_is_at_most_once_and_uncertain_transport_is_ambiguous(self) -> None:
         with self.open_store() as store:
-            self.process(
-                store, control_request("phase_start", "presence", nonce=50)
-            )
+            store.promote_campaign_tier(WORLD_TOKEN, "presence")
             request = control_request(
                 "scene_trigger", "echo_01", "Alice", nonce=51
             )
@@ -582,13 +554,15 @@ class DirectorControlBridgeTest(unittest.TestCase):
             mismatch = heraldor_service.process_control_request(
                 store,
                 control_request(
-                    "status", nonce=71, world_token=WORLD_TOKEN + 1
+                    "story", "status", nonce=71, world_token=WORLD_TOKEN + 1
                 ),
                 observed_world_token=WORLD_TOKEN,
             )
             expired = self.process(
                 store,
-                control_request("status", nonce=72, expires_at=self.clock.value),
+                control_request(
+                    "story", "status", nonce=72, expires_at=self.clock.value
+                ),
             )
         self.assertEqual(mismatch.status, "rejected")
         self.assertEqual(expired.status, "suppressed_expired")
@@ -605,9 +579,7 @@ class DirectorControlBridgeTest(unittest.TestCase):
             shadows_cooldown_seconds=0,
         )
         with self.open_store(policy=policy) as store:
-            self.process(
-                store, control_request("phase_start", "presence", nonce=73)
-            )
+            store.promote_campaign_tier(WORLD_TOKEN, "presence")
             rejected = heraldor_service.process_control_request(
                 store,
                 control_request(
@@ -656,12 +628,9 @@ class DirectorControlBridgeTest(unittest.TestCase):
                 )
             )
 
-    def test_cancel_does_not_change_phase_or_pause_state(self) -> None:
+    def test_cancel_does_not_change_campaign_state(self) -> None:
         with self.open_store() as store:
-            self.process(
-                store, control_request("phase_start", "servants", nonce=80)
-            )
-            self.process(store, control_request("pause", nonce=81))
+            store.promote_campaign_tier(WORLD_TOKEN, "servants")
             with patch.object(
                 heraldor_service, "rcon", return_value="active=0"
             ) as runtime:
@@ -670,11 +639,11 @@ class DirectorControlBridgeTest(unittest.TestCase):
             runtime.assert_called_once_with("zapegscene cancel-all")
             self.assertEqual(
                 store.campaign_state(WORLD_TOKEN),
-                CampaignState(str(WORLD_TOKEN), "servants", True),
+                CampaignState(str(WORLD_TOKEN), "servants"),
             )
 
     def test_mailbox_poll_uses_stable_world_and_conditional_exact_clear(self) -> None:
-        request = control_request("status", nonce=90, operator="console")
+        request = control_request("story", "status", nonce=90, operator="console")
         outputs = [
             f"#world has {WORLD_TOKEN} [zh_svc_world]",
             f'Data: "{request.token}"',
@@ -754,7 +723,7 @@ class PresenceServiceTest(unittest.TestCase):
             calls = []
 
             def campaign_state(self, world_token):
-                return CampaignState(str(world_token), "presence", False)
+                return CampaignState(str(world_token), "presence")
 
             def reserve_ambient(self, kind, *, subject=None, world_token=None):
                 self.calls.append((kind, subject, world_token))
@@ -777,7 +746,7 @@ class PresenceServiceTest(unittest.TestCase):
 
         self.assertEqual(len(director.calls), 1)
 
-    def test_dormant_and_paused_campaigns_do_not_roll_ambient(self) -> None:
+    def test_dormant_campaigns_do_not_roll_ambient(self) -> None:
         class SuppressedDirector:
             def __init__(self, state):
                 self.state = state
@@ -788,21 +757,15 @@ class PresenceServiceTest(unittest.TestCase):
             def reserve_ambient(self, *_args, **_kwargs):
                 raise AssertionError("suppressed ambient must never reserve")
 
-        for state in (
-            CampaignState(str(WORLD_TOKEN), "dormant", False),
-            CampaignState(str(WORLD_TOKEN), "presence", True),
-        ):
-            with (
-                self.subTest(state=state),
-                patch.object(heraldor_service, "online_players") as players,
-            ):
-                heraldor_service.ambient_cycle(SuppressedDirector(state), WORLD_TOKEN)
-                players.assert_not_called()
+        state = CampaignState(str(WORLD_TOKEN), "dormant")
+        with patch.object(heraldor_service, "online_players") as players:
+            heraldor_service.ambient_cycle(SuppressedDirector(state), WORLD_TOKEN)
+            players.assert_not_called()
 
         with patch.object(heraldor_service, "online_players") as players:
             heraldor_service.ambient_cycle(
                 SuppressedDirector(
-                    CampaignState(str(WORLD_TOKEN), "manifestation", False)
+                    CampaignState(str(WORLD_TOKEN), "manifestation")
                 ),
                 None,
             )
@@ -852,11 +815,7 @@ class SceneTtlScalingTest(unittest.TestCase):
             Path(temp.name) / "heraldor.sqlite3", clock=FakeClock()
         )
         self.addCleanup(store.close)
-        heraldor_service.process_control_request(
-            store,
-            control_request("phase_start", "manifestation", nonce=90),
-            observed_world_token=WORLD_TOKEN,
-        )
+        store.promote_campaign_tier(WORLD_TOKEN, "manifestation")
         request = control_request("scene_trigger", "echo_01", "Alice", nonce=91)
         with patch.object(
             heraldor_service,
@@ -1189,12 +1148,9 @@ class SceneSchedulerTest(unittest.TestCase):
         self.addCleanup(self.store.close)
 
     def start_phase(self, phase: str, nonce: int = 900) -> None:
-        outcome = heraldor_service.process_control_request(
-            self.store,
-            control_request("phase_start", phase, nonce=nonce),
-            observed_world_token=WORLD_TOKEN,
+        self.assertEqual(
+            self.store.promote_campaign_tier(WORLD_TOKEN, phase), phase
         )
-        self.assertEqual(outcome.status, "delivered")
 
     def deliver_scene(self, subject: str, nonce: int) -> None:
         request = control_request("scene_trigger", "echo_01", subject, nonce=nonce)
@@ -1208,16 +1164,13 @@ class SceneSchedulerTest(unittest.TestCase):
             )
         self.assertEqual(outcome.status, "delivered")
 
-    def test_dormant_and_paused_campaigns_never_plan(self) -> None:
+    def test_dormant_campaigns_never_plan(self) -> None:
         self.assertIsNone(
             self.store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
         )
+        # `story reset` returns the world to dormant and silences planning.
         self.start_phase("presence")
-        heraldor_service.process_control_request(
-            self.store,
-            control_request("pause", nonce=901),
-            observed_world_token=WORLD_TOKEN,
-        )
+        self.store.reset_campaign(WORLD_TOKEN)
         self.assertIsNone(
             self.store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=ScriptedRoll())
         )
@@ -1394,11 +1347,7 @@ class SchedulerDispatchTest(unittest.TestCase):
 
     def test_scheduler_cycle_dispatches_with_hint_and_closes_out(self) -> None:
         store = self.store
-        heraldor_service.process_control_request(
-            store,
-            control_request("phase_start", "presence", nonce=970),
-            observed_world_token=WORLD_TOKEN,
-        )
+        store.promote_campaign_tier(WORLD_TOKEN, "presence")
         store.record_stalk_visit(WORLD_TOKEN, "Alice", 100.0, 200.0)
         commands: list[str] = []
         with patch.object(
@@ -1446,12 +1395,7 @@ class ColossusEscalationTest(unittest.TestCase):
         self.addCleanup(self.store.close)
 
     def start_manifestation(self, nonce: int = 960) -> None:
-        outcome = heraldor_service.process_control_request(
-            self.store,
-            control_request("phase_start", "manifestation", nonce=nonce),
-            observed_world_token=WORLD_TOKEN,
-        )
-        self.assertEqual(outcome.status, "delivered")
+        self.store.promote_campaign_tier(WORLD_TOKEN, "manifestation")
 
     def process_scene(self, action: str, target: str, nonce: int, rcon_output: str):
         request = control_request(action, "colossus_01", target, nonce=nonce)
@@ -1554,19 +1498,22 @@ class ColossusEscalationTest(unittest.TestCase):
         self.assertEqual(outcome.status, "failed")
         self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 0)
 
-    def test_bridge_reset_command_clears_the_stage(self) -> None:
+    def test_story_reset_clears_the_stage_with_the_campaign(self) -> None:
         self.start_manifestation()
         store = self.store
         store.advance_colossus_stage(WORLD_TOKEN, "Alice")
         store.advance_colossus_stage(WORLD_TOKEN, "Alice")
+        store.advance_colossus_stage(999999999, "Alice")
         outcome = heraldor_service.process_control_request(
             store,
-            control_request("colossus_reset", "-", "Alice", nonce=965),
+            control_request("story", "reset", nonce=965),
             observed_world_token=WORLD_TOKEN,
         )
         self.assertEqual(outcome.status, "delivered")
         self.assertIn("reset", outcome.message)
         self.assertEqual(store.colossus_stage(WORLD_TOKEN, "Alice"), 0)
+        # Another world's colossus memory is untouched by this world's reset.
+        self.assertEqual(store.colossus_stage(999999999, "Alice"), 1)
 
     def test_colossus_live_trigger_from_dormant_is_usable(self) -> None:
         self.assertEqual(self.store.campaign_state(WORLD_TOKEN).phase, "dormant")
@@ -1609,17 +1556,20 @@ class ColossusEscalationTest(unittest.TestCase):
         store.finish_attempt(plan.event_id, delivered=True)
         self.clock.value += store.policy.cluster_subject_gap_seconds + 1
 
-        # Negative control: with the operator-only filter patched out, the
-        # colossus really does enter the candidate list — the filter is what
-        # keeps it off the scheduler, not the phase map.
-        with patch("heraldor_director.OPERATOR_ONLY_PROFILES", frozenset()):
+        # Negative control: the colossus is held out of the pool by TWO
+        # independent gates — the operator-only set and the SCENE_PROFILES
+        # self-plannable flag. Only removing both makes it plannable.
+        with patch("heraldor_director.OPERATOR_ONLY_PROFILES", frozenset()), patch.dict(
+            "heraldor_director.SCENE_PROFILES",
+            {"colossus_01": (None, None, 320, "manifestation", False, True)},
+        ):
             seen.clear()
             plan = store.plan_and_reserve_scene(WORLD_TOKEN, ["Alice"], rng=SpyRoll())
         self.assertIsNotNone(plan)
         profile_lists = [seq for seq in seen if "echo_01" in seq]
         self.assertTrue(
             any("colossus_01" in seq for seq in profile_lists),
-            "without the filter the colossus would be plannable",
+            "without both gates the colossus would be plannable",
         )
 
 

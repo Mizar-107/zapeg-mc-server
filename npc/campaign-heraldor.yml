@@ -1,0 +1,129 @@
+# Heraldor campaign — ZapeG hikaye hattı (v1)
+#
+# Tek yazarlık dosyası: bölümler (chapters) sırayla, her bölüm beat listesi.
+# Beat türleri: scene / whisper / global / discord / servant_wave / wait.
+# Hedef seçiciler: birebir oyuncu adı, "random", "last_victim".
+# Sürüş: /zapeg-lore story ... (manuel adım veya `story auto on` ile otonom).
+# Otonom mod geceleri tercih eder; `any_time: true` olan beat gündüz de oynar.
+# Prova: `/zapeg-lore story rehearse` — hiçbir durum yazılmaz.
+#
+# NOT: Bu dosya oyunculara asla gösterilmez. Heraldor açıklanmaz.
+
+version: 1
+
+pacing:
+  # Otonom beats: bir "hareketli gece" en çok cluster_beats beat içerir
+  # (cluster_window_minutes içinde), ardından silence_hours sessizlik.
+  # Kümeden sonra hiçbir şey iki gece üst üste ateşlemez.
+  cluster_beats: 3
+  cluster_window_minutes: 45
+  silence_hours: 40
+
+pools:
+  generic:
+    - "arkana bakma."
+    - "kazma sesini duyuyorum. hep duyuyorum."
+    - "o meşaleyi ben söndürmedim."
+    - "yalnız değilsin. hiç olmadın."
+    - "kapıyı açık bıraktın."
+    - "seni sayıyorum."
+    - "bu gece ışığını söndürme. fark etmez ama."
+    - "adımı bildiğini biliyorum. söyleme."
+  dossier:
+    SalihKarahan:
+      - "yaktığın evlerin dumanı hâlâ burnumda."
+      - "çakmaktaşını bırak. artık ben yakarım."
+      - "ateş seni sevmiyor salih. beni seviyor."
+    kralxlarge:
+      - "kaç elmas oldu? ben de sayıyorum."
+      - "bu kadar hızlı kazma. beni bulacaksın."
+      - "sen kazarken ben hep aynı taşın arkasındayım."
+    MertOnal:
+      - "garajındaki şey bu gece kendi kendine çalıştı."
+      - "motor sesi sandığın şey benim nefesimdi."
+      - "aynana bak. arka koltuk hiç boş değil."
+    eminomi12:
+      - "hayvanların neden hep aynı duvara bakıyor sanıyorsun?"
+      - "kurtların bu gece sana havlamadı. bana havladı."
+      - "beslediklerin beni görünce susuyor. fark ettin mi?"
+    Thekingim:
+      - "gökyüzünde yalnız olduğunu mu sandın?"
+      - "yukarı çıktıkça bana yaklaşıyorsun."
+      - "bulutların üstünde ayak izleri var. senin değil."
+
+chapters:
+  # ---------------------------------------------------------------- 1 ----
+  - id: sessiz-komsu
+    title: "Sessiz Komşu"
+    tier: presence
+    beats:
+      - { type: whisper, pool: dossier, target: random, label: "ilk fısıltı" }
+      - { type: wait, game_nights: 2, label: "iki gece sessizlik" }
+      - { type: scene, profile: peripheral_01, target: random, label: "göz ucunda" }
+      - { type: wait, real_hours: 30, label: "bir gün dur" }
+      - { type: whisper, pool: generic, target: random, label: "ikinci fısıltı" }
+      - { type: scene, profile: echo_01, target: last_victim, label: "figür ilk kez" }
+      - { type: wait, manual: true, label: "2. bölüme OP karar verir" }
+
+  # ---------------------------------------------------------------- 2 ----
+  - id: izleniyorsun
+    title: "İzleniyorsun"
+    tier: presence
+    beats:
+      - { type: global, line: "Işıklarınızı saydım. Bir eksik.", label: "herkese ilk mesaj" }
+      - { type: scene, profile: sky_mark_01, target: random, label: "yanlış ay" }
+      - { type: wait, game_nights: 2, label: "iki gece" }
+      - { type: whisper, pool: dossier, target: last_victim, label: "kişisel fısıltı" }
+      - { type: scene, profile: threshold_01, target: last_victim, label: "eşikte yarım figür" }
+      - { type: discord, line: "biriniz bu gece geç saate kadar oynayacak. biliyorum.", label: "kanala sızıntı" }
+      - { type: wait, manual: true, label: "3. bölüme OP karar verir" }
+
+  # ---------------------------------------------------------------- 3 ----
+  - id: adimlar
+    title: "Adımlar"
+    tier: servants
+    beats:
+      - { type: scene, profile: whisper_steps_01, target: random, label: "kendi adımların" }
+      - { type: wait, game_nights: 1, label: "bir gece" }
+      - { type: scene, profile: footsteps_01, target: last_victim, label: "yaklaşan adımlar" }
+      - { type: whisper, pool: dossier, target: last_victim, label: "adımlardan sonra" }
+      - { type: wait, real_hours: 30, label: "nefes payı" }
+      - { type: scene, profile: closing_steps_01, target: last_victim, label: "üç blok kala" }
+      - { type: scene, profile: near_miss_01, target: last_victim, label: "arkandan geçti" }
+      - { type: wait, manual: true, label: "4. bölüme OP karar verir" }
+
+  # ---------------------------------------------------------------- 4 ----
+  - id: hizmetkarlar
+    title: "Hizmetkârlar"
+    tier: servants
+    beats:
+      - { type: global, line: "Yalnız gelmedim.", label: "uyarı" }
+      - { type: servant_wave, count: 2, target: random, label: "ilk dalga" }
+      - { type: wait, victories: 2, label: "iki zafer beklenir" }
+      - { type: scene, profile: footsteps_01, target: last_victim, label: "zaferin bedeli" }
+      - { type: servant_wave, count: 1, target: last_victim, label: "kişisel hizmetkâr" }
+      - { type: wait, victories: 3, label: "üçüncü zafer (ses klibi eşiği)" }
+      - { type: discord, line: "üçünü de saydım. geri kalanı daha kolay.", label: "eşikten sonra" }
+      - { type: wait, manual: true, label: "finale OP karar verir" }
+
+  # ---------------------------------------------------------------- 5 ----
+  - id: tezahur
+    title: "Tezahür"
+    tier: manifestation
+    beats:
+      - { type: scene, profile: colossus_01, target: random, label: "ufukta leke (evre 0)" }
+      - { type: wait, game_nights: 2, label: "iki gece" }
+      - { type: scene, profile: colossus_01, target: last_victim, label: "uzak figür (evre 1)" }
+      - { type: whisper, pool: dossier, target: last_victim, label: "yaklaşırken fısıltı" }
+      - { type: wait, game_nights: 2, label: "iki gece" }
+      - { type: scene, profile: colossus_01, target: last_victim, label: "beliriyor (evre 2)" }
+      - { type: scene, profile: eclipse_01, target: last_victim, label: "ışık gider" }
+      - { type: wait, real_hours: 30, label: "bir gün dur" }
+      - { type: scene, profile: colossus_01, target: last_victim, label: "tepende (evre 3)" }
+      - { type: scene, profile: witness_01, target: last_victim, label: "gözler her yerde" }
+      - { type: wait, game_nights: 1, label: "son gece" }
+      - { type: scene, profile: colossus_01, target: last_victim, label: "durdu ve baktı (final evre 4)" }
+      - { type: global, line: "Gördü. Artık hepiniz görüldünüz.", label: "tanıklık" }
+      - { type: wait, manual: true, label: "ziyaret için OP karar verir" }
+      - { type: scene, profile: visitation_01, target: last_victim, any_time: true, label: "pencerenin dışı" }
+      - { type: discord, line: "bazen pencerenizin dışına da bakın.", label: "kapanış" }

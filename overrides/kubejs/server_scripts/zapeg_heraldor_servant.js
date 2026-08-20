@@ -118,15 +118,9 @@ function zhControlNonce() {
 }
 
 function zhQueueDirectorRequest(source, action, argument, target) {
-  if (!zhDirectorSourceAllowed(source)) {
-    zhReply(source, 'Heraldor does not accept this command source.', true)
-    return 0
-  }
-  const server = source.server
-  zhEnsureObjectives(server)
   const allowedActions = [
     'scene_rehearse', 'scene_trigger', 'cancel',
-    'discord_post', 'voice_rehearse'
+    'discord_post', 'voice_rehearse', 'story'
   ]
   const allowedArguments = [
     '-',
@@ -143,12 +137,7 @@ function zhQueueDirectorRequest(source, action, argument, target) {
   const noArgumentActions = [
     'cancel', 'discord_post', 'voice_rehearse'
   ]
-  const profiles = [
-    'echo_01', 'threshold_01', 'motion_echo_01', 'light_fault_01',
-    'peripheral_01', 'footsteps_01', 'closing_steps_01', 'sky_mark_01', 'false_passage_01',
-    'chroma_break_01', 'near_miss_01', 'whisper_steps_01', 'colossus_01',
-    'visitation_01', 'eclipse_01', 'unmoor_01', 'witness_01', 'rift_01'
-  ]
+  const profiles = allowedArguments.slice(1)
   const sceneAction = action === 'scene_rehearse' || action === 'scene_trigger'
   const validShape =
     (noArgumentActions.indexOf(action) >= 0 && argument === '-' && !target) ||
@@ -164,6 +153,41 @@ function zhQueueDirectorRequest(source, action, argument, target) {
     zhReply(source, 'The target has a command-unsafe username.', true)
     return 0
   }
+  return zhWriteControlToken(source, action, argument, targetName)
+}
+
+function zhQueueStoryRequest(source, subcommand, chapter) {
+  const allowedStory = [
+    'status', 'start', 'next', 'reset', 'rehearse',
+    'auto_on', 'auto_off', 'goto'
+  ]
+  if (allowedStory.indexOf(subcommand) < 0) {
+    zhReply(source, 'The Heraldor story request was not allowlisted.', true)
+    zhDirectorUsage(source)
+    return 0
+  }
+  let targetName = '-'
+  if (subcommand === 'goto') {
+    const value = Number(chapter)
+    if (value !== Math.floor(value) || value < 1 || value > 99) {
+      zhReply(source, 'The story chapter must be a number from 1 to 99.', true)
+      return 0
+    }
+    targetName = String(value)
+  }
+  return zhWriteControlToken(source, 'story', subcommand, targetName)
+}
+
+// The single mailbox writer. Every high-level request funnels through here:
+// the command-source gate, the one-slot occupancy check and the exact token
+// shape live in one place so the Python Director sees one grammar.
+function zhWriteControlToken(source, action, argument, targetName) {
+  if (!zhDirectorSourceAllowed(source)) {
+    zhReply(source, 'Heraldor does not accept this command source.', true)
+    return 0
+  }
+  const server = source.server
+  zhEnsureObjectives(server)
   const operatorName = zhDirectorOperatorName(source)
   const occupied = server.runCommandSilent(
     `execute if data storage ${ZH_CONTROL_STORAGE} control_request ` +
@@ -213,6 +237,9 @@ function zhLoreUsage(source) {
   zhReply(
     source,
     'Heraldor usage:\n' +
+      '/zapeg-lore story status|start|next|rehearse|reset — the campaign, step by step\n' +
+      '/zapeg-lore story auto on|off — autonomous beats (clustered nights, then silence)\n' +
+      '/zapeg-lore story goto <chapter 1-5>\n' +
       '/zapeg-lore servant rehearse|awaken|cleanup\n' +
       '/zapeg-lore rehearse <profile> <player> — practice only; never advances the story\n' +
       '/zapeg-lore trigger <profile> <player> — LIVE: recorded, pacing and campaign memory move forward\n' +
@@ -641,6 +668,44 @@ ServerEvents.commandRegistry(event => {
       ))
     )
 
+  // The campaign surface. Attach children as statements on the held parent
+  // (same then() caution as zhAttachDirectorProfiles).
+  const story = Commands.literal('story')
+    .executes(ctx => {
+      zhLoreUsage(ctx.source)
+      return 1
+    })
+  const storySimple = ['status', 'start', 'next', 'reset', 'rehearse']
+  storySimple.forEach(subcommand => {
+    story.then(Commands.literal(subcommand)
+      .executes(ctx => zhQueueStoryRequest(ctx.source, subcommand, null))
+    )
+  })
+  const storyAuto = Commands.literal('auto')
+    .executes(ctx => {
+      zhLoreUsage(ctx.source)
+      return 1
+    })
+  storyAuto.then(Commands.literal('on')
+    .executes(ctx => zhQueueStoryRequest(ctx.source, 'auto_on', null))
+  )
+  storyAuto.then(Commands.literal('off')
+    .executes(ctx => zhQueueStoryRequest(ctx.source, 'auto_off', null))
+  )
+  story.then(storyAuto)
+  story.then(Commands.literal('goto')
+    .executes(ctx => {
+      zhLoreUsage(ctx.source)
+      return 1
+    })
+    .then(Commands.argument('chapter', Arguments.INTEGER.create(event))
+      .executes(ctx => zhQueueStoryRequest(
+        ctx.source, 'goto', Arguments.INTEGER.getResult(ctx, 'chapter')
+      ))
+    )
+  )
+
+  root.then(story)
   root.then(servant)
   root.then(rehearse)
   root.then(trigger)

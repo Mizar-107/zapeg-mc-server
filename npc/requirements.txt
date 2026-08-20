@@ -1,2 +1,2 @@
-openai>=1.30
 mcrcon>=0.7
+pyyaml>=6.0

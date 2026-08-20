@@ -183,11 +183,13 @@ class DirectorBridgeContractTest(unittest.TestCase):
     def test_lore_root_attaches_op_story_literals_as_siblings(self) -> None:
         self.assertIn("Commands.literal('zapeg-lore')", self.source)
         self.assertIn("Commands.literal('servant')", self.source)
+        self.assertIn("Commands.literal('story')", self.source)
+        # The old Director phase tree must never come back.
         self.assertNotIn("Commands.literal('director')", self.source)
         self.assertNotIn("Commands.literal('phase')", self.source)
         self.assertNotIn("Commands.literal('pause')", self.source)
         self.assertNotIn("Commands.literal('resume')", self.source)
-        self.assertNotIn("Commands.literal('status')", self.source)
+        self.assertIn("root.then(story)", self.source)
         self.assertIn("root.then(servant)", self.source)
         self.assertIn("root.then(rehearse)", self.source)
         self.assertIn("root.then(trigger)", self.source)
@@ -201,12 +203,32 @@ class DirectorBridgeContractTest(unittest.TestCase):
             ".requires(source => zhDirectorSourceAllowed(source))",
             self.source,
         )
+        # Every queue path funnels through the single gated mailbox writer.
         queue = self.source[
             self.source.index("function zhQueueDirectorRequest") :
             self.source.index("function zhDirectorUsage")
         ]
+        self.assertIn("function zhWriteControlToken", queue)
         self.assertIn("zhDirectorSourceAllowed(source)", queue)
         self.assertIn("if (!rawSource) return true", self.source)
+
+    def test_story_subcommands_match_director_allowlist(self) -> None:
+        from heraldor_director import STORY_ARGUMENTS
+
+        match = re.search(r"allowedStory = \[(.*?)\]", self.source, re.DOTALL)
+        self.assertIsNotNone(match)
+        subcommands = set(re.findall(r"'([a-z_]+)'", match.group(1)))
+        self.assertEqual(subcommands, set(STORY_ARGUMENTS))
+        simple = re.search(r"storySimple = \[(.*?)\]", self.source, re.DOTALL)
+        self.assertIsNotNone(simple)
+        self.assertEqual(
+            set(re.findall(r"'([a-z_]+)'", simple.group(1))),
+            {"status", "start", "next", "reset", "rehearse"},
+        )
+        self.assertIn("Commands.literal('auto')", self.source)
+        self.assertIn("Commands.literal('goto')", self.source)
+        self.assertIn("'auto_on'", self.source)
+        self.assertIn("'auto_off'", self.source)
 
 
 if __name__ == "__main__":

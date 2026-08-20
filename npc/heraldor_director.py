@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Iterator
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 SERVANT_SOURCE_PREFIX = "minecraft:scoreboard:zapeg_hsvc:#total:v1:world:"
 SERVANT_STORY_FLAG_PREFIX = "heraldor_servants_defeated_3_v1_world_"
 SERVANT_STORY_EVENT_PREFIX = "story:heraldor-servants:defeated:3:v1:world:"
@@ -38,33 +38,50 @@ COLOSSUS_MAX_STAGE = 4
 COLOSSUS_META_PREFIX = "colossus:"
 VISITATION_PROFILE = "visitation_01"
 RIFT_PROFILE = "rift_01"
-# Operator-only profiles: the scheduler never plans these on its own; they
-# exist for deliberate OP/Director beats (rehearsal stays available).
+# Operator-only profiles: neither the scheduler nor the campaign engine's
+# random pool ever plans these; deliberate OP/campaign beats may.
 OPERATOR_ONLY_PROFILES = frozenset({COLOSSUS_PROFILE, VISITATION_PROFILE})
-# Public/token aliases that collapse into a family on the wire. The
-# scheduler never picks these names; OP still may.
-SCENE_ALIAS_ARGUMENTS = frozenset(
-    {
-        "light_fault_01",
-        "eclipse_01",
-        "chroma_break_01",
-        "unmoor_01",
-        "witness_01",
-        "whisper_steps_01",
-        "closing_steps_01",
-    }
-)
-# Token argument → (runtime profile, default stage). Canonical names that
-# are not listed dispatch as themselves at stage 0.
-SCENE_RUNTIME_DISPATCH = {
-    "light_fault_01": (RIFT_PROFILE, 0),
-    "eclipse_01": (RIFT_PROFILE, 0),
-    "chroma_break_01": (RIFT_PROFILE, 1),
-    "unmoor_01": (RIFT_PROFILE, 2),
-    "witness_01": (RIFT_PROFILE, 3),
-    "whisper_steps_01": ("footsteps_01", 2),
-    "closing_steps_01": ("footsteps_01", 1),
+# ONE table drives every scene surface (OP tree, campaign beats, scheduler,
+# TTL scaling). Values mirror zapeg-runtime 0.4.0 / protocol 7:
+#   name: (runtime profile or None=itself, wire stage or None,
+#          default ttl ticks, tier floor, takes stalk hint, self-plannable)
+SCENE_PROFILES = {
+    "echo_01": (None, None, 200, "presence", True, True),
+    "threshold_01": (None, None, 160, "presence", True, True),
+    "peripheral_01": (None, None, 140, "presence", True, True),
+    "sky_mark_01": (None, None, 240, "presence", False, True),
+    "whisper_steps_01": ("footsteps_01", 2, 180, "presence", False, False),
+    "motion_echo_01": (None, None, 220, "servants", False, True),
+    "footsteps_01": (None, None, 160, "servants", True, True),
+    "closing_steps_01": ("footsteps_01", 1, 160, "servants", False, False),
+    "near_miss_01": (None, None, 110, "servants", False, True),
+    "false_passage_01": (None, None, 300, "servants", True, True),
+    "light_fault_01": (RIFT_PROFILE, 0, 140, "manifestation", False, False),
+    "eclipse_01": (RIFT_PROFILE, 0, 200, "manifestation", False, False),
+    "chroma_break_01": (RIFT_PROFILE, 1, 120, "manifestation", False, False),
+    "unmoor_01": (RIFT_PROFILE, 2, 200, "manifestation", False, False),
+    "witness_01": (RIFT_PROFILE, 3, 200, "manifestation", False, False),
+    RIFT_PROFILE: (None, None, 200, "manifestation", False, True),
+    COLOSSUS_PROFILE: (None, None, 320, "manifestation", False, False),
+    VISITATION_PROFILE: (None, None, 70, "manifestation", False, False),
 }
+CONTROL_SCENE_PROFILE_PHASES = {
+    name: spec[3] for name, spec in SCENE_PROFILES.items()
+}
+SCENE_PROFILE_DEFAULT_TTL_TICKS = {
+    name: spec[2] for name, spec in SCENE_PROFILES.items()
+}
+SCENE_RUNTIME_DISPATCH = {
+    name: (spec[0], spec[1])
+    for name, spec in SCENE_PROFILES.items()
+    if spec[0] is not None
+}
+SCENE_ALIAS_ARGUMENTS = frozenset(SCENE_RUNTIME_DISPATCH)
+# Profiles whose runtime placement walks the ground around the target; only
+# these can take a stalking-memory or grave-site anchor hint.
+STALK_HINT_PROFILES = frozenset(
+    name for name, spec in SCENE_PROFILES.items() if spec[4]
+)
 # Manual Discord whispers share one world-tokened cooldown marker so the
 # in-game bridge action can never spam the channel.
 MANUAL_DISCORD_META_PREFIX = "discord_manual:"
@@ -79,60 +96,25 @@ ALLOWED_AUDIO_CLIPS = frozenset({SERVANT_AUDIO_CLIP_ID})
 AMBIENT_KINDS = frozenset({"whisper", "global", "discord", "shadows"})
 CONTROL_TOKEN_VERSION = "zhctl1"
 CONTROL_TOKEN_MAX_FUTURE_SECONDS = 2 * 60
+# Campaign tiers: the old four-phase ladder collapsed into one stored value
+# per world. The tier gates ambient rolls (dormant = silent), scales scene
+# TTLs and floors the scheduler pool; the campaign engine and delivered live
+# triggers are the only writers, and it never rewinds except `story reset`.
 CONTROL_PHASES = ("dormant", "presence", "servants", "manifestation")
-CONTROL_START_PHASES = frozenset(CONTROL_PHASES[1:])
-CONTROL_SCENE_PROFILE_PHASES = {
-    "echo_01": "presence",
-    "threshold_01": "presence",
-    "peripheral_01": "presence",
-    "sky_mark_01": "presence",
-    "whisper_steps_01": "presence",
-    "motion_echo_01": "servants",
-    "footsteps_01": "servants",
-    "closing_steps_01": "servants",
-    "near_miss_01": "servants",
-    "false_passage_01": "servants",
-    "light_fault_01": "manifestation",
-    "eclipse_01": "manifestation",
-    "chroma_break_01": "manifestation",
-    "unmoor_01": "manifestation",
-    "witness_01": "manifestation",
-    "rift_01": "manifestation",
-    "colossus_01": "manifestation",
-    "visitation_01": "manifestation",
-}
-# Mirrors SceneProfile.defaultTtlTicks() in zapeg-runtime; the Director scales
-# these by campaign phase and passes the result as the optional ttl_ticks
-# argument of /zapegscene trigger (server clamps to MAX_TTL_TICKS).
-SCENE_PROFILE_DEFAULT_TTL_TICKS = {
-    "echo_01": 200,
-    "threshold_01": 160,
-    "motion_echo_01": 220,
-    "light_fault_01": 140,
-    "peripheral_01": 140,
-    "footsteps_01": 160,
-    "sky_mark_01": 240,
-    "false_passage_01": 300,
-    "chroma_break_01": 120,
-    "near_miss_01": 110,
-    "whisper_steps_01": 180,
-    "closing_steps_01": 160,
-    "colossus_01": 320,
-    "visitation_01": 70,
-    "eclipse_01": 200,
-    "unmoor_01": 200,
-    "witness_01": 200,
-    "rift_01": 200,
-}
-# Profiles whose runtime placement walks the ground around the target; only
-# these can take a stalking-memory or grave-site anchor hint.
-STALK_HINT_PROFILES = frozenset(
+CAMPAIGN_TIER_META_PREFIX = "tier:"
+CAMPAIGN_PROGRESS_META_PREFIX = "campaign:"
+CAMPAIGN_NIGHTS_META_PREFIX = "nights:"
+CAMPAIGN_CLUSTER_META_PREFIX = "campaign_cluster:"
+STORY_ARGUMENTS = frozenset(
     {
-        "echo_01",
-        "threshold_01",
-        "peripheral_01",
-        "footsteps_01",
-        "false_passage_01",
+        "status",
+        "start",
+        "next",
+        "goto",
+        "reset",
+        "rehearse",
+        "auto_on",
+        "auto_off",
     }
 )
 SCENE_TTL_PHASE_SCALE = {
@@ -149,6 +131,8 @@ SCENE_MAX_TTL_TICKS = 1200
 STALK_CELL_SIZE = 32
 STALK_MAX_CELLS_PER_SUBJECT = 48
 PLAYER_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,16}$")
+# Exactly the actions the in-game `/zapeg-lore` tree can queue. There is no
+# second, wider set any more: what the JS can send is what the Director does.
 CONTROL_BRIDGE_ACTIONS = frozenset(
     {
         "scene_rehearse",
@@ -156,18 +140,10 @@ CONTROL_BRIDGE_ACTIONS = frozenset(
         "cancel",
         "discord_post",
         "voice_rehearse",
+        "story",
     }
 )
-CONTROL_ACTIONS = CONTROL_BRIDGE_ACTIONS | frozenset(
-    {
-        "status",
-        "pause",
-        "resume",
-        "phase_start",
-        "phase_advance",
-        "colossus_reset",
-    }
-)
+CONTROL_ACTIONS = CONTROL_BRIDGE_ACTIONS
 CONTROL_EVENT_NAMESPACE = uuid.UUID("da548502-11dd-5b05-886a-650c4b74596c")
 CONTROL_TOKEN_RE = re.compile(
     r"^zhctl1:(?P<world>[1-9]\d{0,9}):(?P<nonce>[0-9a-f]{16,32}):"
@@ -282,7 +258,6 @@ class ControlEventRecord:
 class CampaignState:
     world_token: str
     phase: str = "dormant"
-    paused: bool = False
 
     def allows_profile(self, profile: str) -> bool:
         minimum = CONTROL_SCENE_PROFILE_PHASES.get(profile)
@@ -358,29 +333,23 @@ def parse_control_request(token: str) -> ControlRequest:
     if operator != "console" and not re.fullmatch(r"[A-Za-z0-9_]{1,16}", operator):
         raise ValueError("invalid Heraldor control operator")
 
-    no_argument_actions = {
-        "status",
-        "pause",
-        "resume",
-        "phase_advance",
-        "cancel",
-        "discord_post",
-        "voice_rehearse",
-    }
-    if action in no_argument_actions:
+    if action in {"cancel", "discord_post", "voice_rehearse"}:
         if argument != "-" or raw_target != "-":
             raise ValueError("unexpected Heraldor control arguments")
         target = None
-    elif action == "phase_start":
-        if argument not in CONTROL_START_PHASES or raw_target != "-":
-            raise ValueError("invalid Heraldor campaign phase")
-        target = None
-    elif action == "colossus_reset":
-        if argument != "-":
-            raise ValueError("unexpected Heraldor colossus reset argument")
-        if not re.fullmatch(r"[A-Za-z0-9_]{1,16}", raw_target):
-            raise ValueError("invalid Heraldor colossus reset target")
-        target = raw_target
+    elif action == "story":
+        if argument not in STORY_ARGUMENTS:
+            raise ValueError("invalid Heraldor story subcommand")
+        if argument == "goto":
+            if raw_target == "-" or not re.fullmatch(
+                r"[A-Za-z0-9_-]{1,24}", raw_target
+            ):
+                raise ValueError("invalid Heraldor story chapter")
+            target = raw_target
+        else:
+            if raw_target != "-":
+                raise ValueError("unexpected Heraldor story arguments")
+            target = None
     else:
         if argument not in CONTROL_SCENE_PROFILE_PHASES:
             raise ValueError("invalid Heraldor scene profile")
@@ -704,6 +673,15 @@ class DirectorStore:
                 )
                 db.execute("PRAGMA user_version=2")
 
+        if version < 3:
+            # v3: the phase tree collapses into one stored campaign tier per
+            # world (director_meta `tier:<world>`); old phase/pause ledger
+            # rows become plain audit history. No backfill: an upgraded world
+            # simply reads dormant until `story start`/`goto` or one live
+            # trigger re-establishes the tier — a one-command operation.
+            with self._transaction() as db:
+                db.execute("PRAGMA user_version=3")
+
     def _recover_interrupted_attempts(self) -> None:
         """Recover Director-owned ambient/directed attempts only.
 
@@ -749,54 +727,213 @@ class DirectorStore:
                 temporary.unlink(missing_ok=True)
 
     @staticmethod
-    def _campaign_state(db: sqlite3.Connection, world_token: str) -> CampaignState:
-        phase = "dormant"
-        paused = False
-        rows = db.execute(
-            """
-            SELECT kind, rehearsal, payload_json FROM events
-             WHERE status = 'delivered'
-               AND (category = 'campaign' OR kind = 'director_scene')
-             ORDER BY created_at, rowid
-            """
-        )
-        for row in rows:
-            try:
-                payload = json.loads(str(row["payload_json"]))
-                control = payload["control"]
-                if str(control["world_token"]) != world_token:
-                    continue
-            except (KeyError, TypeError, ValueError, json.JSONDecodeError):
-                continue
+    def _meta_get(db: sqlite3.Connection, key: str) -> str | None:
+        row = db.execute(
+            "SELECT value FROM director_meta WHERE key = ?", (key,)
+        ).fetchone()
+        return str(row["value"]) if row is not None else None
 
-            kind = str(row["kind"])
-            if kind == "director_phase":
-                candidate = payload.get("phase")
-                if candidate in CONTROL_PHASES:
-                    # Corrupt or hand-edited rows cannot rewind the campaign.
-                    phase = CONTROL_PHASES[
-                        max(CONTROL_PHASES.index(phase), CONTROL_PHASES.index(candidate))
-                    ]
-            elif kind == "director_pause":
-                paused = True
-            elif kind == "director_resume":
-                paused = False
-            elif kind == "director_scene":
-                # Delivered live triggers are the story: rehearsals never
-                # promote the campaign, so OP can practice from dormant.
-                if int(row["rehearsal"] or 0):
-                    continue
-                profile = payload.get("profile")
-                minimum = CONTROL_SCENE_PROFILE_PHASES.get(str(profile))
-                if minimum in CONTROL_PHASES:
-                    phase = CONTROL_PHASES[
-                        max(CONTROL_PHASES.index(phase), CONTROL_PHASES.index(minimum))
-                    ]
-        return CampaignState(world_token, phase, paused)
+    @staticmethod
+    def _meta_set(db: sqlite3.Connection, key: str, value: str, now: int) -> None:
+        db.execute(
+            """
+            INSERT INTO director_meta (key, value, updated_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT(key) DO UPDATE
+                SET value = excluded.value, updated_at = excluded.updated_at
+            """,
+            (key, value, now),
+        )
+
+    @staticmethod
+    def _campaign_state(db: sqlite3.Connection, world_token: str) -> CampaignState:
+        value = DirectorStore._meta_get(
+            db, CAMPAIGN_TIER_META_PREFIX + world_token
+        )
+        phase = value if value in CONTROL_PHASES else "dormant"
+        return CampaignState(world_token, phase)
 
     def campaign_state(self, world_token: int | str) -> CampaignState:
         token = normalize_world_token(world_token)
         return self._campaign_state(self.connection, token)
+
+    def promote_campaign_tier(
+        self, world_token: int | str, tier: str, *, now: int | None = None
+    ) -> str:
+        """Raise the stored campaign tier; it never rewinds except reset."""
+
+        if tier not in CONTROL_PHASES:
+            raise ValueError(f"unknown Heraldor campaign tier: {tier!r}")
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        key = CAMPAIGN_TIER_META_PREFIX + token
+        with self._transaction() as db:
+            current = self._meta_get(db, key)
+            current_index = (
+                CONTROL_PHASES.index(current) if current in CONTROL_PHASES else 0
+            )
+            desired_index = CONTROL_PHASES.index(tier)
+            if desired_index <= current_index:
+                return CONTROL_PHASES[current_index]
+            self._meta_set(db, key, tier, timestamp)
+        self.backup_snapshot()
+        return tier
+
+    # -- campaign engine storage -------------------------------------------
+    # The engine (heraldor_campaign.py) owns the JSON shapes; the store only
+    # persists small world-keyed values and one reserved beat row at a time.
+
+    def campaign_progress_raw(self, world_token: int | str) -> str | None:
+        token = normalize_world_token(world_token)
+        return self._meta_get(
+            self.connection, CAMPAIGN_PROGRESS_META_PREFIX + token
+        )
+
+    def save_campaign_progress(
+        self, world_token: int | str, raw: str, *, now: int | None = None
+    ) -> None:
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        with self._transaction() as db:
+            self._meta_set(db, CAMPAIGN_PROGRESS_META_PREFIX + token, raw, timestamp)
+        self.backup_snapshot()
+
+    def campaign_counter(self, prefix: str, world_token: int | str) -> int:
+        token = normalize_world_token(world_token)
+        value = self._meta_get(self.connection, prefix + token)
+        try:
+            return int(value) if value is not None else 0
+        except ValueError:
+            return 0
+
+    def bump_campaign_counter(
+        self, prefix: str, world_token: int | str, *, now: int | None = None
+    ) -> int:
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        with self._transaction() as db:
+            value = self._meta_get(db, prefix + token)
+            try:
+                current = int(value) if value is not None else 0
+            except ValueError:
+                current = 0
+            self._meta_set(db, prefix + token, str(current + 1), timestamp)
+        return current + 1
+
+    def campaign_cluster_raw(self, world_token: int | str) -> str | None:
+        token = normalize_world_token(world_token)
+        return self._meta_get(
+            self.connection, CAMPAIGN_CLUSTER_META_PREFIX + token
+        )
+
+    def save_campaign_cluster(
+        self, world_token: int | str, raw: str, *, now: int | None = None
+    ) -> None:
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        with self._transaction() as db:
+            self._meta_set(db, CAMPAIGN_CLUSTER_META_PREFIX + token, raw, timestamp)
+
+    def reserve_campaign_beat(
+        self,
+        event_id: str,
+        *,
+        kind: str,
+        subject: str | None,
+        payload: dict[str, object],
+        rehearsal: bool = False,
+        now: int | None = None,
+    ) -> bool:
+        """Reserve one campaign-driven beat, bypassing the ambient policy.
+
+        The campaign file is its own pacing authority; the reserved row still
+        feeds the shared ledger, so scheduler in-flight checks and per-subject
+        quiet windows see campaign activity like any other directed event.
+        """
+
+        timestamp = int(self.clock() if now is None else now)
+        with self._transaction() as db:
+            try:
+                db.execute(
+                    """
+                    INSERT INTO events
+                        (event_id, kind, category, subject, rehearsal,
+                         payload_json, status, created_at)
+                    VALUES (?, ?, 'directed', ?, ?, ?, 'reserved', ?)
+                    """,
+                    (
+                        event_id,
+                        kind,
+                        subject.casefold() if subject else None,
+                        int(rehearsal),
+                        compact_json(payload),
+                        timestamp,
+                    ),
+                )
+            except sqlite3.IntegrityError:
+                return False
+        self.backup_snapshot()
+        return True
+
+    def last_directed_subject(self, world_token: int | str) -> str | None:
+        """The most recent live directed-scene subject (the 'last victim')."""
+
+        token = normalize_world_token(world_token)
+        for row in self.connection.execute(
+            """
+            SELECT subject, payload_json FROM events
+             WHERE rehearsal = 0 AND category = 'directed'
+               AND status = 'delivered' AND subject IS NOT NULL
+             ORDER BY created_at DESC, rowid DESC LIMIT 20
+            """
+        ):
+            try:
+                payload = json.loads(str(row["payload_json"]))
+            except (ValueError, json.JSONDecodeError):
+                continue
+            world = payload.get("world_token") or payload.get("control", {}).get(
+                "world_token"
+            )
+            if str(world) == token:
+                return str(row["subject"])
+        return None
+
+    def reset_campaign(
+        self, world_token: int | str, *, now: int | None = None
+    ) -> None:
+        """`story reset`: back to dormant; campaign, colossus and aftermath
+        memory for this world are cleared. Audit events stay untouched."""
+
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        with self._transaction() as db:
+            for prefix in (
+                CAMPAIGN_TIER_META_PREFIX,
+                CAMPAIGN_PROGRESS_META_PREFIX,
+                CAMPAIGN_NIGHTS_META_PREFIX,
+                CAMPAIGN_CLUSTER_META_PREFIX,
+            ):
+                db.execute(
+                    "DELETE FROM director_meta WHERE key = ?", (prefix + token,)
+                )
+            for prefix in (COLOSSUS_META_PREFIX, AFTERMATH_META_PREFIX):
+                db.execute(
+                    "DELETE FROM director_meta WHERE key LIKE ?",
+                    (prefix + token + ":%",),
+                )
+            db.execute(
+                """
+                INSERT OR IGNORE INTO events
+                    (event_id, kind, category, payload_json, status, created_at)
+                VALUES (?, 'campaign_reset', 'observation', ?, 'observed', ?)
+                """,
+                (
+                    f"director:campaign:reset:v1:{uuid.uuid4().hex}",
+                    compact_json({"world_token": token}),
+                    timestamp,
+                ),
+            )
+        self.backup_snapshot()
 
     def record_control_event(
         self,
@@ -918,7 +1055,7 @@ class DirectorStore:
             if not rehearsal:
                 assert token is not None
                 state = self._campaign_state(db, token)
-                if state.phase == "dormant" or state.paused:
+                if state.phase == "dormant":
                     return None
             if not rehearsal and not self._ambient_allowed(db, kind, subject, timestamp):
                 return None
@@ -1144,8 +1281,6 @@ class DirectorStore:
                         campaign = self._campaign_state(db, token)
                         if campaign.phase == "dormant":
                             story_output_status = "suppressed_campaign_dormant"
-                        elif campaign.paused:
-                            story_output_status = "suppressed_campaign_paused"
                         elif self.audio_sink_enabled:
                             story_output_status = "pending"
                         else:
@@ -1310,15 +1445,7 @@ class DirectorStore:
         timestamp = int(self.clock() if now is None else now)
         key = AFTERMATH_META_PREFIX + token + ":" + subject.casefold()
         with self._transaction() as db:
-            db.execute(
-                """
-                INSERT INTO director_meta (key, value, updated_at)
-                VALUES (?, ?, ?)
-                ON CONFLICT(key) DO UPDATE
-                    SET value = excluded.value, updated_at = excluded.updated_at
-                """,
-                (key, AFTERMATH_PROFILE, timestamp),
-            )
+            self._meta_set(db, key, AFTERMATH_PROFILE, timestamp)
             db.execute(
                 """
                 INSERT OR IGNORE INTO events
@@ -1350,14 +1477,11 @@ class DirectorStore:
 
         token = normalize_world_token(world_token)
         key = COLOSSUS_META_PREFIX + token + ":" + subject.casefold()
-        with self._transaction() as db:
-            row = db.execute(
-                "SELECT value FROM director_meta WHERE key = ?", (key,)
-            ).fetchone()
-        if row is None:
+        value = self._meta_get(self.connection, key)
+        if value is None:
             return 0
         try:
-            stage = int(str(row["value"]))
+            stage = int(value)
         except ValueError:
             return 0
         return max(0, min(COLOSSUS_MAX_STAGE, stage))
@@ -1382,24 +1506,14 @@ class DirectorStore:
         timestamp = int(self.clock() if now is None else now)
         key = COLOSSUS_META_PREFIX + token + ":" + subject.casefold()
         with self._transaction() as db:
-            row = db.execute(
-                "SELECT value FROM director_meta WHERE key = ?", (key,)
-            ).fetchone()
+            value = self._meta_get(db, key)
             try:
-                current = int(str(row["value"])) if row is not None else 0
+                current = int(value) if value is not None else 0
             except ValueError:
                 current = 0
             current = max(0, min(COLOSSUS_MAX_STAGE, current))
             following = current + 1 if current < COLOSSUS_MAX_STAGE else 0
-            db.execute(
-                """
-                INSERT INTO director_meta (key, value, updated_at)
-                VALUES (?, ?, ?)
-                ON CONFLICT(key) DO UPDATE
-                    SET value = excluded.value, updated_at = excluded.updated_at
-                """,
-                (key, str(following), timestamp),
-            )
+            self._meta_set(db, key, str(following), timestamp)
             db.execute(
                 """
                 INSERT OR IGNORE INTO events
@@ -1468,15 +1582,11 @@ class DirectorStore:
 
         token = normalize_world_token(world_token)
         timestamp = int(self.clock() if now is None else now)
-        key = MANUAL_DISCORD_META_PREFIX + token
-        with self._transaction() as db:
-            row = db.execute(
-                "SELECT value FROM director_meta WHERE key = ?", (key,)
-            ).fetchone()
-        if row is None:
+        value = self._meta_get(self.connection, MANUAL_DISCORD_META_PREFIX + token)
+        if value is None:
             return 0
         try:
-            last = int(str(row["value"]))
+            last = int(value)
         except ValueError:
             return 0
         return max(0, gap_seconds - (timestamp - last))
@@ -1491,18 +1601,21 @@ class DirectorStore:
 
         token = normalize_world_token(world_token)
         timestamp = int(self.clock() if now is None else now)
-        key = MANUAL_DISCORD_META_PREFIX + token
         with self._transaction() as db:
-            db.execute(
-                """
-                INSERT INTO director_meta (key, value, updated_at)
-                VALUES (?, ?, ?)
-                ON CONFLICT(key) DO UPDATE
-                    SET value = excluded.value, updated_at = excluded.updated_at
-                """,
-                (key, str(timestamp), timestamp),
+            self._meta_set(
+                db, MANUAL_DISCORD_META_PREFIX + token, str(timestamp), timestamp
             )
         self.backup_snapshot()
+
+    def servant_high_water(self, world_token: int | str) -> int:
+        """Consumed servant-victory count for one world (campaign waits)."""
+
+        token = normalize_world_token(world_token)
+        row = self.connection.execute(
+            "SELECT high_water FROM source_offsets WHERE source = ?",
+            (SERVANT_SOURCE_PREFIX + token,),
+        ).fetchone()
+        return int(row[0]) if row else 0
 
     def death_high_water(self, world_token: int | str, subject: str) -> int:
         token = normalize_world_token(world_token)
@@ -1630,7 +1743,7 @@ class DirectorStore:
 
         with self._transaction() as db:
             state = self._campaign_state(db, token)
-            if state.phase == "dormant" or state.paused:
+            if state.phase == "dormant":
                 return None
 
             if db.execute(
@@ -1721,17 +1834,13 @@ class DirectorStore:
 
             # Servant aftermath: the next scene is always footsteps_01.
             aftermath_key = AFTERMATH_META_PREFIX + token + ":" + subject
-            row = db.execute(
-                "SELECT value FROM director_meta WHERE key = ?", (aftermath_key,)
-            ).fetchone()
-            if row is not None:
-                candidate = str(row["value"])
-                if state.allows_profile(candidate):
-                    profile = candidate
-                    reason = "aftermath"
-                    db.execute(
-                        "DELETE FROM director_meta WHERE key = ?", (aftermath_key,)
-                    )
+            aftermath = self._meta_get(db, aftermath_key)
+            if aftermath is not None and state.allows_profile(aftermath):
+                profile = aftermath
+                reason = "aftermath"
+                db.execute(
+                    "DELETE FROM director_meta WHERE key = ?", (aftermath_key,)
+                )
 
             # Grave echo: rarely, a later scene answers an old death site.
             if profile is None and roll.random() < policy.grave_echo_probability:
@@ -1777,10 +1886,10 @@ class DirectorStore:
             if profile is None:
                 allowed = [
                     name
-                    for name in CONTROL_SCENE_PROFILE_PHASES
-                    if state.allows_profile(name)
+                    for name, spec in SCENE_PROFILES.items()
+                    if spec[5]
+                    and state.allows_profile(name)
                     and name not in OPERATOR_ONLY_PROFILES
-                    and name not in SCENE_ALIAS_ARGUMENTS
                 ]
                 if not allowed:
                     return None
@@ -1790,7 +1899,9 @@ class DirectorStore:
                 hint = self._stalk_hint(db, token, subject, roll)
 
             ttl_ticks = scene_ttl_ticks(profile, state.phase)
-            event_id = f"director:scene:{token}:{timestamp}:{uuid.uuid4().hex}"
+            # The runtime's `/zapegscene trigger` takes a strict UuidArgument;
+            # a prefixed string id would fail the Brigadier parser outright.
+            event_id = str(uuid.uuid4())
             payload = {
                 "profile": profile,
                 "target": subject,
@@ -1863,165 +1974,6 @@ class DirectorStore:
         self.backup_snapshot()
         return event_id
 
-    def recover_interrupted_audio(self, *, now: int | None = None) -> int:
-        """Make this voice worker's uncertain prior attempts terminal."""
-
-        timestamp = int(self.clock() if now is None else now)
-        with self._transaction() as db:
-            changed = db.execute(
-                """
-                UPDATE outbox
-                   SET status = 'ambiguous',
-                       error = COALESCE(error, 'voice worker restarted during playback')
-                 WHERE sink = ? AND status = 'attempting'
-                """,
-                (AUDIO_SINK,),
-            ).rowcount
-        if changed:
-            self.backup_snapshot()
-        return int(changed)
-
-    def claim_next_audio(
-        self,
-        *,
-        now: int | None = None,
-        live_gap_seconds: int = AUDIO_LIVE_GAP_SECONDS,
-        rehearsal_gap_seconds: int = AUDIO_REHEARSAL_GAP_SECONDS,
-    ) -> AudioDelivery | None:
-        """Atomically claim one fresh audio request for at-most-once playback."""
-
-        timestamp = int(self.clock() if now is None else now)
-        while True:
-            terminal_change = False
-            delivery: AudioDelivery | None = None
-            with self._transaction() as db:
-                row = db.execute(
-                    """
-                    SELECT o.event_id, o.payload_json, e.rehearsal
-                      FROM outbox AS o
-                      JOIN events AS e ON e.event_id = o.event_id
-                     WHERE o.sink = ? AND o.event_type = ? AND o.status = 'pending'
-                     ORDER BY o.created_at, o.event_id
-                     LIMIT 1
-                    """,
-                    (AUDIO_SINK, AUDIO_EVENT_TYPE),
-                ).fetchone()
-                if row is None:
-                    return None
-
-                try:
-                    payload = json.loads(str(row["payload_json"]))
-                    expires_at = int(payload["expires_at"])
-                except (KeyError, TypeError, ValueError, json.JSONDecodeError):
-                    db.execute(
-                        """
-                        UPDATE outbox SET status = 'rejected_clip', error = ?
-                         WHERE event_id = ? AND sink = ? AND status = 'pending'
-                        """,
-                        ("invalid audio payload", row["event_id"], AUDIO_SINK),
-                    )
-                    terminal_change = True
-                else:
-                    rehearsal = bool(row["rehearsal"])
-                    if expires_at <= timestamp:
-                        db.execute(
-                            """
-                            UPDATE outbox SET status = 'suppressed_expired', error = ?
-                             WHERE event_id = ? AND sink = ? AND status = 'pending'
-                            """,
-                            ("audio request expired", row["event_id"], AUDIO_SINK),
-                        )
-                        terminal_change = True
-                    else:
-                        gap = rehearsal_gap_seconds if rehearsal else live_gap_seconds
-                        recent = db.execute(
-                            """
-                            SELECT 1
-                              FROM outbox AS prior
-                              JOIN events AS prior_event
-                                ON prior_event.event_id = prior.event_id
-                             WHERE prior.sink = ?
-                               AND prior.event_id <> ?
-                               AND prior_event.rehearsal = ?
-                               AND prior.attempted_at > ?
-                               AND prior.status IN ('attempting', 'delivered', 'ambiguous', 'failed')
-                             LIMIT 1
-                            """,
-                            (
-                                AUDIO_SINK,
-                                row["event_id"],
-                                int(rehearsal),
-                                timestamp - gap,
-                            ),
-                        ).fetchone()
-                        if recent:
-                            db.execute(
-                                """
-                                UPDATE outbox SET status = 'suppressed_rate_limit', error = ?
-                                 WHERE event_id = ? AND sink = ? AND status = 'pending'
-                                """,
-                                ("audio pacing gate closed", row["event_id"], AUDIO_SINK),
-                            )
-                            terminal_change = True
-                        else:
-                            changed = db.execute(
-                                """
-                                UPDATE outbox SET status = 'attempting', attempted_at = ?, error = NULL
-                                 WHERE event_id = ? AND sink = ? AND status = 'pending'
-                                """,
-                                (timestamp, row["event_id"], AUDIO_SINK),
-                            ).rowcount
-                            if changed:
-                                delivery = AudioDelivery(
-                                    str(row["event_id"]), payload, rehearsal
-                                )
-
-            if terminal_change or delivery:
-                # Persist the replay barrier before the caller may touch Discord.
-                self.backup_snapshot()
-            if delivery:
-                return delivery
-
-    def finish_audio(
-        self,
-        event_id: str,
-        *,
-        status: str,
-        error: str | None = None,
-        now: int | None = None,
-    ) -> bool:
-        terminal = {
-            "delivered",
-            "ambiguous",
-            "failed",
-            "rejected_clip",
-            "rejected_destination",
-            "suppressed_expired",
-            "suppressed_empty_channel",
-        }
-        if status not in terminal:
-            raise ValueError(f"invalid audio terminal status: {status}")
-        timestamp = int(self.clock() if now is None else now)
-        delivered_at = timestamp if status == "delivered" else None
-        with self._transaction() as db:
-            changed = db.execute(
-                """
-                UPDATE outbox
-                   SET status = ?, delivered_at = ?, error = ?
-                 WHERE event_id = ? AND sink = ? AND status = 'attempting'
-                """,
-                (
-                    status,
-                    delivered_at,
-                    error[:500] if error else None,
-                    event_id,
-                    AUDIO_SINK,
-                ),
-            ).rowcount
-        if changed:
-            self.backup_snapshot()
-        return bool(changed)
-
     def status(self) -> dict[str, object]:
         row = self.connection.execute(
             """
@@ -2059,15 +2011,24 @@ class DirectorStore:
                 """
             )
         ]
+        progress_raw = (
+            self.campaign_progress_raw(servant_world_token)
+            if servant_world_token
+            else None
+        )
+        try:
+            progress = json.loads(progress_raw) if progress_raw else None
+        except (ValueError, json.JSONDecodeError):
+            progress = None
         return {
             "schema_version": SCHEMA_VERSION,
             "servant_world_token": servant_world_token,
             "servant_high_water": int(row["high_water"]) if row else 0,
             "servant_updated_at": int(row["updated_at"]) if row else None,
             "campaign": (
-                {"phase": campaign.phase, "paused": campaign.paused}
+                {"phase": campaign.phase, "story": progress}
                 if campaign
-                else {"phase": "dormant", "paused": False}
+                else {"phase": "dormant", "story": None}
             ),
             "event_status_counts": counts,
             "recent_events": recent_events,

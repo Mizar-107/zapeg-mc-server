@@ -19,6 +19,9 @@ from typing import Any
 
 from heraldor_director import (
     AUDIO_EVENT_TYPE,
+    AUDIO_LIVE_GAP_SECONDS,
+    AUDIO_REHEARSAL_GAP_SECONDS,
+    AUDIO_SINK,
     DirectorStateLock,
     DirectorStore,
     AudioDelivery,
@@ -33,6 +36,173 @@ MAX_CLIP_SECONDS = 30.0
 FORBIDDEN_PAYLOAD_FIELDS = frozenset(
     {"path", "filename", "url", "channel", "channel_id", "executable", "options"}
 )
+
+
+class VoiceStore(DirectorStore):
+    """The voice worker's outbox claim/finish API over the shared DB.
+
+    Deliberately detached from the Director daemon: only this parked
+    relay (and its tests) claim or finish audio rows; the core path
+    merely writes pending requests through the outbox.
+    """
+
+    def recover_interrupted_audio(self, *, now: int | None = None) -> int:
+        """Make this voice worker's uncertain prior attempts terminal."""
+
+        with self._transaction() as db:
+            changed = db.execute(
+                """
+                UPDATE outbox
+                   SET status = 'ambiguous',
+                       error = COALESCE(error, 'voice worker restarted during playback')
+                 WHERE sink = ? AND status = 'attempting'
+                """,
+                (AUDIO_SINK,),
+            ).rowcount
+        if changed:
+            self.backup_snapshot()
+        return int(changed)
+
+    def claim_next_audio(
+        self,
+        *,
+        now: int | None = None,
+        live_gap_seconds: int = AUDIO_LIVE_GAP_SECONDS,
+        rehearsal_gap_seconds: int = AUDIO_REHEARSAL_GAP_SECONDS,
+    ) -> AudioDelivery | None:
+        """Atomically claim one fresh audio request for at-most-once playback."""
+
+        timestamp = int(self.clock() if now is None else now)
+        while True:
+            terminal_change = False
+            delivery: AudioDelivery | None = None
+            with self._transaction() as db:
+                row = db.execute(
+                    """
+                    SELECT o.event_id, o.payload_json, e.rehearsal
+                      FROM outbox AS o
+                      JOIN events AS e ON e.event_id = o.event_id
+                     WHERE o.sink = ? AND o.event_type = ? AND o.status = 'pending'
+                     ORDER BY o.created_at, o.event_id
+                     LIMIT 1
+                    """,
+                    (AUDIO_SINK, AUDIO_EVENT_TYPE),
+                ).fetchone()
+                if row is None:
+                    return None
+
+                try:
+                    payload = json.loads(str(row["payload_json"]))
+                    expires_at = int(payload["expires_at"])
+                except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                    db.execute(
+                        """
+                        UPDATE outbox SET status = 'rejected_clip', error = ?
+                         WHERE event_id = ? AND sink = ? AND status = 'pending'
+                        """,
+                        ("invalid audio payload", row["event_id"], AUDIO_SINK),
+                    )
+                    terminal_change = True
+                else:
+                    rehearsal = bool(row["rehearsal"])
+                    if expires_at <= timestamp:
+                        db.execute(
+                            """
+                            UPDATE outbox SET status = 'suppressed_expired', error = ?
+                             WHERE event_id = ? AND sink = ? AND status = 'pending'
+                            """,
+                            ("audio request expired", row["event_id"], AUDIO_SINK),
+                        )
+                        terminal_change = True
+                    else:
+                        gap = rehearsal_gap_seconds if rehearsal else live_gap_seconds
+                        recent = db.execute(
+                            """
+                            SELECT 1
+                              FROM outbox AS prior
+                              JOIN events AS prior_event
+                                ON prior_event.event_id = prior.event_id
+                             WHERE prior.sink = ?
+                               AND prior.event_id <> ?
+                               AND prior_event.rehearsal = ?
+                               AND prior.attempted_at > ?
+                               AND prior.status IN ('attempting', 'delivered', 'ambiguous', 'failed')
+                             LIMIT 1
+                            """,
+                            (
+                                AUDIO_SINK,
+                                row["event_id"],
+                                int(rehearsal),
+                                timestamp - gap,
+                            ),
+                        ).fetchone()
+                        if recent:
+                            db.execute(
+                                """
+                                UPDATE outbox SET status = 'suppressed_rate_limit', error = ?
+                                 WHERE event_id = ? AND sink = ? AND status = 'pending'
+                                """,
+                                ("audio pacing gate closed", row["event_id"], AUDIO_SINK),
+                            )
+                            terminal_change = True
+                        else:
+                            changed = db.execute(
+                                """
+                                UPDATE outbox SET status = 'attempting', attempted_at = ?, error = NULL
+                                 WHERE event_id = ? AND sink = ? AND status = 'pending'
+                                """,
+                                (timestamp, row["event_id"], AUDIO_SINK),
+                            ).rowcount
+                            if changed:
+                                delivery = AudioDelivery(
+                                    str(row["event_id"]), payload, rehearsal
+                                )
+
+            if terminal_change or delivery:
+                # Persist the replay barrier before the caller may touch Discord.
+                self.backup_snapshot()
+            if delivery:
+                return delivery
+
+    def finish_audio(
+        self,
+        event_id: str,
+        *,
+        status: str,
+        error: str | None = None,
+        now: int | None = None,
+    ) -> bool:
+        terminal = {
+            "delivered",
+            "ambiguous",
+            "failed",
+            "rejected_clip",
+            "rejected_destination",
+            "suppressed_expired",
+            "suppressed_empty_channel",
+        }
+        if status not in terminal:
+            raise ValueError(f"invalid audio terminal status: {status}")
+        timestamp = int(self.clock() if now is None else now)
+        delivered_at = timestamp if status == "delivered" else None
+        with self._transaction() as db:
+            changed = db.execute(
+                """
+                UPDATE outbox
+                   SET status = ?, delivered_at = ?, error = ?
+                 WHERE event_id = ? AND sink = ? AND status = 'attempting'
+                """,
+                (
+                    status,
+                    delivered_at,
+                    error[:500] if error else None,
+                    event_id,
+                    AUDIO_SINK,
+                ),
+            ).rowcount
+        if changed:
+            self.backup_snapshot()
+        return bool(changed)
 
 
 @dataclass(frozen=True)
@@ -282,7 +452,7 @@ def _safe_error(exc: BaseException, token: str) -> str:
 async def _play_delivery(
     client: Any,
     discord: Any,
-    store: DirectorStore,
+    store: VoiceStore,
     catalog: dict[str, ClipSpec],
     config: RelayConfig,
     delivery: AudioDelivery,
@@ -448,7 +618,7 @@ async def _play_delivery(
 async def _run_gateway(
     config: RelayConfig,
     catalog: dict[str, ClipSpec],
-    store: DirectorStore,
+    store: VoiceStore,
     token: str,
 ) -> None:
     import discord
@@ -530,7 +700,7 @@ def run_daemon() -> None:
     )
     with (
         DirectorStateLock(voice_lock_path(config.db_path)),
-        DirectorStore(
+        VoiceStore(
             config.db_path,
             snapshot_path=config.snapshot_path,
             recover_interrupted_attempts=False,

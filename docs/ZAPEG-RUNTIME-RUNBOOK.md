@@ -1,5 +1,11 @@
 # ZapeG Runtime 0.2.0 — operator runbook
 
+> **STALE — do not deploy from this page.** The current runtime is **0.4.0 /
+> protocol 7** (14 profiles); server jar, tracked `overrides/mods` jar and
+> both client artifacts must all carry the same build. The 0.2.0 file names
+> and four-profile list below are history. Current operations:
+> `docs/HERALDOR-RUNBOOK.md`.
+
 ZapeG Runtime is a mandatory Forge 1.20.1 client/server mod for bounded,
 target-private horror scenes. It is intentionally separate from ZapeG Citizens:
 Citizens owns Numen bodies and dialogue, while Runtime owns synchronized effects

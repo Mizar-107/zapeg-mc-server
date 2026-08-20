@@ -258,28 +258,25 @@ services:
       PYTHONDONTWRITEBYTECODE: "1"
       HERALDOR_WEBHOOK: ${HERALDOR_WEBHOOK:-}
       HERALDOR_EVENTS: ${HERALDOR_EVENTS:-false}
-      HERALDOR_LLM: ${HERALDOR_LLM:-false}
       # True only when the separate output-only relay is intentionally live.
       # Existing suppressed rows are terminal and are never revived.
       HERALDOR_VOICE_ENABLED: ${HERALDOR_VOICE_ENABLED:-false}
       CHECK_INTERVAL: ${HERALDOR_CHECK_INTERVAL:-300}
       MINION_POLL_INTERVAL: ${HERALDOR_MINION_POLL_INTERVAL:-10}
       CONTROL_POLL_INTERVAL: ${CONTROL_POLL_INTERVAL:-2}
-      # Autonomous scene scheduler — default off; enable only in a copied test
-      # world after the two-client privacy gate passes (docs/HERALDOR-RUNBOOK.md).
+      # Autonomous scene scheduler — default off; the campaign (`/zapeg-lore
+      # story auto on`) is the primary autonomous driver.
       HERALDOR_SCENE_SCHEDULER: ${HERALDOR_SCENE_SCHEDULER:-false}
       SCHEDULER_INTERVAL: ${SCHEDULER_INTERVAL:-60}
       STALK_SAMPLE_INTERVAL: ${STALK_SAMPLE_INTERVAL:-45}
       DEATH_POLL_INTERVAL: ${DEATH_POLL_INTERVAL:-30}
+      HERALDOR_DISCORD_MANUAL_GAP_SECONDS: ${HERALDOR_DISCORD_MANUAL_GAP_SECONDS:-600}
       HERALDOR_DB_PATH: /state/heraldor.sqlite3
       HERALDOR_SNAPSHOT_PATH: /state/backup/heraldor.sqlite3
       P_WHISPER: ${HERALDOR_P_WHISPER:-0.002}
       P_GLOBAL: ${HERALDOR_P_GLOBAL:-0.0005}
       P_DISCORD: ${HERALDOR_P_DISCORD:-0.0003}
       P_SHADOWS: ${HERALDOR_P_SHADOWS:-0.0002}
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
-      LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
     volumes:
       - type: bind
         source: ./data/heraldor

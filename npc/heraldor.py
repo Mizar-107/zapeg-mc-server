@@ -16,9 +16,13 @@ KubeJS'in gizli skor tahtasındaki ``Heraldor'un Hizmetkârı`` zaferleri ayrıc
 izlenir. SQLite yüksek-su işareti ve tek-seferlik hikâye bayrağı sayesinde
 yeniden başlatmalar aynı eşiği tekrar çalıştırmaz.
 
-Gece (oyun saati 13000–23000) fısıltı olasılığı 3 katına çıkar.
-LLM opsiyoneldir (HERALDOR_LLM=true + LLM_* env): satırlar üretilir; kapalıysa
-gömülü havuzlar kullanılır. Asla oyuncu girdisi komut olarak çalıştırılmaz.
+Gece (oyun saati 13000–23000) fısıltı olasılığı 3 katına çıkar. Satırlar
+gömülü havuzlardan ve kampanya dosyasından gelir; LLM yolu kaldırıldı.
+Asla oyuncu girdisi komut olarak çalıştırılmaz.
+
+Hikâye sürüşü: npc/campaign-heraldor.yml + /zapeg-lore story komutları
+(heraldor_campaign.py). Kampanya birincil sürücüdür; eski faz ağacı tek
+katman kampanya durumuna indirildi.
 """
 import argparse
 import json
@@ -32,9 +36,10 @@ from pathlib import Path
 
 from mcrcon import MCRcon
 
+from heraldor_campaign import CampaignEngine, CampaignError, load_campaign
 from heraldor_director import (
     COLOSSUS_PROFILE,
-    CONTROL_PHASES,
+    CONTROL_SCENE_PROFILE_PHASES,
     CONTROL_TOKEN_MAX_FUTURE_SECONDS,
     MANUAL_DISCORD_MIN_GAP_SECONDS,
     SCENE_RUNTIME_DISPATCH,
@@ -61,7 +66,6 @@ RCON_PASSWORD_OVERRIDE = os.environ.get("RCON_PASSWORD", "").strip()
 RCON_ENV_FILE = Path(os.environ.get("RCON_ENV_FILE", "/run/secrets/mc-rcon.env"))
 WEBHOOK = os.environ.get("HERALDOR_WEBHOOK", "").strip()
 EVENTS = os.environ.get("HERALDOR_EVENTS", "false").lower() == "true"
-USE_LLM = os.environ.get("HERALDOR_LLM", "false").lower() == "true"
 VOICE_ENABLED = os.environ.get("HERALDOR_VOICE_ENABLED", "false").lower() == "true"
 CHECK_INTERVAL = max(10, int(os.environ.get("CHECK_INTERVAL", "300")))
 MINION_POLL_INTERVAL = max(5, int(os.environ.get("MINION_POLL_INTERVAL", "10")))
@@ -84,6 +88,12 @@ DISCORD_MANUAL_GAP_SECONDS = max(
 DB_PATH = Path(os.environ.get("HERALDOR_DB_PATH", "/state/heraldor.sqlite3"))
 SNAPSHOT_PATH = Path(
     os.environ.get("HERALDOR_SNAPSHOT_PATH", "/state/backup/heraldor.sqlite3")
+)
+CAMPAIGN_PATH = Path(
+    os.environ.get(
+        "HERALDOR_CAMPAIGN_PATH",
+        str(Path(__file__).resolve().parent / "campaign-heraldor.yml"),
+    )
 )
 SERVANT_OBJECTIVE = "zapeg_hsvc"
 SERVANT_SCORE_HOLDER = "#total"
@@ -187,23 +197,15 @@ def is_night() -> bool:
 
 
 def _control_event_shape(request: ControlRequest) -> tuple[str, str, bool]:
-    if request.action in {"phase_start", "phase_advance"}:
-        return "director_phase", "campaign", False
-    if request.action == "pause":
-        return "director_pause", "campaign", False
-    if request.action == "resume":
-        return "director_resume", "campaign", False
     if request.action in {"scene_rehearse", "scene_trigger"}:
         return "director_scene", "directed", request.action == "scene_rehearse"
     if request.action == "cancel":
         return "director_cancel", "operator", False
-    if request.action == "colossus_reset":
-        return "director_colossus_reset", "operator", False
     if request.action == "discord_post":
         return "director_discord", "operator", False
     if request.action == "voice_rehearse":
         return "director_voice_rehearse", "operator", False
-    return "director_status", "operator", False
+    return "director_story", "operator", False
 
 
 def _reject_control(
@@ -291,108 +293,8 @@ def process_control_request(
     state = director.campaign_state(request.world_token)
     kind, category, rehearsal = _control_event_shape(request)
 
-    if request.action == "status":
-        message = (
-            f"phase={state.phase}, paused={'yes' if state.paused else 'no'}, "
-            f"world={state.world_token}"
-        )
-        record = director.record_control_event(
-            request,
-            kind=kind,
-            category=category,
-            status="delivered",
-            payload={"phase": state.phase, "paused": state.paused},
-            now=timestamp,
-        )
-        return ControlOutcome(record.event_id, record.status, message)
-
-    if request.action == "pause":
-        if state.paused:
-            return _reject_control(
-                director, request, "campaign is already paused", now=timestamp
-            )
-        record = director.record_control_event(
-            request,
-            kind=kind,
-            category=category,
-            status="delivered",
-            payload={"phase": state.phase},
-            now=timestamp,
-        )
-        return ControlOutcome(record.event_id, record.status, "campaign paused")
-
-    if request.action == "resume":
-        if not state.paused:
-            return _reject_control(
-                director, request, "campaign is not paused", now=timestamp
-            )
-        record = director.record_control_event(
-            request,
-            kind=kind,
-            category=category,
-            status="delivered",
-            payload={"phase": state.phase},
-            now=timestamp,
-        )
-        return ControlOutcome(record.event_id, record.status, "campaign resumed")
-
-    if request.action in {"phase_start", "phase_advance"}:
-        current_index = CONTROL_PHASES.index(state.phase)
-        if request.action == "phase_advance":
-            if current_index == len(CONTROL_PHASES) - 1:
-                return _reject_control(
-                    director,
-                    request,
-                    "manifestation is already the highest released phase",
-                    now=timestamp,
-                )
-            desired = CONTROL_PHASES[current_index + 1]
-        else:
-            desired = request.argument
-            desired_index = CONTROL_PHASES.index(desired)
-            if desired_index == current_index:
-                return _reject_control(
-                    director,
-                    request,
-                    f"campaign is already in phase {desired}",
-                    now=timestamp,
-                )
-            if desired_index < current_index:
-                return _reject_control(
-                    director,
-                    request,
-                    f"phase cannot move backward from {state.phase} to {desired}",
-                    now=timestamp,
-                )
-        record = director.record_control_event(
-            request,
-            kind=kind,
-            category=category,
-            status="delivered",
-            payload={"previous_phase": state.phase, "phase": desired},
-            now=timestamp,
-        )
-        return ControlOutcome(
-            record.event_id, record.status, f"campaign phase is now {desired}"
-        )
-
-    if request.action == "colossus_reset":
-        # Pure Director pacing state; no runtime command is involved.
-        director.reset_colossus_stage(request.world_token, request.target, now=timestamp)
-        record = director.record_control_event(
-            request,
-            kind=kind,
-            category=category,
-            status="delivered",
-            payload={"target": request.target},
-            subject=request.target,
-            now=timestamp,
-        )
-        return ControlOutcome(
-            record.event_id,
-            record.status,
-            f"colossus stage reset for {request.target}",
-        )
+    if request.action == "story":
+        return process_story_request(director, request, timestamp)
 
     if request.action == "voice_rehearse":
         # The in-game equivalent of host-side `admin voice-rehearse`: it only
@@ -467,47 +369,21 @@ def process_control_request(
         return ControlOutcome(record.event_id, "delivered", "Discord whisper posted")
 
     # OP story drive: rehearse and trigger are usable immediately, including
-    # from dormant. Pause still silences the autonomous scheduler, not the
-    # operator mailbox — there is no in-game resume anymore.
+    # from dormant. A delivered live trigger raises the stored campaign tier
+    # to the profile's floor; rehearsals never touch any state.
 
     payload: dict[str, object] = {}
-    scene_hint: tuple[int, int] | None = None
-    colossus_stage: int | None = None
-    runtime_profile = request.argument
-    dispatch_stage: int | None = None
+    command = "zapegscene cancel-all"
     if request.action in {"scene_rehearse", "scene_trigger"}:
-        payload = {
-            "profile": request.argument,
-            "target": request.target,
-        }
-        runtime_profile, alias_stage = resolve_scene_dispatch(request.argument)
-        payload["runtime_profile"] = runtime_profile
-        if request.argument == COLOSSUS_PROFILE and request.target:
-            # The encounter comes closer each time: live triggers carry and
-            # then advance the stored stage; rehearsals only ever read it.
-            colossus_stage = director.colossus_stage(request.world_token, request.target)
-            payload["colossus_stage"] = colossus_stage
-            dispatch_stage = colossus_stage
-        elif request.argument in SCENE_RUNTIME_DISPATCH:
-            dispatch_stage = alias_stage
-            payload["scene_stage"] = alias_stage
-        if request.action == "scene_trigger":
-            payload["runtime_event_id"] = request.event_id
-            # Stalking memory: live scenes bias their anchor toward the
-            # places the target actually visits. Rehearsals never touch it.
-            # Staged commands cannot also carry a hint (the runtime tree
-            # forks stage vs hint), so remapped aliases skip the hint.
-            if (
-                dispatch_stage is None
-                and runtime_profile in STALK_HINT_PROFILES
-                and request.target
-            ):
-                scene_hint = director.stalk_hint(request.world_token, request.target)
-                if scene_hint is not None:
-                    payload["hint_x"] = scene_hint[0]
-                    payload["hint_z"] = scene_hint[1]
-        else:
-            payload["runtime_event_id_policy"] = "runtime_generated"
+        command, payload = build_scene_command(
+            director,
+            action=request.action,
+            world_token=request.world_token,
+            target=request.target or "",
+            profile_argument=request.argument,
+            event_id=request.event_id,
+            phase=state.phase,
+        )
     record = director.record_control_event(
         request,
         kind=kind,
@@ -528,30 +404,6 @@ def process_control_request(
         terminal = director.control_event_status(record.event_id) or "ambiguous"
         return ControlOutcome(record.event_id, terminal, "request could not be claimed")
 
-    if request.action == "cancel":
-        command = "zapegscene cancel-all"
-    elif request.action == "scene_rehearse":
-        command = f"zapegscene rehearse {request.target} {runtime_profile}"
-        if dispatch_stage is not None:
-            command += f" {dispatch_stage}"
-    else:
-        ttl_ticks = scene_ttl_ticks(
-            runtime_profile,
-            effective_scene_phase(state.phase, request.argument),
-        )
-        if dispatch_stage is not None:
-            command = (
-                f"zapegscene trigger {request.target} {request.event_id} "
-                f"{runtime_profile} stage {dispatch_stage} {ttl_ticks}"
-            )
-        else:
-            command = (
-                f"zapegscene trigger {request.target} {request.event_id} "
-                f"{runtime_profile} {ttl_ticks}"
-            )
-            if scene_hint is not None:
-                command += f" {scene_hint[0]} {scene_hint[1]}"
-
     try:
         output = str(rcon(command)).strip()
     except Exception as exc:
@@ -570,19 +422,311 @@ def process_control_request(
         error=None if success else f"runtime rejected request: {output}",
     )
     if success:
-        if (
-            request.action == "scene_trigger"
-            and colossus_stage is not None
-            and request.target
-        ):
-            # Only a delivered live trigger brings it closer; rehearsals and
-            # rejected dispatches leave the stored stage untouched.
-            director.advance_colossus_stage(request.world_token, request.target)
-        message = output
-        return ControlOutcome(record.event_id, "delivered", message)
+        if request.action == "scene_trigger" and request.target:
+            record_delivered_live_scene(
+                director, request.world_token, request.argument, request.target
+            )
+        return ControlOutcome(record.event_id, "delivered", output)
     return ControlOutcome(
         record.event_id, "failed", f"runtime rejected request: {output[:180]}"
     )
+
+
+def build_scene_command(
+    director: DirectorStore,
+    *,
+    action: str,
+    world_token: int | str,
+    target: str,
+    profile_argument: str,
+    event_id: str,
+    phase: str,
+    ttl_override: int | None = None,
+) -> tuple[str, dict[str, object]]:
+    """One `/zapegscene` builder shared by the OP bridge and campaign beats.
+
+    Handles alias→family stage dispatch, the colossus's stored stage (read
+    here, advanced only after delivery), phase-scaled TTLs and the optional
+    stalking-memory anchor hint (staged commands cannot carry a hint).
+    """
+
+    runtime_profile, alias_stage = resolve_scene_dispatch(profile_argument)
+    payload: dict[str, object] = {
+        "profile": profile_argument,
+        "target": target,
+        "runtime_profile": runtime_profile,
+    }
+    dispatch_stage: int | None = None
+    if profile_argument == COLOSSUS_PROFILE and target:
+        stage = director.colossus_stage(world_token, target)
+        payload["colossus_stage"] = stage
+        dispatch_stage = stage
+    elif profile_argument in SCENE_RUNTIME_DISPATCH:
+        dispatch_stage = alias_stage
+        payload["scene_stage"] = alias_stage
+
+    if action == "scene_rehearse":
+        payload["runtime_event_id_policy"] = "runtime_generated"
+        command = f"zapegscene rehearse {target} {runtime_profile}"
+        if dispatch_stage is not None:
+            command += f" {dispatch_stage}"
+        return command, payload
+
+    ttl_ticks = ttl_override or scene_ttl_ticks(
+        runtime_profile, effective_scene_phase(phase, profile_argument)
+    )
+    payload["runtime_event_id"] = event_id
+    scene_hint: tuple[int, int] | None = None
+    if dispatch_stage is None and runtime_profile in STALK_HINT_PROFILES and target:
+        scene_hint = director.stalk_hint(world_token, target)
+        if scene_hint is not None:
+            payload["hint_x"] = scene_hint[0]
+            payload["hint_z"] = scene_hint[1]
+    if dispatch_stage is not None:
+        command = (
+            f"zapegscene trigger {target} {event_id} "
+            f"{runtime_profile} stage {dispatch_stage} {ttl_ticks}"
+        )
+    else:
+        command = (
+            f"zapegscene trigger {target} {event_id} {runtime_profile} {ttl_ticks}"
+        )
+        if scene_hint is not None:
+            command += f" {scene_hint[0]} {scene_hint[1]}"
+    return command, payload
+
+
+def record_delivered_live_scene(
+    director: DirectorStore,
+    world_token: int | str,
+    profile_argument: str,
+    target: str,
+) -> None:
+    """Post-delivery campaign memory: tier floor and the colossus approach."""
+
+    if profile_argument == COLOSSUS_PROFILE:
+        # Only a delivered live trigger brings it closer; rehearsals and
+        # rejected dispatches leave the stored stage untouched.
+        director.advance_colossus_stage(world_token, target)
+    floor = CONTROL_SCENE_PROFILE_PHASES.get(profile_argument)
+    if floor:
+        director.promote_campaign_tier(world_token, floor)
+
+
+class CampaignRuntime:
+    """The loaded campaign file, or the exact reason it failed to load."""
+
+    def __init__(self, path: Path = CAMPAIGN_PATH) -> None:
+        self.path = path
+        self.engine: CampaignEngine | None = None
+        self.load_error: str | None = None
+        try:
+            self.engine = CampaignEngine(load_campaign(path))
+        except CampaignError as exc:
+            self.load_error = str(exc)
+            print(f"[heraldor] kampanya dosyası geçersiz; hikâye kapalı: {exc}")
+
+
+_CAMPAIGN: CampaignRuntime | None = None
+
+
+def campaign_runtime() -> CampaignRuntime:
+    global _CAMPAIGN
+    if _CAMPAIGN is None:
+        _CAMPAIGN = CampaignRuntime()
+    return _CAMPAIGN
+
+
+class RconCampaignExecutor:
+    """Campaign beat side effects over RCON; the engine stays transport-free."""
+
+    def __init__(self, director: DirectorStore, world_token: int | str) -> None:
+        self.director = director
+        self.world_token = world_token
+
+    def online_players(self) -> list:
+        return online_players()
+
+    def is_night(self) -> bool:
+        return is_night()
+
+    def scene(
+        self,
+        target: str,
+        profile_argument: str,
+        event_id: str,
+        rehearsal: bool,
+        ttl_override: int | None = None,
+    ) -> tuple[bool | None, str]:
+        phase = self.director.campaign_state(self.world_token).phase
+        command, _payload = build_scene_command(
+            self.director,
+            action="scene_rehearse" if rehearsal else "scene_trigger",
+            world_token=self.world_token,
+            target=target,
+            profile_argument=profile_argument,
+            event_id=event_id,
+            phase=phase,
+            ttl_override=ttl_override,
+        )
+        try:
+            output = str(rcon(command)).strip()
+        except Exception as exc:
+            return None, f"runtime response was uncertain: {exc}"
+        success = output.startswith("scene dispatched event=")
+        if success and not rehearsal:
+            record_delivered_live_scene(
+                self.director, self.world_token, profile_argument, target
+            )
+        return success, output
+
+    def whisper(self, target: str, line: str) -> bool:
+        whisper(target, line)
+        return True
+
+    def global_line(self, line: str) -> bool:
+        global_msg(line)
+        return True
+
+    def discord(self, line: str) -> tuple[bool | None, str]:
+        if not WEBHOOK:
+            return False, "Discord webhook is not configured"
+        remaining = self.director.manual_discord_cooldown_remaining(
+            self.world_token, gap_seconds=DISCORD_MANUAL_GAP_SECONDS
+        )
+        if remaining > 0:
+            return False, f"Discord whisper is on cooldown for {remaining}s"
+        try:
+            discord_post_line(line)
+        except Exception as exc:
+            return None, f"Discord post outcome was uncertain: {exc}"
+        self.director.record_manual_discord_post(self.world_token)
+        return True, ""
+
+    def servant(self, target: str, live: bool) -> tuple[bool, str]:
+        mode = "awaken" if live else "rehearse"
+        output = str(rcon(f"zapeg-lore servant {mode} {target}")).strip()
+        return output.startswith("Awakened"), output
+
+    def notify(self, operator: str, text: str) -> None:
+        message = f"[Heraldor] {text}"
+        if operator == "console" or not PLAYER_NAME_RE.fullmatch(operator):
+            print(f"[heraldor] {message}")
+            return
+        payload = json.dumps({"text": message, "color": "gray"}, ensure_ascii=False)
+        try:
+            rcon(f"tellraw {operator} {payload}")
+        except Exception as exc:
+            print(f"[heraldor] prova önizlemesi iletilemedi: {exc}")
+
+
+def process_story_request(
+    director: DirectorStore, request: ControlRequest, timestamp: int
+) -> ControlOutcome:
+    """`/zapeg-lore story …`: the single campaign control surface."""
+
+    kind, category, _rehearsal = _control_event_shape(request)
+    runtime = campaign_runtime()
+    if runtime.engine is None:
+        return _reject_control(
+            director,
+            request,
+            f"campaign file is invalid: {runtime.load_error}",
+            now=timestamp,
+        )
+    engine = runtime.engine
+    world = request.world_token
+    subcommand = request.argument
+
+    if subcommand == "status":
+        message = engine.status_text(director, world, now=timestamp)
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="delivered",
+            payload={"story": "status"},
+            now=timestamp,
+        )
+        return ControlOutcome(record.event_id, record.status, message)
+
+    if subcommand in {"start", "goto", "reset", "auto_on", "auto_off"}:
+        if subcommand == "start":
+            outcome = engine.start(director, world, now=timestamp)
+        elif subcommand == "goto":
+            outcome = engine.goto(director, world, request.target or "", now=timestamp)
+        elif subcommand == "reset":
+            outcome = engine.reset(director, world, now=timestamp)
+        else:
+            outcome = engine.set_auto(
+                director, world, subcommand == "auto_on", now=timestamp
+            )
+        if not outcome.ok:
+            return _reject_control(director, request, outcome.message, now=timestamp)
+        record = director.record_control_event(
+            request,
+            kind=kind,
+            category=category,
+            status="delivered",
+            payload={"story": subcommand, "message": outcome.message},
+            now=timestamp,
+        )
+        return ControlOutcome(record.event_id, record.status, outcome.message)
+
+    # `next` and `rehearse` run side effects; the beat rows carry their own
+    # at-most-once ids, and this control row records the operator's attempt.
+    record = director.record_control_event(
+        request,
+        kind=kind,
+        category=category,
+        status="reserved",
+        payload={"story": subcommand},
+        now=timestamp,
+    )
+    if record.status != "reserved":
+        return ControlOutcome(
+            record.event_id,
+            record.status,
+            f"request already {record.status}; it was not replayed",
+        )
+    if not director.mark_attempting(record.event_id, now=timestamp):
+        terminal = director.control_event_status(record.event_id) or "ambiguous"
+        return ControlOutcome(record.event_id, terminal, "request could not be claimed")
+    executor = RconCampaignExecutor(director, world)
+    outcome = engine.execute_current_beat(
+        director,
+        world,
+        executor,
+        operator=request.operator,
+        rehearsal=subcommand == "rehearse",
+        manual=True,
+        now=timestamp,
+    )
+    director.finish_attempt(
+        record.event_id,
+        delivered=outcome.ok,
+        error=None if outcome.ok else outcome.message,
+        now=timestamp,
+    )
+    return ControlOutcome(
+        record.event_id, "delivered" if outcome.ok else "failed", outcome.message
+    )
+
+
+def campaign_cycle(director: DirectorStore, world_token: int | None) -> None:
+    """Autonomous story advancement; inert until `story auto on`."""
+
+    if world_token is None:
+        return
+    runtime = campaign_runtime()
+    if runtime.engine is None:
+        return
+    executor = RconCampaignExecutor(director, world_token)
+    fired = runtime.engine.autonomous_tick(
+        director, world_token, executor, now=int(director.clock())
+    )
+    if fired:
+        print(f"[heraldor] kampanya ilerledi: {fired}")
 
 
 def _clear_control_request(request: ControlRequest) -> None:
@@ -659,42 +803,8 @@ def poll_control_request(director: DirectorStore) -> ControlOutcome | None:
     return outcome
 
 
-def llm_line(kind: str) -> str | None:
-    if not USE_LLM:
-        return None
-    try:
-        from openai import OpenAI
-
-        client = OpenAI(
-            base_url=os.environ.get("LLM_BASE_URL", "https://api.openai.com/v1"),
-            api_key=os.environ.get("LLM_API_KEY", "none"),
-        )
-        resp = client.chat.completions.create(
-            model=os.environ.get("LLM_MODEL", "gpt-4o-mini"),
-            max_tokens=40,
-            temperature=1.1,
-            timeout=20,
-            messages=[
-                {
-                    "role": "user",
-                    "content": (
-                        "Heraldor adında, Minecraft sunucusunda yaşayan Herobrine türü "
-                        "tekinsiz bir varlıksın. Türkçe, TEK cümlelik, kısa ve rahatsız "
-                        f"edici bir {kind} cümlesi yaz. Şiddet/tehdit yok — tekinsizlik var. "
-                        "Tırnak kullanma."
-                    ),
-                }
-            ],
-        )
-        line = (resp.choices[0].message.content or "").strip().replace('"', "'")
-        return line[:140] or None
-    except Exception as e:
-        print(f"[heraldor] llm hata (havuz kullanılacak): {e}")
-        return None
-
-
-def whisper(player: str) -> None:
-    line = llm_line("fısıltı") or random.choice(WHISPERS)
+def whisper(player: str, line: str | None = None) -> None:
+    line = line or random.choice(WHISPERS)
     payload = json.dumps(
         [
             "",
@@ -711,8 +821,8 @@ def whisper(player: str) -> None:
     print(f"[heraldor] whisper -> {player}: {line}")
 
 
-def global_msg() -> None:
-    line = llm_line("herkese açık kısa mesaj") or random.choice(GLOBALS_)
+def global_msg(line: str | None = None) -> None:
+    line = line or random.choice(GLOBALS_)
     payload = json.dumps(
         [
             "",
@@ -743,7 +853,7 @@ def discord_post_line(line: str) -> None:
 
 
 def discord_msg() -> None:
-    line = llm_line("Discord kanalına yazılmış tekinsiz mesaj") or random.choice(DISCORDS)
+    line = random.choice(DISCORDS)
     discord_post_line(line)
     print(f"[heraldor] discord: {line}")
 
@@ -797,7 +907,7 @@ def ambient_cycle(
     if world_token is None:
         return
     campaign = director.campaign_state(world_token)
-    if campaign.phase == "dormant" or campaign.paused:
+    if campaign.phase == "dormant":
         return
 
     players = online_players()
@@ -893,7 +1003,7 @@ def poll_stalk_samples(
     if world_token is None:
         return
     campaign = director.campaign_state(world_token)
-    if campaign.phase == "dormant" or campaign.paused:
+    if campaign.phase == "dormant":
         return
     players = online_players()
     if not players:
@@ -991,13 +1101,16 @@ def _world_token_from_servant_poll(polled) -> int | None:
 
 
 def run_daemon() -> None:
+    campaign = campaign_runtime()
     print(
         f"[heraldor] uyanıyor — ambient={CHECK_INTERVAL}s, minion={MINION_POLL_INTERVAL}s, "
         f"director={CONTROL_POLL_INTERVAL}s, "
         f"stalk={STALK_SAMPLE_INTERVAL}s, death={DEATH_POLL_INTERVAL}s, "
         f"scheduler={'açık/' + str(SCHEDULER_INTERVAL) + 's' if SCHEDULER_ENABLED else 'kapalı'}, "
-        f"webhook={'var' if WEBHOOK else 'yok'}, events={EVENTS}, llm={USE_LLM}, "
-        f"voice={VOICE_ENABLED}, db={DB_PATH}"
+        f"webhook={'var' if WEBHOOK else 'yok'}, events={EVENTS}, "
+        f"voice={VOICE_ENABLED}, "
+        f"kampanya={'geçersiz' if campaign.engine is None else str(CAMPAIGN_PATH.name)}, "
+        f"db={DB_PATH}"
     )
     with (
         DirectorStateLock(Path(str(DB_PATH) + ".lock")),
@@ -1070,6 +1183,12 @@ def run_daemon() -> None:
             now = time.monotonic()
             if now >= next_scheduler:
                 next_scheduler = now + SCHEDULER_INTERVAL
+                # The campaign is the primary driver; the env-gated idle
+                # scheduler only fills quiet between chapters.
+                try:
+                    campaign_cycle(director, active_world_token)
+                except Exception as exc:
+                    print(f"[heraldor] kampanya döngüsü hata: {exc}")
                 try:
                     scene_scheduler_cycle(director, active_world_token)
                 except Exception as exc:
@@ -1102,6 +1221,18 @@ def run_admin(command: str) -> None:
         restore_snapshot(DB_PATH, SNAPSHOT_PATH)
         print(f"[heraldor] tutarlı yedek canlı DB'ye geri yüklendi: {SNAPSHOT_PATH}")
         return
+    if command == "campaign-validate":
+        try:
+            campaign = load_campaign(CAMPAIGN_PATH)
+        except CampaignError as exc:
+            raise SystemExit(f"[heraldor] kampanya dosyası GEÇERSİZ: {exc}")
+        print(f"[heraldor] kampanya geçerli: {CAMPAIGN_PATH}")
+        for index, chapter in enumerate(campaign.chapters, start=1):
+            print(
+                f"  {index}. {chapter.id} ({chapter.tier}) — "
+                f"{len(chapter.beats)} beat: {chapter.title}"
+            )
+        return
 
     # Admin readers may run beside the daemon; they must never classify the
     # daemon's currently-attempting side effect as a crashed one.
@@ -1131,7 +1262,13 @@ def main(argv: list[str] | None = None) -> None:
     admin = subparsers.add_parser("admin", help="host-only state inspection")
     admin.add_argument(
         "command",
-        choices=("status", "snapshot", "restore-snapshot", "voice-rehearse"),
+        choices=(
+            "status",
+            "snapshot",
+            "restore-snapshot",
+            "voice-rehearse",
+            "campaign-validate",
+        ),
     )
     args = parser.parse_args(argv)
 

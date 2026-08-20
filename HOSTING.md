@@ -52,7 +52,6 @@ CF_API_KEY=
 # Keep blank unless a real Heraldor-only webhook has been created on the host.
 HERALDOR_WEBHOOK=
 HERALDOR_EVENTS=false
-HERALDOR_LLM=false
 HERALDOR_CHECK_INTERVAL=300
 HERALDOR_MINION_POLL_INTERVAL=10
 HERALDOR_P_WHISPER=0.002
@@ -81,7 +80,7 @@ Profile-only values:
   shell-safe values, leave Grafana on `127.0.0.1` with anonymous access off,
   then follow [the metrics runbook](metrics/README.md)
 - `RCLONE_DEST` plus local `rclone.conf` → `offsite`
-- `HERALDOR_WEBHOOK`, `HERALDOR_EVENTS`, `HERALDOR_LLM` and advanced `HERALDOR_CHECK_INTERVAL` / `HERALDOR_MINION_POLL_INTERVAL` / `HERALDOR_P_*` knobs → optional `heraldor`
+- `HERALDOR_WEBHOOK`, `HERALDOR_EVENTS` and advanced `HERALDOR_CHECK_INTERVAL` / `HERALDOR_MINION_POLL_INTERVAL` / `HERALDOR_P_*` knobs → optional `heraldor`
 - `HERALDOR_VOICE_ENABLED`, fixed Discord guild/voice-channel IDs and the relay token file → optional `heraldor-voice`; keep disabled until private rehearsal passes
 
 The default stack does **not** call an LLM. Normal Minecraft↔Discord bridging is also not configured through `.env`; it uses the generated mod config described below.
@@ -162,13 +161,13 @@ before distributing the pack. Citizens 0.4.0 persists multi-step physical work
 across restarts under bounded action/model/time budgets; player chat and OP job
 controls are documented in that guide. The old chat-only prototype has been removed.
 
-Heraldor with `HERALDOR_LLM=false` uses built-in lines and still handles all
-timing, targeting, sounds and events; enabling it only generates fresh spooky
-one-liners. Its optional `LLM_*` settings are independent of Citizens.
+Heraldor uses built-in Turkish line pools plus the authored campaign file
+(`npc/campaign-heraldor.yml`) and calls no LLM; timing, targeting, sounds and
+events are all deterministic. The old `HERALDOR_LLM`/`LLM_*` knobs are gone.
 
-**Heraldor** (optional, LLM-free by default): enable it only after `mc` has
+**Heraldor** (optional, LLM-free): enable it only after `mc` has
 completed its first boot, then run `docker compose --profile heraldor up -d --build`.
-Embedded lines work with `HERALDOR_LLM=false`; `LLM_*` is ignored. Only if Discord posts are wanted, create a **separate Heraldor-only webhook**, put its new URL directly in host `.env` as `HERALDOR_WEBHOOK`, and never commit/share it. Blank means no Discord posts. The deliberately rare defaults are exposed as `HERALDOR_CHECK_INTERVAL` and `HERALDOR_P_*`; test before changing them, especially the player-independent Discord roll. `HERALDOR_EVENTS=true` additionally enables staged midnight shadow visits. Director state lives under `data/heraldor/`; its `backup/heraldor.sqlite3` is an online-consistent SQLite snapshot included by the normal backup. Do NOT explain Heraldor to the players.
+Only if Discord posts are wanted, create a **separate Heraldor-only webhook**, put its new URL directly in host `.env` as `HERALDOR_WEBHOOK`, and never commit/share it. Blank means no Discord posts. The deliberately rare defaults are exposed as `HERALDOR_CHECK_INTERVAL` and `HERALDOR_P_*`; test before changing them, especially the player-independent Discord roll. `HERALDOR_EVENTS=true` additionally enables staged midnight shadow visits. Director state lives under `data/heraldor/`; its `backup/heraldor.sqlite3` is an online-consistent SQLite snapshot included by the normal backup. Do NOT explain Heraldor to the players.
 
 The first servant is a manual rehearsal, not a random spawn. After applying the
 tracked KubeJS overrides and restarting, an OP can use

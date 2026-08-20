@@ -18,7 +18,6 @@ from heraldor_director import (  # noqa: E402
     DirectorStateLock,
     DirectorStore,
     SERVANT_AUDIO_CLIP_ID,
-    parse_control_request,
     restore_snapshot,
     snapshot_lock_path,
     voice_lock_path,
@@ -26,6 +25,7 @@ from heraldor_director import (  # noqa: E402
 from heraldor_voice import (  # noqa: E402
     ClipSpec,
     RelayConfig,
+    VoiceStore,
     _gateway_presence_options,
     _play_delivery,
     load_clip_catalog,
@@ -43,17 +43,7 @@ class FakeClock:
 
 
 def activate_campaign(store: DirectorStore, world_token: int) -> None:
-    request = parse_control_request(
-        f"zhctl1:{world_token}:{world_token:020x}:1999999999:"
-        "phase_start:presence:-:console"
-    )
-    store.record_control_event(
-        request,
-        kind="director_phase",
-        category="campaign",
-        status="delivered",
-        payload={"previous_phase": "dormant", "phase": "presence"},
-    )
+    store.promote_campaign_tier(world_token, "presence")
 
 
 class VoiceOutboxTest(unittest.TestCase):
@@ -67,8 +57,8 @@ class VoiceOutboxTest(unittest.TestCase):
     def tearDown(self) -> None:
         self.temp.cleanup()
 
-    def open_store(self, **kwargs) -> DirectorStore:
-        return DirectorStore(
+    def open_store(self, **kwargs) -> VoiceStore:
+        return VoiceStore(
             self.db_path,
             snapshot_path=self.snapshot_path,
             clock=self.clock,
@@ -427,7 +417,7 @@ class VoiceTransportTest(unittest.TestCase):
                 1,
             )
         }
-        with DirectorStore(
+        with VoiceStore(
             self.db_path,
             snapshot_path=self.snapshot_path,
             clock=self.clock,
@@ -543,7 +533,7 @@ class VoiceTransportTest(unittest.TestCase):
                 1,
             )
         }
-        with DirectorStore(
+        with VoiceStore(
             self.db_path,
             snapshot_path=self.snapshot_path,
             clock=self.clock,
