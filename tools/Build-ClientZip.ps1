@@ -67,12 +67,18 @@ $extraMods = @(
     [pscustomobject]@{ Name = 'CC: Tweaked (1.116.1 re-pin)'; Prefix = 'cc-tweaked-1.20.1-forge-1.116'; FileName = $ccTweakedReplacement.FileName; FileId = $null; Pin = 'Modrinth 1.116.1 — ATM9 base pack CurseForge resolution does not reliably give every player this version (mod stopped publishing new files to CurseForge); re-pinned so Numen/AdvancedPeripherals integration does not throw a missing-dependency error' }
 )
 
+# ZipFileName is deliberately unversioned: it is what ships inside the
+# player-facing zip, so every future release overwrites the same path on
+# extraction and players never have to manually delete a stale jar again.
+# FileName/RelativePath stay versioned — that is the repo's own source pin,
+# verified against overrides/mods and the SHA-256 inventory lock as before.
 $ownedMods = @(
     [pscustomobject]@{
         Name = 'ZapeG Citizens'
         Prefix = 'zapeg-citizens-forge-1.20.1-'
         FileName = 'zapeg-citizens-forge-1.20.1-0.4.0.jar'
         RelativePath = 'overrides\mods\zapeg-citizens-forge-1.20.1-0.4.0.jar'
+        ZipFileName = 'zapeg-citizens-forge-1.20.1.jar'
         Pin = 'ZapeG owned release 0.4.0 (not CurseForge)'
     },
     [pscustomobject]@{
@@ -80,6 +86,7 @@ $ownedMods = @(
         Prefix = 'zapeg-runtime-forge-1.20.1-'
         FileName = 'zapeg-runtime-forge-1.20.1-0.3.1.jar'
         RelativePath = 'overrides\mods\zapeg-runtime-forge-1.20.1-0.3.1.jar'
+        ZipFileName = 'zapeg-runtime-forge-1.20.1.jar'
         Pin = 'ZapeG owned release 0.3.1 (not CurseForge)'
     }
 )
@@ -278,18 +285,28 @@ function Set-ExactCcTweakedJar {
 function Assert-SingleOwnedModJars {
     param(
         [object[]]$Jars,
-        [string]$Context
+        [string]$Context,
+        # 'FileName' checks source/repo pins (versioned); 'ZipFileName' checks
+        # what actually ships inside the player-facing zip (unversioned).
+        [ValidateSet('FileName', 'ZipFileName')]
+        [string]$FileNameProperty = 'FileName'
     )
 
     foreach ($mod in $ownedMods) {
-        $matches = @($Jars | Where-Object { $_.Name -like "$($mod.Prefix)*.jar" })
-        if ($matches.Count -ne 1 -or $matches[0].Name -cne $mod.FileName) {
+        $expectedName = $mod.$FileNameProperty
+        # Prefix carries a trailing '-' for the versioned source form; the
+        # unversioned ZipFileName has no dash before '.jar', so trim it here
+        # or the wildcard would never match the staged/zip file.
+        $matchPrefix = if ($FileNameProperty -eq 'ZipFileName') { $mod.Prefix.TrimEnd('-') } else { $mod.Prefix }
+        $matchPattern = "$matchPrefix*.jar"
+        $matches = @($Jars | Where-Object { $_.Name -like $matchPattern })
+        if ($matches.Count -ne 1 -or $matches[0].Name -cne $expectedName) {
             $found = if ($matches.Count -eq 0) {
                 '(yok)'
             } else {
                 ($matches.Name | Sort-Object) -join ', '
             }
-            throw "Sahipli mod doğrulaması başarısız ($Context): yalnız $($mod.FileName) bulunmalı; bulunan: $found"
+            throw "Sahipli mod doğrulaması başarısız ($Context): yalnız $expectedName bulunmalı; bulunan: $found"
         }
     }
 }
@@ -301,17 +318,17 @@ function Set-ExactOwnedModJars {
     )
 
     foreach ($mod in $ownedMods) {
-        @(Get-ChildItem -LiteralPath $ModsDir -Filter "$($mod.Prefix)*.jar" -File) |
+        @(Get-ChildItem -LiteralPath $ModsDir -Filter "$($mod.Prefix.TrimEnd('-'))*" -File) |
             ForEach-Object { [IO.File]::Delete($_.FullName) }
         $source = @($SourceJars | Where-Object { $_.Name -ceq $mod.FileName })
         if ($source.Count -ne 1) {
             throw "Sahipli mod değiştirme kaynağı yanlış; beklenen $($mod.FileName)."
         }
-        Copy-Item -LiteralPath $source[0].FullName -Destination (Join-Path $ModsDir $mod.FileName)
+        Copy-Item -LiteralPath $source[0].FullName -Destination (Join-Path $ModsDir $mod.ZipFileName)
     }
 
     $result = @(Get-ChildItem -LiteralPath $ModsDir -Filter '*.jar' -File)
-    Assert-SingleOwnedModJars -Jars $result -Context 'offline staging mods klasörü'
+    Assert-SingleOwnedModJars -Jars $result -Context 'offline staging mods klasörü' -FileNameProperty 'ZipFileName'
 }
 
 function Get-OfflineInventoryJars {
@@ -510,10 +527,10 @@ function Add-ZapeGClientLayer {
              '1. CurseForge App içinde All the Mods 9 sürüm 1.1.1 kurulu olsun.',
              '2. Profile Options / Profil Seçenekleri içinde modloader sürümünü Forge 47.4.10 yap.',
              '3. Profil menüsünde ... > Open Folder / Klasörü Aç seçeneğine bas.',
-             '4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar, zapeg-citizens-forge-1.20.1-*.jar ve zapeg-runtime-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile eski Citizens/Runtime jarları silinmiş olmalı.',
+             "4. Minecraft ve CurseForge tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar, zapeg-citizens-forge-1.20.1*.jar ve zapeg-runtime-forge-1.20.1*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile eski, sürüm numaralı Citizens/Runtime jarları (varsa) silinmiş olmalı — bu adım artık yalnız eski bir kurulumdan kalan dosyalar için gerekli; $($ownedMods[0].ZipFileName) ve $($ownedMods[1].ZipFileName) bundan sonraki her güncellemede otomatik üzerine yazılır, tekrar silmen gerekmez.",
              '5. Bu zip içeriğini O KLASÖRÜN KÖKÜNE çıkar.',
              '6. ZapeG dosyaları için üzerine yazma sorulursa onayla. Kişisel options.txt ayarların bu yamada yoktur ve korunur.',
-             '7. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, zapeg-citizens-forge-1.20.1-0.4.0.jar ve zapeg-runtime-forge-1.20.1-0.3.1.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli.',
+             "7. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, $($ownedMods[0].ZipFileName) ve $($ownedMods[1].ZipFileName) bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli.",
              '8. Oyunu başlat. Kullanıcı adını değiştirme; envanter, claim ve kişisel lore o ada bağlıdır.',
             '',
             'Zip içinde yeniden bir ZapeG klasörü oluşturma. mods klasörü profil kökünde olmalı.'
@@ -525,9 +542,9 @@ function Add-ZapeGClientLayer {
              'BU ZIP BİR LAUNCHER VEYA FORGE KURUCUSU DEĞİLDİR.',
              '1. Launcher içinde Minecraft 1.20.1 + Forge 47.4.10 kullanan İZOLE bir profil oluştur.',
              '2. Launcher sorarsa Java 17 seç. Profili bir kez açıp kapat.',
-             '3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar, zapeg-citizens-forge-1.20.1-*.jar ve zapeg-runtime-forge-1.20.1-*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile eski Citizens/Runtime jarları silinmiş olmalı.',
+             "3. Minecraft ve launcher tamamen kapalıyken mods içindeki TÜM cc-tweaked-1.20.1-forge-*.jar, zapeg-citizens-forge-1.20.1*.jar ve zapeg-runtime-forge-1.20.1*.jar dosyalarını sil. Özellikle cc-tweaked-1.20.1-forge-1.113.1.jar ile eski, sürüm numaralı Citizens/Runtime jarları (varsa) silinmiş olmalı — bu adım artık yalnız eski bir kurulumdan kalan dosyalar için gerekli; $($ownedMods[0].ZipFileName) ve $($ownedMods[1].ZipFileName) bundan sonraki her güncellemede otomatik üzerine yazılır, tekrar silmen gerekmez.",
              '4. Bu zip içeriğini o profilin OYUN KLASÖRÜNE çıkar.',
-             '5. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, zapeg-citizens-forge-1.20.1-0.4.0.jar ve zapeg-runtime-forge-1.20.1-0.3.1.jar bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli; iç içe ZapeG klasörü olmamalı.',
+             "5. Bu üç mod ailesi için yalnız cc-tweaked-1.20.1-forge-1.116.1.jar, $($ownedMods[0].ZipFileName) ve $($ownedMods[1].ZipFileName) bulunmalı; diğer ATM9/ZapeG modlarını silme. mods\iceandfire-...jar, üç resmi IV jarı ve alekiNiftyShips-FORGE-1.20.1-1.0.14.jar doğrudan görünmeli; iç içe ZapeG klasörü olmamalı.",
              '6. Sabit bir kullanıcı adı seç. Sonradan değiştirme; envanter ve claim kimliğin bu addır.'
          )
     }
@@ -635,8 +652,8 @@ try {
         foreach ($jar in $validatedExtras) {
             Copy-Item -LiteralPath $jar.FullName -Destination $modsOut
         }
-        foreach ($jar in $validatedOwned) {
-            Copy-Item -LiteralPath $jar.FullName -Destination $modsOut
+        for ($i = 0; $i -lt $ownedMods.Count; $i++) {
+            Copy-Item -LiteralPath $validatedOwned[$i].FullName -Destination (Join-Path $modsOut $ownedMods[$i].ZipFileName)
         }
         Write-Host "  + $($extraMods.Count) dış kaynak + $($ownedMods.Count) sahipli ek mod tam sürüm/SHA pinleriyle doğrulandı"
     } else {
@@ -669,7 +686,7 @@ try {
     $stagedCcTweaked = @(Get-ChildItem -LiteralPath (Join-Path $staging 'mods') -Filter $ccTweakedReplacement.Pattern -File)
     Assert-SingleCcTweakedJar -Jars $stagedCcTweaked -Context "$mode staging mods klasörü"
     $stagedJars = @(Get-ChildItem -LiteralPath (Join-Path $staging 'mods') -Filter '*.jar' -File)
-    Assert-SingleOwnedModJars -Jars $stagedJars -Context "$mode staging mods klasörü"
+    Assert-SingleOwnedModJars -Jars $stagedJars -Context "$mode staging mods klasörü" -FileNameProperty 'ZipFileName'
     Add-ZapeGClientLayer -Staging $staging -Mode $mode
     Write-BuildManifest -Staging $staging -Mode $mode -ProfileVerified $profileVerified
 
@@ -699,7 +716,7 @@ try {
                 Where-Object { $_.Name -like $ccTweakedReplacement.Pattern }
         )
         Assert-SingleCcTweakedJar -Jars $archivedCcTweaked -Context "$mode zip arşivi"
-        Assert-SingleOwnedModJars -Jars $archive.Entries -Context "$mode zip arşivi"
+        Assert-SingleOwnedModJars -Jars $archive.Entries -Context "$mode zip arşivi" -FileNameProperty 'ZipFileName'
     }
     finally {
         $archive.Dispose()
