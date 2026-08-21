@@ -141,7 +141,7 @@ services:
   citizen-brain:
     image: zapeg/citizen-brain:0.4.0
     build:
-      context: https://github.com/Mizar-107/zapeg-citizens.git#0ba475935a2cf38ed69079f9455a145f98e262b4:brain
+      context: https://github.com/Mizar-107/zapeg-citizens.git#7f31f057c3abbc18fb142b3356318ffec151953b:brain
     container_name: atm9-citizen-brain
     profiles: ["citizens"]
     restart: unless-stopped
