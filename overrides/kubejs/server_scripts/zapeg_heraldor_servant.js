@@ -59,46 +59,45 @@ function zhDimensionId(level) {
   return String(level.dimension)
 }
 
-function zhRawCommandSource(source) {
-  try {
-    const raw = source.source
-    return raw || null
-  } catch (_) {
-    return null
-  }
-}
-
 function zhDirectorSourceAllowed(source) {
+  // v2 (2026-08-21): the previous gate reflected on CommandSourceStack's
+  // private `source` field and called getUUID()/getClass() on the raw object.
+  // On the production server (SRG member names, remap quirks) those calls
+  // threw, every branch fell through, and EVERY in-game OP and RCON command
+  // died with "Heraldor does not accept this command source." — while the
+  // director/pytest suites never execute Rhino, so tests stayed green.
+  //
+  // The new gate uses only surfaces this build demonstrably exposes
+  // (hasPermission, .player, .textName — same bean family as .scoreboardName
+  // above). Boundary change, accepted deliberately: a command block/function
+  // impersonating an OP via `execute as` is no longer distinguished. On this
+  // server only the admin can program command blocks, and every director
+  // action is validated + idempotency-checked Python-side anyway.
   if (!source.hasPermission(2)) return false
-  const rawSource = zhRawCommandSource(source)
   try {
     const player = source.player
-    if (player && zhSafePlayerName(player)) {
-      // `execute as <op>` changes the effective player but keeps a command
-      // block/function as CommandSourceStack.source. When KubeJS actually
-      // exposes that field, admit only a command typed by this ServerPlayer.
-      // The field is private and is not a Rhino bean — treating a missing
-      // raw source as a command block hid `/zapeg-lore` mailbox children from
-      // every in-game OP (Brigadier omits failed .requires() children).
-      if (!rawSource) return true
-      return (
-        String(rawSource.getClass().getName()) ===
-          'net.minecraft.server.level.ServerPlayer' &&
-        String(rawSource.getUUID()) === zhEntityUuid(player)
-      )
-    }
+    if (player && zhSafePlayerName(player)) return true
   } catch (_) {
     // Console-like sources do not expose a player.
   }
   try {
-    // This exact class check admits RCON but rejects command blocks. The local
-    // server console is intentionally left to host-side admin/raw commands;
-    // KubeJS cannot reliably distinguish it from every function context.
-    return String(rawSource.getClass().getName()) ===
-      'net.minecraft.server.rcon.RconConsoleSource'
+    // getTextName(): players -> their nick, console -> "Server",
+    // RCON -> "Rcon", command blocks -> "@" or their custom name.
+    const label = String(source.textName)
+    if (label === 'Server' || label === 'Rcon') return true
+    if (/^[A-Za-z0-9_]{1,16}$/.test(label) && label !== '@') return true
   } catch (_) {
-    return false
+    // Fall through to the diagnostic rejection below.
   }
+  try {
+    console.log(
+      '[zapeg-lore] source rejected: perm2=' + source.hasPermission(2) +
+      ' textName=' + String(source.textName)
+    )
+  } catch (_) {
+    console.log('[zapeg-lore] source rejected: no readable identity surface')
+  }
+  return false
 }
 
 function zhDirectorOperatorName(source) {

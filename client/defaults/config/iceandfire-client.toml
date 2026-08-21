@@ -1,0 +1,7 @@
+#ZapeG varsayılanı — DEĞİŞTİRME. Ice and Fire'ın ejderhalı özel ana menüsü
+#kapalı; açık olursa ScreenEvent.Opening ile TitleScreen'i değiştirir ve
+#PackMenu'yu (ZapeG logolu menü) tamamen ezer. Oyun ilk açılışta bu dosyaya
+#kendi diğer anahtarlarını varsayılanlarıyla ekler; bu satır korunur.
+
+[general]
+	"Custom main menu" = false

@@ -69,21 +69,21 @@ pools:
     kralxlarge:
       - "kaç elmas oldu? ben de sayıyorum."
       - "bu kadar hızlı kazma. beni bulacaksın."
-      - "sen kazarken ben hep aynı taşın arkasındayım."
+      - "zartinium yok. hiç olmadı. kazmaya devam et."
       - "seni geçtim. fark etmedin."
       - "hızlısın. ben hiç durmuyorum."
       - "kazdığın tünelin sonunu ben açtım."
     MertOnal:
       - "garajındaki şey bu gece kendi kendine çalıştı."
       - "motor sesi sandığın şey benim nefesimdi."
-      - "aynana bak. arka koltuk hiç boş değil."
+      - "demir mi arıyorsun. ben nerede olduğunu biliyorum."
       - "koltuğunu geri ittim. sığmıyorum."
       - "lastiklerinde çamur var. sen sürmedin."
       - "farların bu gece iki kez yandı. içerden."
     eminomi12:
       - "hayvanların neden hep aynı duvara bakıyor sanıyorsun?"
       - "kurtların bu gece sana havlamadı. bana havladı."
-      - "beslediklerin beni görünce susuyor. fark ettin mi?"
+      - "bedava çalışıyorsun. yakında bana çalışacaksın."
       - "köyde bir kapı fazla. say."
       - "sen uyurken sürünü ben sayıyorum."
       - "bir tanesi artık beni seviyor."
@@ -91,9 +91,16 @@ pools:
       - "gökyüzünde yalnız olduğunu mu sandın?"
       - "yukarı çıktıkça bana yaklaşıyorsun."
       - "bulutların üstünde ayak izleri var. senin değil."
-      - "o yükseklikte sesini kimse duymaz."
-      - "düştüğünde yukarıdan izleyeceğim."
+      - "sandıklardan aldıklarını saydım. geri koymana gerek yok."
+      - "başkasının cevheri seni benden hızlı kazdırmaz."
       - "iniş yerini ben seçiyorum."
+    Darkfire6161:
+      - "herkes seni seviyor. ben en çok seveceğim."
+      - "sana hep özel davranıyorlar. ben de özel davranacağım."
+      - "deniz kenarından geldin. ben daha derinden geldim."
+      - "adını hep güzel anıyorlar. ben de anacağım."
+      - "seni koruyorlar. benden koruyamazlar."
+      - "en sevilen ilk gider."
 
 chapters:
   # ---------------------------------------------------------------- 1 ----

@@ -207,10 +207,12 @@ class CampaignLoaderTest(unittest.TestCase):
         ]
         self.assertEqual(finale_profiles.count("colossus_01"), 5)
         self.assertIn("visitation_01", finale_profiles)
-        # The dossier covers the five personalized players.
+        # The dossier covers the six personalized players (Darkfire6161
+        # joined in player-lore round 1, 2026-08-21).
         self.assertEqual(
             set(campaign.dossier),
-            {"SalihKarahan", "kralxlarge", "MertOnal", "eminomi12", "Thekingim"},
+            {"SalihKarahan", "kralxlarge", "MertOnal", "eminomi12",
+             "Thekingim", "Darkfire6161"},
         )
         # A servant-victory wait arms the chapter-4 → threshold tie-in.
         waits = [

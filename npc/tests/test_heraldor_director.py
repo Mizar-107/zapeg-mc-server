@@ -940,12 +940,17 @@ class ServantScriptContractTest(unittest.TestCase):
         self.assertIn("Commands.literal('whisper')", self.script)
         self.assertIn("Commands.literal('voice')", self.script)
         self.assertIn("zhDirectorSourceAllowed", self.script)
-        self.assertIn("net.minecraft.server.rcon.RconConsoleSource", self.script)
-        self.assertIn("net.minecraft.server.level.ServerPlayer", self.script)
-        self.assertIn(
-            "String(rawSource.getUUID()) === zhEntityUuid(player)", self.script
-        )
-        self.assertIn("if (!rawSource) return true", self.script)
+        # Gate v2 (2026-08-21): only surfaces the live Rhino build exposes.
+        # The old gate reflected on CommandSourceStack's private `source`
+        # field and called mapped-name methods on raw objects; on the
+        # production server (SRG names) every branch threw and ALL OP/RCON
+        # commands were rejected. These inversions keep it from coming back.
+        self.assertIn("source.textName", self.script)
+        self.assertIn("label === 'Server' || label === 'Rcon'", self.script)
+        self.assertIn("[zapeg-lore] source rejected", self.script)
+        self.assertNotIn("rawSource", self.script)
+        self.assertNotIn("net.minecraft.server.rcon.RconConsoleSource", self.script)
+        self.assertNotIn("rawSource.getUUID()", self.script)
         self.assertNotIn(
             ".requires(source => zhDirectorSourceAllowed(source))", self.script
         )

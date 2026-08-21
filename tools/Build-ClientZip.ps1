@@ -458,9 +458,11 @@ function Add-ZapeGClientLayer {
     $options = Join-Path $defaults 'options.txt'
     $oculus = Join-Path $defaults 'config\oculus.properties'
     $entityCulling = Join-Path $defaults 'config\entityculling.json'
+    $iafClient = Join-Path $defaults 'config\iceandfire-client.toml'
     $niftyLicense = Join-Path $repoRoot 'client\licenses\alekiships-LICENSE.txt'
     if (-not (Test-Path -LiteralPath $oculus) -or
         -not (Test-Path -LiteralPath $entityCulling) -or
+        -not (Test-Path -LiteralPath $iafClient) -or
         -not (Test-Path -LiteralPath $niftyLicense) -or
         ($Mode -eq 'offline' -and -not (Test-Path -LiteralPath $options))) {
         throw 'Repo içindeki ZapeG istemci varsayılanları eksik.'
@@ -497,6 +499,14 @@ function Add-ZapeGClientLayer {
     # ATM9's Entity Culling otherwise hides IV's linked render/seat entities.
     # Both patch and offline outputs carry the reviewed whitelist.
     Copy-Item -LiteralPath $entityCulling -Destination (Join-Path $configDir 'entityculling.json') -Force
+
+    # Ice and Fire'in ejderhali ozel ana menusu TitleScreen'i degistirip
+    # PackMenu'yu (ZapeG logosu) tamamen eziyor. Yama bu istemci ayarini
+    # kapali olarak dagitir; icerik dogrulanir ki yanlislikla acilmasin.
+    if ((Get-Content -Raw -LiteralPath $iafClient) -notmatch '"Custom main menu"\s*=\s*false') {
+        throw "Ice and Fire istemci ayari 'Custom main menu = false' icermiyor: $iafClient"
+    }
+    Copy-Item -LiteralPath $iafClient -Destination (Join-Path $configDir 'iceandfire-client.toml') -Force
 
     # Nifty Ships is MIT, but its published 1.0.14 jar omits the notice file.
     # Preserve the upstream copyright/permission text in every distributed build.
@@ -709,6 +719,7 @@ try {
         $requiredClientEntries = @(
             'config/oculus.properties',
             'config/entityculling.json',
+            'config/iceandfire-client.toml',
             'licenses/alekiships-LICENSE.txt'
         )
         $archivedEntryNames = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\', '/') })

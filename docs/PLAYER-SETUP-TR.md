@@ -136,6 +136,10 @@ uygulama gerekmez.
 - Render distance değerini 8'e indir.
 - Devam ederse `crash-reports` klasöründeki en yeni dosyayı gruba gönder.
 
+### Ana menüde ejderhalı Ice and Fire menüsü açılıyor (ZapeG logosu yok)
+
+- Ice and Fire kendi özel ana menüsünü açıp ZapeG menüsünü (PackMenu) tamamen eziyor. Güncel yamada `config\iceandfire-client.toml` içinde `"Custom main menu" = false` gelir; ejderhalı menüyü hâlâ görüyorsan yama bu dosyayı yazmamış demektir — yamayı yeniden uygula ve oyunu yeniden başlat (ayar sadece açılışta okunur).
+
 ### Immersive Vehicles aracı görünmüyor veya göstergesi boş
 
 - Önce güncel ZapeG yamasını yeniden uygula. `config\entityculling.json` içindeki `entityWhitelist` listesinde `mts:builder_existing`, `mts:builder_rendering` ve `mts:builder_seat` bulunmalı.

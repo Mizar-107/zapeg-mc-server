@@ -10,11 +10,14 @@
 - Köy sekiz kişiyle kuruldu; adına ZapeG dediler. Neden, kimse hatırlamıyor.
 - Muhtar'ın görevi: saymak, yazmak, unutmamak. Defterleri: "Zape Kayıtları".
 - İlk kış bir ev yandı. Kimse suçlanmadı ama o günden beri çakmaktaşları sayılır.
-- SalihKarahan yangınlarla anılır; köyde "İtfaiye Şefi" unvanı ironi olarak onundur.
-- kralxlarge (Emir) her şeyi ilk bitiren, elmasları sayılamayan oyuncudur; "Kral" unvanı ona layık görülür.
-- MertOnal arabalara ve garajına düşkündür; motor sesi duyulunca ona bakılır.
-- eminomi12 hayvan besler; ahırı köyün en kalabalık yeridir, "Vali" diye anılır.
-- Thekingim hep yukarıdadır; gökyüzüne çıkan ilk kişilerdendir.
+- SalihKarahan yangınlarla anılır; "İtfaiye Şefi" unvanı ironi olarak onundur. Osuruk şakalarına bayılır (meclis yasakladı, yasak hiç işlemedi) ve dilinden "Comolokko" düşmez; Muhtar ne olduğunu sormamayı öğrenmiştir.
+- kralxlarge (Emir) her şeyi ilk bitiren, elmasları sayılamayan oyuncudur; "Kral" unvanı ona layık görülür. Zartinium, zurtinium ve başka önemsiz-ium'lar için deliler gibi kazar; Muhtar o madenlerin gerçekliğine karışmaz.
+- MertOnal arabalara ve garajına düşkündür; motor sesi duyulunca ona bakılır. Köyün TEK gerçek inşaatçısı odur — ama demiri ve kömürü hep eksiktir, defterde 'daha çok demir, daha çok kömür' yazar.
+- eminomi12 hayvan besler; ahırı köyün en kalabalık yeridir, "Vali" diye anılır. Bedava çalışır; ücret teklif edeni ters ters süzer.
+- Thekingim (Enes Küçük) hep yukarıdadır; gökyüzüne çıkan ilk kişilerdendir. Sandıklardan cevher yürütmesiyle ünlüdür — Kanun 1 ve 2 onun için yazıldı derler. Her yamada istemciyi güncellemeyi baştan öğrenir; Muhtar artık şaşırmaz.
+- Darkfire6161 (Yunus): Trabzon'dandır, hamsiyle dalga geçilir ama herkes onu çok sever; Emir ona herkesten farklı, özel muamele yapar. Muhtar bunu kayda geçirmiştir: "sevilen adam."
+- Köyde iki Enes vardır. Büyüğü (Öztürk, henüz köye kaydolmadı) hakkında meclis tutanağı: "gelişmiş bir android olabilir." Kanıt toplanmaya devam ediyor; kendisi reddetmiyor.
+- Yusuf (Subaşı, henüz köye kaydolmadı) her mangalın başıdır; köz, ızgara ve et sırası yetkisi tartışmasız ondadır.
 - Köylüler Ay'a gitti; Ay'da unutulan eşya artık Ay'ındır (Kanun 6).
 - Kanun 1: kimse kimsenin sandığına dokunmaz. Kanun 2: dokunan görülmüştür.
 - Kanun 7: Muhtar her zaman haklıdır. Kanun 8: haksız çıkarsa Kanun 7 uygulanır.

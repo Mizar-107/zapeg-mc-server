@@ -3,17 +3,21 @@
 //
 // !!! ANAHTARLAR MINECRAFT KULLANICI ADI OLMALI (oyuna girilen adla birebir) !!!
 // kralxlarge (Emir), Mizar__107 (Recep), eminomi12 (Emin Taha),
-// MertOnal (araba meraklısı Mert), SalihKarahan (Salih) ve
-// Thekingim (Enes) kesin. Yusuf/Ali/diğer Mert şimdilik gerçek adla.
+// MertOnal (araba meraklısı Mert), SalihKarahan (Salih),
+// Thekingim (Enes Küçük) ve Darkfire6161 (Yunus Sancak) kesin.
+// Yusuf (Subaşı) / Ali / diğer Mert / Enes (Öztürk) şimdilik gerçek adla.
 // Deploy: scripts/apply-overrides.sh ; reload: /kubejs reload server_scripts
 
 const WELCOME_LINES = {
-  'kralxlarge': [                       // Emir — grinder, her şeyde birinci olacak
+  'kralxlarge': [                       // Emir — grinder; zartinium/zurtinium avcısı
     'uyumadı, kazdı.',
     'nether daha açılmadan pusuya yattı.',
     'enderdragon şimdiden tedirgin.',
     'ilerleme barı yine ona yetişemiyor.',
     'boss\'lar toplantıya çağrıldı.',
+    'zartinium damarı bulundu, çoktan oraya gitti.',
+    'zurtinium bitmeden uyumayacak.',
+    'önemsiz-ium koleksiyonuna yeni parça arıyor.',
   ],
   'Mizar__107': [                       // Recep — admin / sunucunun sahibi
     'admin geldi, düzgün oturun.',
@@ -21,31 +25,45 @@ const WELCOME_LINES = {
     'sunucunun efendisi döndü.',
     'log\'lar okunuyor, haberiniz olsun.',
   ],
-  'eminomi12': [                       // Emin Taha — builder; köy speedrun'u + hayvan ordusu
+  'eminomi12': [                       // Emin Taha — hayvan ordusu; bedava çalışır
     'usta geldi, şantiye yeniden açıldı.',
     'yarım kalan hardcore speedrun sessizce onu bekliyor.',
     'speedrun yine köy arama simülasyonuna döndü.',
     'köy çanları ve evcil hayvanlar tetikte.',
+    'bedava mesai resmen başladı.',
+    'maaş yok. motivasyon tam.',
   ],
-  'MertOnal': [                        // Mert — arabalar, ev; Salih'in yaktığı eski ev
+  'MertOnal': [                        // Mert — köyün tek gerçek inşaatçısı; demiri/kömürü hep eksik
     'garaj açıldı, araba modu sonunda geldi.',
     'minecart\'ı araba saymayı hâlâ reddediyor.',
     'bu ev için yangın sigortası yaptırdı.',
     'Salih\'e çakmak teslim formu imzalatıldı.',
-    'şantiye açıldı, tapu sıraya girdi.',
+    'köyün tek gerçek inşaatçısı iş başında.',
+    'demir listesi yine kabardı, kömür stoğu kritik.',
   ],
-  'Thekingim': [                        // Enes — jetpack özlemi
+  'Thekingim': [                        // Enes Küçük — sandık cevheri "ödünç" alır; her yamada kurulumu yeniden öğrenir
     'jetpack özlemi bugün bitebilir.',
     'önce jetpack, gerisi detay.',
-    'gökyüzü hazırlıklara başladı.',
+    'sandıklarınızı sayın. o geldi.',
+    'cevherler kendi kendine yer değiştirmez. değiştirirse o gelmiştir.',
+    'istemci güncellemeyi bu yama için de yeniden öğrendi.',
   ],
-  'SalihKarahan': [                     // Salih — meşhur başkalarının evini yakma vakaları
+  'SalihKarahan': [                     // Salih — yangın vakaları + osuruk şakaları + Comolokko
     'evleri kilitleyin, kibritleri saklayın.',
     'itfaiye teyakkuza geçti.',
     'yangın sigortanızı yenileyin.',
     'çakmağı kapıda bıraktığını iddia ediyor.',
+    'Comolokko sesleri yaklaşıyor.',
+    'osuruk şakası envanteri güncellendi, bölgeyi havalandırın.',
   ],
-  'Yusuf': ['vay, gerçekten geldi!', 'takvime işaretleyin: bugün geldi.'],
+  'Darkfire6161': [                     // Yunus Sancak — Trabzon; herkesin sevdiği, Emir'in el üstünde tuttuğu
+    'herkesin sevgilisi giriş yaptı.',
+    'Trabzon\'dan canlı bağlantı kuruldu.',
+    'Emir\'in özel karşılama protokolü devrede.',
+    'hamsi stokları güncellendi.',
+  ],
+  'Yusuf': ['vay, gerçekten geldi!', 'takvime işaretleyin: bugün geldi.', 'mangal reisi geldi, közler hazırlansın.'],
+  'Enes':  ['insan taklidi modülü aktif, hoş geldi.', 'pilini şarj etmiş, gelmiş.'],  // Enes Öztürk — nick bekleniyor; köy onu android sanıyor
   'Ali':   ['yılın sürprizi.', 'kendisi de şaşırdı ama geldi.'],
   'Mert':  ['efsaneye göre bazen giriş yaparmış.', 'ekran görüntüsü alın, kanıt lazım.'],
 }
