@@ -342,9 +342,10 @@ function Get-OfflineInventoryJars {
     $profileJars = @(Get-ChildItem -LiteralPath $ModsDir -Filter '*.jar' -File)
     foreach ($mod in $ownedMods) {
         # Repo-owned releases replace the entire filename family. A maintainer
-        # profile may still contain the previous release after testing it; never
-        # copy that stale jar into an offline payload beside the reviewed build.
-        $profileJars = @($profileJars | Where-Object { $_.Name -notlike "$($mod.Prefix)*.jar" })
+        # profile may still contain the previous release (versioned) or the
+        # maintainer's own unversioned test copy after testing it; never copy
+        # either stale jar into an offline payload beside the reviewed build.
+        $profileJars = @($profileJars | Where-Object { $_.Name -notlike "$($mod.Prefix.TrimEnd('-'))*.jar" })
     }
 
     # ATM9 1.1.1 contributes CC:Tweaked 1.113.1 while ZapeG re-pins 1.116.1.
