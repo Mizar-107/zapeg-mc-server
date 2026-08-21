@@ -693,17 +693,22 @@ ServerEvents.commandRegistry(event => {
     .executes(ctx => zhQueueStoryRequest(ctx.source, 'auto_off', null))
   )
   story.then(storyAuto)
-  story.then(Commands.literal('goto')
+  // Chapter jumps are five plain literals. The integer argument wrapper is
+  // the one never compile-checked on the live kubejs/Rhino build, and a
+  // missing bean there would unregister the ENTIRE /zapeg-lore tree. The
+  // campaign has 5 chapters and the Python side re-validates anyway.
+  const storyGoto = Commands.literal('goto')
     .executes(ctx => {
       zhLoreUsage(ctx.source)
       return 1
     })
-    .then(Commands.argument('chapter', Arguments.INTEGER.create(event))
-      .executes(ctx => zhQueueStoryRequest(
-        ctx.source, 'goto', Arguments.INTEGER.getResult(ctx, 'chapter')
-      ))
+  const storyChapters = ['1', '2', '3', '4', '5']
+  storyChapters.forEach(chapter => {
+    storyGoto.then(Commands.literal(chapter)
+      .executes(ctx => zhQueueStoryRequest(ctx.source, 'goto', chapter))
     )
-  )
+  })
+  story.then(storyGoto)
 
   root.then(story)
   root.then(servant)

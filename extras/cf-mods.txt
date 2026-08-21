@@ -90,6 +90,13 @@ eureka-ships:7979379
 # and are deliberately not represented as CurseForge entries here.
 numen-ai:8551640
 
+# Effortless Building 3.11 for 1.20.1 (2026-04-18) — mirror/radial/array building,
+# previews + undo; the survival build-helper (owner request 2026-08-21).
+# UPDATING gate notes: no duplicate (pack has Building Gadgets 2 / Construction Wand /
+# schematicannon — different niches: those place, this one patterns); survival-fair
+# (no free blocks); client+server, exact pin. Locks/artifacts must be regenerated.
+effortless-building:7944965
+
 # --- server-only ---------------------------------------------------------------
 
 # Discord Integration 3.0.7.1 (2024-05-10) — chat/join/death bridge to Discord.

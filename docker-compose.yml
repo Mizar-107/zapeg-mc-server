@@ -259,8 +259,14 @@ services:
       HERALDOR_WEBHOOK: ${HERALDOR_WEBHOOK:-}
       HERALDOR_EVENTS: ${HERALDOR_EVENTS:-false}
       # True only when the separate output-only relay is intentionally live.
-      # Existing suppressed rows are terminal and are never revived.
+      # A live threshold clip created while this was false is HELD (not
+      # consumed): the next daemon start with this true releases it with a
+      # fresh play window. Dormant-world suppressions stay terminal.
       HERALDOR_VOICE_ENABLED: ${HERALDOR_VOICE_ENABLED:-false}
+      # M1 tenure gate: autonomous whispers/scenes never target a player
+      # with less recorded presence than this many hours (OP commands
+      # bypass with a log). 0 disables the gate.
+      HERALDOR_MIN_TENURE_HOURS: ${HERALDOR_MIN_TENURE_HOURS:-8}
       CHECK_INTERVAL: ${HERALDOR_CHECK_INTERVAL:-300}
       MINION_POLL_INTERVAL: ${HERALDOR_MINION_POLL_INTERVAL:-10}
       CONTROL_POLL_INTERVAL: ${CONTROL_POLL_INTERVAL:-2}
@@ -284,6 +290,18 @@ services:
       - type: bind
         source: ./data/.rcon-cli.env
         target: /run/secrets/mc-rcon.env
+        read_only: true
+        bind:
+          create_host_path: false
+      # L11: campaign text edits are a file edit + `docker compose restart
+      # heraldor` — no image rebuild (the engine loads the file once per
+      # start). The same file stays baked into the image at this exact path,
+      # so removing this mount falls back to the baked copy. Validate before
+      # restarting: docker compose run --rm heraldor
+      #   python heraldor.py admin campaign-validate
+      - type: bind
+        source: ./npc/campaign-heraldor.yml
+        target: /app/campaign-heraldor.yml
         read_only: true
         bind:
           create_host_path: false

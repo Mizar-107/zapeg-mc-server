@@ -27,12 +27,14 @@ from pathlib import Path
 import yaml
 
 from heraldor_director import (
+    CAMPAIGN_GENERATION_META_PREFIX,
     CAMPAIGN_NIGHTS_META_PREFIX,
     CONTROL_EVENT_NAMESPACE,
     CONTROL_PHASES,
     CONTROL_SCENE_PROFILE_PHASES,
     DirectorStore,
     SCENE_MAX_TTL_TICKS,
+    jittered_silence_seconds,
 )
 
 PLAYER_NAME_RE = re.compile(r"^[A-Za-z0-9_]{1,16}$")
@@ -42,6 +44,16 @@ BEAT_TYPES = frozenset(
 )
 MAX_LINE_LENGTH = 200
 MAX_SERVANT_WAVE = 3
+# Attribution ladder (HD-2a): how a `global` broadcast is dressed. The name
+# must be earned by the players, so early tiers broadcast unsigned; the
+# glitch tier signs with an unreadable §k fragment; only manifestation shows
+# the dark-red name. A beat-level `style:` overrides the tier default.
+GLOBAL_STYLES = ("unsigned", "glitch", "named")
+GLOBAL_STYLE_BY_TIER = {
+    "presence": "unsigned",
+    "servants": "glitch",
+    "manifestation": "named",
+}
 
 
 class CampaignError(ValueError):
@@ -58,10 +70,26 @@ class Beat:
     line: str | None = None
     pool: str | None = None
     any_time: bool = False
+    day_only: bool = False
+    style: str | None = None
     wait_real_hours: float | None = None
     wait_game_nights: int | None = None
     wait_manual: bool = False
     wait_victories: int | None = None
+
+
+@dataclass(frozen=True)
+class Pacing:
+    cluster_beats: int = 3
+    cluster_window_seconds: int = 45 * 60
+    silence_seconds: int = 40 * 60 * 60
+    # silence_hours may be authored as [min, max]; equal values = no jitter.
+    silence_seconds_max: int = 40 * 60 * 60
+
+    def required_silence_seconds(self, seed: object) -> int:
+        return jittered_silence_seconds(
+            self.silence_seconds, self.silence_seconds_max, seed=seed
+        )
 
 
 @dataclass(frozen=True)
@@ -70,13 +98,9 @@ class Chapter:
     title: str
     tier: str
     beats: tuple[Beat, ...]
-
-
-@dataclass(frozen=True)
-class Pacing:
-    cluster_beats: int = 3
-    cluster_window_seconds: int = 45 * 60
-    silence_seconds: int = 40 * 60 * 60
+    # Per-chapter pacing override (accelerando, HD-1e): merged over the
+    # campaign-level pacing at load time; None = use the campaign default.
+    pacing: Pacing | None = None
 
 
 @dataclass(frozen=True)
@@ -152,6 +176,11 @@ def _parse_beat(raw: object, where: str) -> list[Beat]:
     _require(kind in BEAT_TYPES, f"{where} has unknown type {kind!r}")
     label = str(raw.get("label", "") or f"{where}:{kind}")[:80]
     any_time = bool(raw.get("any_time", False))
+    day_only = bool(raw.get("day_only", False))
+    _require(
+        not (any_time and day_only),
+        f"{where} cannot be both any_time and day_only",
+    )
 
     if kind == "scene":
         profile = raw.get("profile")
@@ -173,6 +202,7 @@ def _parse_beat(raw: object, where: str) -> list[Beat]:
                 target=_valid_target(raw.get("target"), where),
                 ttl_ticks=ttl,
                 any_time=any_time,
+                day_only=day_only,
             )
         ]
     if kind == "whisper":
@@ -197,6 +227,7 @@ def _parse_beat(raw: object, where: str) -> list[Beat]:
                 line=line if isinstance(line, str) else None,
                 pool=pool if isinstance(pool, str) else None,
                 any_time=any_time,
+                day_only=day_only,
             )
         ]
     if kind in {"global", "discord"}:
@@ -205,7 +236,22 @@ def _parse_beat(raw: object, where: str) -> list[Beat]:
             isinstance(line, str) and 0 < len(line) <= MAX_LINE_LENGTH,
             f"{where} line must be 1..{MAX_LINE_LENGTH} characters",
         )
-        return [Beat(kind, label, line=str(line), any_time=any_time)]
+        style = raw.get("style")
+        if kind == "global" and style is not None:
+            _require(
+                style in GLOBAL_STYLES,
+                f"{where} style must be one of {'/'.join(GLOBAL_STYLES)}",
+            )
+        return [
+            Beat(
+                kind,
+                label,
+                line=str(line),
+                any_time=any_time,
+                day_only=day_only,
+                style=str(style) if kind == "global" and style is not None else None,
+            )
+        ]
     if kind == "servant_wave":
         count = raw.get("count", 1)
         _require(
@@ -215,7 +261,7 @@ def _parse_beat(raw: object, where: str) -> list[Beat]:
         target = _valid_target(raw.get("target", "random"), where)
         return [
             Beat("servant_wave", f"{label} ({n + 1}/{count})" if count > 1 else label,
-                 target=target, any_time=any_time)
+                 target=target, any_time=any_time, day_only=day_only)
             for n in range(count)
         ]
     # wait
@@ -246,6 +292,64 @@ def _parse_beat(raw: object, where: str) -> list[Beat]:
     return [Beat("wait", label, wait_manual=True)]
 
 
+def _parse_silence_hours(value: object, where: str) -> tuple[int, int]:
+    """A scalar or a [min, max] pair of hours → (seconds, seconds_max)."""
+
+    if isinstance(value, list):
+        _require(
+            len(value) == 2
+            and all(
+                isinstance(item, (int, float)) and not isinstance(item, bool)
+                for item in value
+            ),
+            f"{where}.silence_hours must be a number or [min, max] hours",
+        )
+        low, high = float(value[0]), float(value[1])
+        _require(
+            1 <= low <= high <= 240,
+            f"{where}.silence_hours range must satisfy 1 <= min <= max <= 240",
+        )
+        return int(low * 3600), int(high * 3600)
+    _require(
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and 1 <= float(value) <= 240,
+        f"{where}.silence_hours must be 1..240",
+    )
+    seconds = int(float(value) * 3600)
+    return seconds, seconds
+
+
+def _parse_pacing(raw: object, where: str, base: Pacing | None) -> Pacing:
+    """One pacing mapping; a chapter override merges over the campaign base."""
+
+    _require(isinstance(raw, dict), f"{where} must be a mapping")
+    assert isinstance(raw, dict)
+    defaults = base or Pacing()
+    cluster_beats = raw.get("cluster_beats", defaults.cluster_beats)
+    window_minutes = raw.get(
+        "cluster_window_minutes", defaults.cluster_window_seconds // 60
+    )
+    _require(
+        isinstance(cluster_beats, int) and 1 <= cluster_beats <= 10,
+        f"{where}.cluster_beats must be 1..10",
+    )
+    _require(
+        isinstance(window_minutes, int) and 5 <= window_minutes <= 240,
+        f"{where}.cluster_window_minutes must be 5..240",
+    )
+    if "silence_hours" in raw:
+        silence_seconds, silence_seconds_max = _parse_silence_hours(
+            raw["silence_hours"], where
+        )
+    else:
+        silence_seconds = defaults.silence_seconds
+        silence_seconds_max = defaults.silence_seconds_max
+    return Pacing(
+        cluster_beats, window_minutes * 60, silence_seconds, silence_seconds_max
+    )
+
+
 def load_campaign(path: str | Path) -> Campaign:
     """Parse and strictly validate the campaign file; fail closed on doubt."""
 
@@ -259,24 +363,7 @@ def load_campaign(path: str | Path) -> Campaign:
     _require(isinstance(document, dict), "campaign root must be a mapping")
     _require(document.get("version") == 1, "campaign version must be 1")
 
-    raw_pacing = document.get("pacing", {}) or {}
-    _require(isinstance(raw_pacing, dict), "pacing must be a mapping")
-    cluster_beats = raw_pacing.get("cluster_beats", 3)
-    window_minutes = raw_pacing.get("cluster_window_minutes", 45)
-    silence_hours = raw_pacing.get("silence_hours", 40)
-    _require(
-        isinstance(cluster_beats, int) and 1 <= cluster_beats <= 10,
-        "pacing.cluster_beats must be 1..10",
-    )
-    _require(
-        isinstance(window_minutes, int) and 5 <= window_minutes <= 240,
-        "pacing.cluster_window_minutes must be 5..240",
-    )
-    _require(
-        isinstance(silence_hours, (int, float)) and 1 <= float(silence_hours) <= 240,
-        "pacing.silence_hours must be 1..240",
-    )
-    pacing = Pacing(cluster_beats, window_minutes * 60, int(float(silence_hours) * 3600))
+    pacing = _parse_pacing(document.get("pacing", {}) or {}, "pacing", None)
 
     raw_pools = document.get("pools", {}) or {}
     _require(isinstance(raw_pools, dict), "pools must be a mapping")
@@ -328,7 +415,17 @@ def load_campaign(path: str | Path) -> Campaign:
         beats: list[Beat] = []
         for beat_position, raw_beat in enumerate(raw_beats, start=1):
             beats.extend(_parse_beat(raw_beat, f"{where}.beats[{beat_position}]"))
-        chapters.append(Chapter(str(chapter_id), title, str(tier), tuple(beats)))
+        chapter_pacing: Pacing | None = None
+        if "pacing" in raw_chapter:
+            chapter_pacing = _parse_pacing(
+                raw_chapter["pacing"], f"{where}.pacing", pacing
+            )
+        chapters.append(
+            Chapter(
+                str(chapter_id), title, str(tier), tuple(beats),
+                pacing=chapter_pacing,
+            )
+        )
     # `pool: dossier` whispers fall back to generic for unknown players, so a
     # dossier entry is optional per player; the file itself must stay valid.
     return Campaign(1, pacing, pools, dossier, tuple(chapters))
@@ -374,7 +471,7 @@ class CampaignEngine:
       online_players() -> list[str]
       is_night() -> bool
       scene(target, profile_argument, event_id, rehearsal) -> (bool|None, str)
-      whisper(target, line) / global_line(line) -> bool
+      whisper(target, line) / global_line(line, style) -> bool
       discord(line) -> (bool|None, str)   # handles webhook+cooldown itself
       servant(target, live) -> (bool, str)
       notify(operator, text) -> None      # rehearsal previews
@@ -384,11 +481,48 @@ class CampaignEngine:
         self.campaign = campaign
         self.rng = rng or random.Random()
         self._night_flags: dict[str, bool] = {}
+        self._clamp_warned: set[tuple[str, int, int]] = set()
 
     # -- progress ----------------------------------------------------------
 
     def progress(self, store: DirectorStore, world_token: int | str) -> Progress:
-        return _decode_progress(store.campaign_progress_raw(world_token))
+        decoded = _decode_progress(store.campaign_progress_raw(world_token))
+        return self._clamp_progress(world_token, decoded)
+
+    def _clamp_progress(
+        self, world_token: int | str, progress: Progress
+    ) -> Progress:
+        """H1: never trust a persisted pointer against an edited file.
+
+        Every read clamps out-of-range chapter/beat values to the last valid
+        beat (or `finished`) with a deduped WARN instead of letting a
+        shortened campaign turn `story status`/`next` into daemon crashes.
+        """
+
+        total = len(self.campaign.chapters)
+        chapter, beat = progress.chapter, progress.beat
+        if chapter > total + 1:
+            chapter, beat = total + 1, 0
+        elif chapter == total + 1:
+            beat = 0
+        elif 1 <= chapter <= total:
+            beat_count = len(self.campaign.chapters[chapter - 1].beats)
+            if beat >= beat_count:
+                beat = beat_count - 1
+        else:
+            beat = 0 if chapter == 0 else beat
+        if (chapter, beat) == (progress.chapter, progress.beat):
+            return progress
+        key = (str(world_token), progress.chapter, progress.beat)
+        if key not in self._clamp_warned:
+            self._clamp_warned.add(key)
+            print(
+                "[heraldor] WARN: kampanya işaretçisi dosyanın dışında "
+                f"(chapter {progress.chapter}, beat {progress.beat + 1}); "
+                f"chapter {chapter}, beat {beat + 1} olarak kırpıldı — "
+                "dosya kısalmış olabilir, `story status`/`story goto` ile doğrulayın"
+            )
+        return replace(progress, chapter=chapter, beat=beat)
 
     def _save(
         self,
@@ -439,6 +573,10 @@ class CampaignEngine:
             store.promote_campaign_tier(
                 world_token, self.campaign.chapters[chapter - 1].tier, now=now
             )
+        elif chapter > len(self.campaign.chapters):
+            # The finale finished: servants retire permanently (HD-7a) and
+            # the afterlife lane owns the silence until `story reset`.
+            store.mark_campaign_completed(world_token, now=now)
         self._save(store, world_token, moved, now=now)
         return moved
 
@@ -611,11 +749,27 @@ class CampaignEngine:
         victories = store.servant_high_water(world_token)
         return f"{victories}/{beat.wait_victories} victories"
 
+    def _effective_pacing(self, progress: Progress) -> Pacing:
+        """The current chapter's pacing override, else the campaign default."""
+
+        if 1 <= progress.chapter <= len(self.campaign.chapters):
+            override = self.campaign.chapters[progress.chapter - 1].pacing
+            if override is not None:
+                return override
+        return self.campaign.pacing
+
     def _pacing_allows(
-        self, store: DirectorStore, world_token: int | str, *, now: int
+        self,
+        store: DirectorStore,
+        world_token: int | str,
+        progress: Progress,
+        *,
+        now: int,
     ) -> bool:
         """Clustered nights, then silence. Nothing fires two nights in a row
-        after a cluster; a lone stray beat only needs a shorter gap."""
+        after a cluster; a lone stray beat only needs a shorter gap. The
+        required silence is jittered per gap when the file authors a range
+        (HD-1c: a fixed interval is a forecastable interval)."""
 
         raw = store.campaign_cluster_raw(world_token)
         if not raw:
@@ -626,18 +780,20 @@ class CampaignEngine:
             last_at = int(data.get("last_at", 0))
         except (TypeError, ValueError, json.JSONDecodeError):
             return True
-        pacing = self.campaign.pacing
+        pacing = self._effective_pacing(progress)
         if now - last_at <= pacing.cluster_window_seconds:
             return count < pacing.cluster_beats
-        required = (
-            pacing.silence_seconds
-            if count >= 2
-            else min(pacing.silence_seconds, 12 * 3600)
-        )
+        silence = pacing.required_silence_seconds(f"{world_token}:{last_at}")
+        required = silence if count >= 2 else min(silence, 12 * 3600)
         return now - last_at >= required
 
     def _record_cluster_beat(
-        self, store: DirectorStore, world_token: int | str, *, now: int
+        self,
+        store: DirectorStore,
+        world_token: int | str,
+        progress: Progress,
+        *,
+        now: int,
     ) -> None:
         raw = store.campaign_cluster_raw(world_token)
         count, last_at = 0, 0
@@ -648,7 +804,7 @@ class CampaignEngine:
                 last_at = int(data.get("last_at", 0))
             except (TypeError, ValueError, json.JSONDecodeError):
                 count, last_at = 0, 0
-        window = self.campaign.pacing.cluster_window_seconds
+        window = self._effective_pacing(progress).cluster_window_seconds
         count = count + 1 if now - last_at <= window else 1
         store.save_campaign_cluster(
             world_token,
@@ -665,25 +821,65 @@ class CampaignEngine:
         world_token: int | str,
         beat: Beat,
         online: list[str],
-    ) -> tuple[str | None, str]:
+        *,
+        manual: bool,
+        now: int,
+    ) -> tuple[str | None, str, dict[str, object]]:
+        """Resolve the beat's target selector to an online player.
+
+        Returns (target, hold-reason, payload-notes). Autonomous `random`
+        picks honour the tenure gate (M1); a manual OP step bypasses it with
+        a log. An offline `last_victim` falls back to a random eligible
+        player (M3) instead of silently stalling the chain forever.
+        """
+
         selector = beat.target or "random"
         safe_online = [name for name in online if PLAYER_NAME_RE.fullmatch(name)]
-        if selector == "random":
+
+        def pick_random(reason_when_empty: str) -> tuple[str | None, str]:
             if not safe_online:
-                return None, "no player is online"
-            return self.rng.choice(safe_online), ""
+                return None, reason_when_empty
+            if manual:
+                choice = self.rng.choice(safe_online)
+                if not store.subject_is_tenured(world_token, choice, now=now):
+                    print(
+                        "[heraldor] tenure gate bypassed by operator: "
+                        f"{choice} has little recorded presence"
+                    )
+                return choice, ""
+            eligible = store.tenured_subjects(world_token, safe_online, now=now)
+            if not eligible:
+                return None, "no tenured player is online (tenure gate)"
+            return self.rng.choice(eligible), ""
+
+        if selector == "random":
+            target, reason = pick_random("no player is online")
+            return target, reason, {}
         if selector == "last_victim":
             victim = store.last_directed_subject(world_token)
             if victim is None:
-                return None, "no previous scene victim exists yet"
+                return None, "no previous scene victim exists yet", {}
             for name in safe_online:
                 if name.casefold() == victim:
-                    return name, ""
-            return None, "last victim is offline"
+                    return name, "", {}
+            # M3: the victim is gone; the story falls back instead of
+            # stalling the chain silently until an operator notices.
+            fallback, reason = pick_random("no player is online")
+            if fallback is None:
+                return (
+                    None,
+                    f"last victim {victim} is offline and {reason}",
+                    {},
+                )
+            print(
+                f"[heraldor] kampanya: last_victim {victim} çevrimdışı; "
+                f"rastgele hedefe düşüldü: {fallback}"
+            )
+            return fallback, "", {"target_fallback": "last_victim_offline"}
         for name in safe_online:
             if name.casefold() == selector.casefold():
-                return name, ""
-        return None, f"target {selector} is offline"
+                return name, "", {}
+        return None, f"target {selector} is offline", {}
 
     def _pick_line(self, beat: Beat, target: str, event_id: str) -> str:
         if beat.line is not None:
@@ -701,14 +897,27 @@ class CampaignEngine:
 
     @staticmethod
     def _beat_event_id(
-        world_token: int | str, progress: Progress, *, rehearsal: bool
+        world_token: int | str,
+        progress: Progress,
+        *,
+        rehearsal: bool,
+        generation: int = 0,
     ) -> str:
-        seed = (
-            f"campaign:{world_token}:{progress.chapter}:{progress.beat}:"
-            f"{progress.attempt}"
-        )
         if rehearsal:
             return str(uuid.uuid4())
+        # L4: the reset generation salts season-2 ids so a replayed beat
+        # position never collides with season 1's delivered rows. Generation
+        # 0 keeps the historical seed for worlds that never reset.
+        if generation:
+            seed = (
+                f"campaign:{world_token}:gen{generation}:{progress.chapter}:"
+                f"{progress.beat}:{progress.attempt}"
+            )
+        else:
+            seed = (
+                f"campaign:{world_token}:{progress.chapter}:{progress.beat}:"
+                f"{progress.attempt}"
+            )
         # A UUID both satisfies the runtime's strict UuidArgument and gives
         # the runtime-side ledger the same at-most-once key on retries.
         return str(uuid.uuid5(CONTROL_EVENT_NAMESPACE, seed))
@@ -750,15 +959,33 @@ class CampaignEngine:
                 f"still waiting: {self._wait_hint(store, world_token, progress, beat, now=now)}",
             )
 
+        if beat.type == "servant_wave" and not rehearsal and store.campaign_completed(
+            world_token
+        ):
+            # HD-7a: servants retire permanently once the finale has played.
+            # Rehearsals stay legal; `story reset` starts a sanctioned season 2.
+            return BeatOutcome(
+                False, False,
+                "servants are retired after the finale; `story reset` starts "
+                "a new season",
+            )
+
         target: str | None = None
+        target_notes: dict[str, object] = {}
         if beat.type in {"scene", "whisper", "servant_wave"}:
-            target, reason = self._resolve_target(
-                store, world_token, beat, executor.online_players()
+            target, reason, target_notes = self._resolve_target(
+                store, world_token, beat, executor.online_players(),
+                manual=manual, now=now,
             )
             if target is None:
                 return BeatOutcome(False, False, f"beat is not ready: {reason}")
 
-        event_id = self._beat_event_id(world_token, progress, rehearsal=rehearsal)
+        generation = store.campaign_counter(
+            CAMPAIGN_GENERATION_META_PREFIX, world_token
+        )
+        event_id = self._beat_event_id(
+            world_token, progress, rehearsal=rehearsal, generation=generation
+        )
         payload: dict[str, object] = {
             "world_token": str(world_token),
             "planner": "campaign",
@@ -768,12 +995,17 @@ class CampaignEngine:
             "beat_type": beat.type,
             "operator": operator,
         }
+        payload.update(target_notes)
         if target is not None:
             payload["target"] = target
         line: str | None = None
+        style: str | None = None
         if beat.type in {"whisper", "global", "discord"}:
             line = self._pick_line(beat, target or "", event_id)
             payload["line"] = line
+        if beat.type == "global":
+            style = beat.style or GLOBAL_STYLE_BY_TIER.get(chapter.tier, "named")
+            payload["style"] = style
         if beat.type == "scene":
             payload["profile"] = beat.profile
             payload["runtime_event_id"] = event_id
@@ -815,7 +1047,7 @@ class CampaignEngine:
                 delivered = bool(executor.whisper(target, line))
             elif beat.type == "global":
                 assert line is not None
-                delivered = bool(executor.global_line(line))
+                delivered = bool(executor.global_line(line, style or "named"))
             elif beat.type == "discord":
                 assert line is not None
                 delivered, detail = executor.discord(line)
@@ -836,7 +1068,7 @@ class CampaignEngine:
         if delivered or delivered is None:
             moved = self._advance(store, world_token, progress, now=now)
             if not manual:
-                self._record_cluster_beat(store, world_token, now=now)
+                self._record_cluster_beat(store, world_token, progress, now=now)
             state = "delivered" if delivered else "uncertain; not replayed"
             return BeatOutcome(
                 True, True,
@@ -928,9 +1160,14 @@ class CampaignEngine:
                 return f"wait satisfied: {beat.label}"
             return None
 
-        if not beat.any_time and not night:
+        if beat.day_only:
+            # HD-5d: a deliberate daylight beat waits for actual daylight —
+            # the one-per-season "the rules you inferred were yours" moment.
+            if night:
+                return None
+        elif not beat.any_time and not night:
             return None
-        if not self._pacing_allows(store, world_token, now=now):
+        if not self._pacing_allows(store, world_token, progress, now=now):
             return None
         outcome = self.execute_current_beat(
             store,

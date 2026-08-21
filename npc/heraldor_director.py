@@ -29,6 +29,78 @@ SERVANT_MAX_INGEST_JUMP = 100
 DEATH_SOURCE_TEMPLATE = "minecraft:scoreboard:zh_death:{subject}:v1:world:{world}"
 DEATH_MAX_INGEST_JUMP = 5
 AFTERMATH_META_PREFIX = "aftermath:"
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, "") or default)
+    except ValueError:
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, "") or default)
+    except ValueError:
+        return default
+
+
+# Tenure gate (M1): nothing autonomous — ambient rolls, the idle scheduler or
+# campaign `random` targets — may target a player with less recorded presence
+# than this. Manual OP actions bypass the gate but are logged.
+MIN_TENURE_SECONDS = max(
+    0, int(_env_float("HERALDOR_MIN_TENURE_HOURS", 8.0) * 3600)
+)
+FIRST_SEEN_META_PREFIX = "first_seen:"
+LAST_SEEN_META_PREFIX = "last_seen:"
+# Reserved-row recovery (M6): a `reserved` event this old without an attempt
+# is a crash artifact; startup and periodic sweeps make it terminal so the
+# scheduler's in-flight check can never wedge on it.
+RESERVED_RECOVERY_SECONDS = max(
+    60, int(_env_float("HERALDOR_RESERVED_RECOVERY_MINUTES", 60.0) * 60)
+)
+# Post-reset generation salt (L4): bumped by every `story reset` and mixed
+# into campaign beat event ids so season 2 never collides with season 1.
+CAMPAIGN_GENERATION_META_PREFIX = "campaign_gen:"
+# One-way completion flag: set when the campaign finale finishes; only
+# `story reset` clears it. Live servant waves refuse while it is set.
+CAMPAIGN_DONE_META_PREFIX = "campaign_done:"
+# Afterlife (HD-7): once the campaign has finished, the scheduler retunes to
+# a cold steady state and two reactive triggers own the long tail.
+POST_CAMPAIGN_SILENCE_MIN_SECONDS = 7 * 24 * 60 * 60
+POST_CAMPAIGN_SILENCE_MAX_SECONDS = 12 * 24 * 60 * 60
+POST_CAMPAIGN_SCENE_BUDGET = 2
+POST_CAMPAIGN_OPEN_PROBABILITY = 0.02
+POST_CAMPAIGN_DENIABLE_PROFILES = (
+    "peripheral_01",
+    "footsteps_01",
+    "whisper_steps_01",
+    "light_fault_01",
+)
+POST_CAMPAIGN_DENIABLE_WEIGHT = 4
+ABSENCE_WHISPER_MIN_SECONDS = 7 * 24 * 60 * 60
+NEW_BASE_META_PREFIX = "new_base:"
+NEW_BASE_PENDING_META_PREFIX = "new_base_pending:"
+NEW_BASE_MIN_VISITS = max(1, _env_int("HERALDOR_NEW_BASE_MIN_VISITS", 8))
+NEW_BASE_RECENT_SECONDS = 2 * 24 * 60 * 60
+NEW_BASE_MIN_DISTANCE_BLOCKS = 300
+NEW_BASE_COOLDOWN_SECONDS = 14 * 24 * 60 * 60
+NEW_BASE_FIRE_WINDOW_SECONDS = 2 * 24 * 60 * 60
+NEW_BASE_CLUSTER_CELL_RADIUS = 3  # chebyshev cells (96 blocks) around the anchor
+NEW_BASE_PROFILE = "footsteps_01"
+
+
+def jittered_silence_seconds(minimum: int, maximum: int, *, seed: object) -> int:
+    """Deterministic per-gap silence in [minimum, maximum].
+
+    Seeded from a stable string (world token + the gap's start time), so the
+    required silence never changes while a gap is open, no state is added,
+    and no two gaps need to match (HD-1c: fixed intervals are forecastable).
+    """
+
+    if maximum <= minimum:
+        return minimum
+    return minimum + int(random.Random(str(seed)).random() * (maximum - minimum))
 AFTERMATH_PROFILE = "footsteps_01"
 # The far colossus: a render-only silhouette escalated one stage per live
 # operator trigger, persisted per target per world. Rehearsals never advance
@@ -88,6 +160,9 @@ MANUAL_DISCORD_META_PREFIX = "discord_manual:"
 MANUAL_DISCORD_MIN_GAP_SECONDS = 10 * 60
 AUDIO_SINK = "discord_voice"
 AUDIO_EVENT_TYPE = "heraldor.audio.requested"
+# M4: a live threshold clip created while the voice sink is off is HELD, not
+# terminally suppressed; enabling voice releases it with a fresh expiry.
+AUDIO_HELD_STATUS = "held_no_sink"
 AUDIO_LIVE_TTL_SECONDS = 5 * 60
 AUDIO_REHEARSAL_TTL_SECONDS = 2 * 60
 AUDIO_LIVE_GAP_SECONDS = 6 * 60 * 60
@@ -182,6 +257,9 @@ class DirectorPolicy:
     # Grave echoes never answer a fresh death and stay rare even then.
     grave_echo_min_age_seconds: int = 20 * 60
     grave_echo_probability: float = 0.5
+    # Tenure gate (M1): autonomous targeting requires this much recorded
+    # presence. 0 disables the gate (tests); env HERALDOR_MIN_TENURE_HOURS.
+    min_tenure_seconds: int = MIN_TENURE_SECONDS
 
 
 @dataclass(frozen=True)
@@ -216,7 +294,8 @@ class DeathIngestResult:
     high_water: int
     death_event_ids: tuple[str, ...]
     regression: bool = False
-    quarantined: bool = False
+    quarantined: bool = False  # kept for API shape; jumps now catch up (H2)
+    caught_up: bool = False
 
 
 @dataclass(frozen=True)
@@ -567,6 +646,10 @@ class DirectorStore:
         self._migrate()
         if recover_interrupted_attempts:
             self._recover_interrupted_attempts()
+        if audio_sink_enabled:
+            # M4: the once-ever clip requests held while the voice sink was
+            # off become live again the moment the Director runs with it on.
+            self.release_held_audio()
 
     def close(self) -> None:
         self.connection.close()
@@ -700,6 +783,72 @@ class DirectorStore:
                 """,
                 (now,),
             )
+        # M6: a crash between reserve and mark_attempting leaves a `reserved`
+        # row the scheduler's in-flight check treats as a live scene forever.
+        self.recover_stale_reserved(now=now)
+
+    def recover_stale_reserved(
+        self, *, now: int | None = None, max_age_seconds: int | None = None
+    ) -> int:
+        """Close `reserved` event rows that aged out without an attempt (M6).
+
+        Runs at startup and periodically from the daemon loop. The terminal
+        row keeps its event id, so at-most-once holds: a campaign retry salts
+        a fresh id and the scheduler always reserves fresh UUIDs.
+        """
+
+        timestamp = int(self.clock() if now is None else now)
+        age = RESERVED_RECOVERY_SECONDS if max_age_seconds is None else max_age_seconds
+        with self._transaction() as db:
+            changed = db.execute(
+                """
+                UPDATE events
+                   SET status = 'expired', finished_at = ?,
+                       error = COALESCE(error,
+                           'reserved row aged out without an attempt; recovered')
+                 WHERE status = 'reserved' AND created_at <= ?
+                """,
+                (timestamp, timestamp - age),
+            ).rowcount
+        if changed:
+            self.backup_snapshot()
+        return int(changed)
+
+    def release_held_audio(self, *, now: int | None = None) -> int:
+        """Promote held once-ever clip requests to pending with a fresh
+        live window (M4). Only the Director opening with the voice sink
+        enabled calls this; a held row is never consumed while voice is off.
+        """
+
+        timestamp = int(self.clock() if now is None else now)
+        released = 0
+        with self._transaction() as db:
+            rows = db.execute(
+                "SELECT event_id, payload_json FROM outbox WHERE sink = ? AND status = ?",
+                (AUDIO_SINK, AUDIO_HELD_STATUS),
+            ).fetchall()
+            for row in rows:
+                try:
+                    payload = json.loads(str(row["payload_json"]))
+                except (ValueError, json.JSONDecodeError):
+                    continue
+                payload["expires_at"] = timestamp + AUDIO_LIVE_TTL_SECONDS
+                released += db.execute(
+                    """
+                    UPDATE outbox
+                       SET status = 'pending', payload_json = ?, error = NULL
+                     WHERE event_id = ? AND sink = ? AND status = ?
+                    """,
+                    (
+                        compact_json(payload),
+                        row["event_id"],
+                        AUDIO_SINK,
+                        AUDIO_HELD_STATUS,
+                    ),
+                ).rowcount
+        if released:
+            self.backup_snapshot()
+        return released
 
     def backup_snapshot(self) -> None:
         """Write a transactionally consistent copy for the normal server backup."""
@@ -912,15 +1061,29 @@ class DirectorStore:
                 CAMPAIGN_PROGRESS_META_PREFIX,
                 CAMPAIGN_NIGHTS_META_PREFIX,
                 CAMPAIGN_CLUSTER_META_PREFIX,
+                CAMPAIGN_DONE_META_PREFIX,
             ):
                 db.execute(
                     "DELETE FROM director_meta WHERE key = ?", (prefix + token,)
                 )
-            for prefix in (COLOSSUS_META_PREFIX, AFTERMATH_META_PREFIX):
+            for prefix in (
+                COLOSSUS_META_PREFIX,
+                AFTERMATH_META_PREFIX,
+                NEW_BASE_PENDING_META_PREFIX,
+            ):
                 db.execute(
                     "DELETE FROM director_meta WHERE key LIKE ?",
                     (prefix + token + ":%",),
                 )
+            # L4: bump the reset generation so season-2 beat event ids never
+            # collide with season 1 (no more first-`story next` double-tap).
+            generation_key = CAMPAIGN_GENERATION_META_PREFIX + token
+            raw_generation = self._meta_get(db, generation_key)
+            try:
+                generation = int(raw_generation) if raw_generation else 0
+            except ValueError:
+                generation = 0
+            self._meta_set(db, generation_key, str(generation + 1), timestamp)
             db.execute(
                 """
                 INSERT OR IGNORE INTO events
@@ -1051,6 +1214,15 @@ class DirectorStore:
                 raise ValueError("ambient payload has a different world token")
             event_payload["world_token"] = token
 
+        if (
+            not rehearsal
+            and subject is not None
+            and token is not None
+            and not self.subject_is_tenured(token, subject, now=timestamp)
+        ):
+            # M1: a live ambient event never targets a player with too little
+            # recorded presence (day-one strangers stay unhaunted).
+            return None
         with self._transaction() as db:
             if not rehearsal:
                 assert token is not None
@@ -1284,7 +1456,9 @@ class DirectorStore:
                         elif self.audio_sink_enabled:
                             story_output_status = "pending"
                         else:
-                            story_output_status = "suppressed_no_sink"
+                            # M4: hold — never consume — the once-ever moment
+                            # while the voice sink is disabled.
+                            story_output_status = AUDIO_HELD_STATUS
                         db.execute(
                             """
                             INSERT INTO outbox
@@ -1421,6 +1595,351 @@ class DirectorStore:
         return self._stalk_hint(
             self.connection, token, subject, rng or random.Random()
         )
+
+    # -- presence, tenure and the afterlife ---------------------------------
+
+    def observe_presence(
+        self,
+        world_token: int | str,
+        subject: str,
+        *,
+        now: int | None = None,
+        absence_seconds: int = ABSENCE_WHISPER_MIN_SECONDS,
+    ) -> int | None:
+        """Record one presence observation; return the prior last-seen time
+        when this observation ends an absence of at least absence_seconds.
+
+        Persists first-seen once (the tenure gate's anchor, M1) and keeps
+        last-seen fresh (the return-from-absence trigger's anchor, HD-7c).
+        Pacing memory only — deliberately not snapshot-backed per write.
+        """
+
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid presence subject: {subject!r}")
+        timestamp = int(self.clock() if now is None else now)
+        folded = subject.casefold()
+        first_key = FIRST_SEEN_META_PREFIX + token + ":" + folded
+        last_key = LAST_SEEN_META_PREFIX + token + ":" + folded
+        with self._transaction() as db:
+            previous_raw = self._meta_get(db, last_key)
+            if self._meta_get(db, first_key) is None:
+                self._meta_set(db, first_key, str(timestamp), timestamp)
+            self._meta_set(db, last_key, str(timestamp), timestamp)
+        try:
+            previous = int(previous_raw) if previous_raw is not None else None
+        except ValueError:
+            previous = None
+        if previous is not None and timestamp - previous >= absence_seconds:
+            return previous
+        return None
+
+    def first_seen_at(self, world_token: int | str, subject: str) -> int | None:
+        """The oldest recorded presence: the persisted first-seen marker or,
+        for pre-existing worlds, the oldest surviving stalk cell (M1)."""
+
+        token = normalize_world_token(world_token)
+        folded = subject.casefold()
+        candidates: list[int] = []
+        value = self._meta_get(
+            self.connection, FIRST_SEEN_META_PREFIX + token + ":" + folded
+        )
+        if value is not None:
+            try:
+                candidates.append(int(value))
+            except ValueError:
+                pass
+        row = self.connection.execute(
+            "SELECT MIN(last_seen) AS oldest FROM stalk_cells"
+            " WHERE world_token = ? AND subject = ?",
+            (token, folded),
+        ).fetchone()
+        if row is not None and row["oldest"] is not None:
+            candidates.append(int(row["oldest"]))
+        return min(candidates) if candidates else None
+
+    def subject_tenure_seconds(
+        self, world_token: int | str, subject: str, *, now: int | None = None
+    ) -> int:
+        timestamp = int(self.clock() if now is None else now)
+        first_seen = self.first_seen_at(world_token, subject)
+        if first_seen is None:
+            return 0
+        return max(0, timestamp - first_seen)
+
+    def subject_is_tenured(
+        self, world_token: int | str, subject: str, *, now: int | None = None
+    ) -> bool:
+        """True when the subject has enough recorded presence for autonomous
+        targeting (M1). Fails closed: an unknown player has zero tenure."""
+
+        minimum = self.policy.min_tenure_seconds
+        if minimum <= 0:
+            return True
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            return False
+        return self.subject_tenure_seconds(world_token, subject, now=now) >= minimum
+
+    def tenured_subjects(
+        self,
+        world_token: int | str,
+        names: list[str],
+        *,
+        now: int | None = None,
+    ) -> list[str]:
+        return [
+            name
+            for name in names
+            if PLAYER_NAME_RE.fullmatch(name)
+            and self.subject_is_tenured(world_token, name, now=now)
+        ]
+
+    def mark_campaign_completed(
+        self, world_token: int | str, *, now: int | None = None
+    ) -> None:
+        """Persist the one-way finale flag; only `story reset` clears it."""
+
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        with self._transaction() as db:
+            self._meta_set(
+                db, CAMPAIGN_DONE_META_PREFIX + token, str(timestamp), timestamp
+            )
+        self.backup_snapshot()
+
+    def campaign_completed(self, world_token: int | str) -> bool:
+        token = normalize_world_token(world_token)
+        return (
+            self._meta_get(self.connection, CAMPAIGN_DONE_META_PREFIX + token)
+            is not None
+        )
+
+    def reserve_absence_whisper(
+        self,
+        world_token: int | str,
+        subject: str,
+        previous_last_seen: int,
+        *,
+        now: int | None = None,
+    ) -> Reservation | None:
+        """Reserve the one return-from-absence whisper for this absence.
+
+        The event id embeds the absence's end (the prior last-seen value), so
+        one absence can never produce two whispers, even across restarts.
+        """
+
+        token = normalize_world_token(world_token)
+        if not PLAYER_NAME_RE.fullmatch(subject):
+            raise ValueError(f"invalid absence subject: {subject!r}")
+        timestamp = int(self.clock() if now is None else now)
+        folded = subject.casefold()
+        event_id = f"afterlife:absence:v1:world:{token}:{folded}:{int(previous_last_seen)}"
+        payload = {
+            "world_token": token,
+            "planner": "afterlife",
+            "reason": "return_from_absence",
+            "previous_last_seen": int(previous_last_seen),
+        }
+        with self._transaction() as db:
+            try:
+                db.execute(
+                    """
+                    INSERT INTO events
+                        (event_id, kind, category, subject, rehearsal,
+                         payload_json, status, created_at)
+                    VALUES (?, 'absence_whisper', 'ambient', ?, 0, ?, 'reserved', ?)
+                    """,
+                    (event_id, folded, compact_json(payload), timestamp),
+                )
+            except sqlite3.IntegrityError:
+                return None
+        self.backup_snapshot()
+        return Reservation(event_id, "absence_whisper", subject, False)
+
+    def note_new_base_candidates(
+        self,
+        world_token: int | str,
+        subjects: list[str],
+        *,
+        now: int | None = None,
+    ) -> list[str]:
+        """Detect moved bases from the stalking memory (HD-7c).
+
+        A cluster of at least NEW_BASE_MIN_VISITS recent visits, all of whose
+        historical cells are at least NEW_BASE_MIN_DISTANCE_BLOCKS away, marks
+        a new base: one pending deniable scene (fired within two days) plus a
+        fourteen-day per-player cooldown.
+        """
+
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        flagged: list[str] = []
+        with self._transaction() as db:
+            for subject in subjects:
+                if not PLAYER_NAME_RE.fullmatch(subject):
+                    continue
+                folded = subject.casefold()
+                cooldown_raw = self._meta_get(
+                    db, NEW_BASE_META_PREFIX + token + ":" + folded
+                )
+                if cooldown_raw is not None:
+                    try:
+                        if timestamp - int(cooldown_raw) < NEW_BASE_COOLDOWN_SECONDS:
+                            continue
+                    except ValueError:
+                        pass
+                anchor = self._detect_new_base(db, token, folded, timestamp)
+                if anchor is None:
+                    continue
+                self._meta_set(
+                    db, NEW_BASE_META_PREFIX + token + ":" + folded,
+                    str(timestamp), timestamp,
+                )
+                self._meta_set(
+                    db,
+                    NEW_BASE_PENDING_META_PREFIX + token + ":" + folded,
+                    compact_json(
+                        {
+                            "cell_x": anchor[0],
+                            "cell_z": anchor[1],
+                            "deadline": timestamp + NEW_BASE_FIRE_WINDOW_SECONDS,
+                        }
+                    ),
+                    timestamp,
+                )
+                flagged.append(subject)
+        if flagged:
+            self.backup_snapshot()
+        return flagged
+
+    @staticmethod
+    def _detect_new_base(
+        db: sqlite3.Connection, world_token: str, folded: str, now: int
+    ) -> tuple[int, int] | None:
+        rows = db.execute(
+            """
+            SELECT cell_x, cell_z, visits, last_seen FROM stalk_cells
+             WHERE world_token = ? AND subject = ?
+             ORDER BY cell_x, cell_z
+            """,
+            (world_token, folded),
+        ).fetchall()
+        threshold = now - NEW_BASE_RECENT_SECONDS
+        recent = [row for row in rows if int(row["last_seen"]) > threshold]
+        old = [row for row in rows if int(row["last_seen"]) <= threshold]
+        if not recent or not old:
+            return None
+        anchor = max(recent, key=lambda row: int(row["visits"]))
+        anchor_x, anchor_z = int(anchor["cell_x"]), int(anchor["cell_z"])
+        cluster_visits = sum(
+            int(row["visits"])
+            for row in recent
+            if max(
+                abs(int(row["cell_x"]) - anchor_x),
+                abs(int(row["cell_z"]) - anchor_z),
+            )
+            <= NEW_BASE_CLUSTER_CELL_RADIUS
+        )
+        if cluster_visits < NEW_BASE_MIN_VISITS:
+            return None
+        for row in old:
+            distance_blocks = math.hypot(
+                (int(row["cell_x"]) - anchor_x) * STALK_CELL_SIZE,
+                (int(row["cell_z"]) - anchor_z) * STALK_CELL_SIZE,
+            )
+            if distance_blocks < NEW_BASE_MIN_DISTANCE_BLOCKS:
+                return None
+        return (anchor_x, anchor_z)
+
+    def plan_new_base_scene(
+        self,
+        world_token: int | str,
+        players: list[str],
+        *,
+        now: int | None = None,
+    ) -> ScenePlan | None:
+        """Fire a pending new-base marker as one reserved deniable scene.
+
+        The marker survives until its deadline; an in-flight directed scene
+        just postpones it to the next tick. A passed deadline drops it.
+        """
+
+        token = normalize_world_token(world_token)
+        timestamp = int(self.clock() if now is None else now)
+        names: dict[str, str] = {}
+        for name in players:
+            if PLAYER_NAME_RE.fullmatch(name):
+                names.setdefault(name.casefold(), name)
+        if not names:
+            return None
+        plan: ScenePlan | None = None
+        with self._transaction() as db:
+            if db.execute(
+                """
+                SELECT 1 FROM events
+                 WHERE rehearsal = 0 AND category = 'directed'
+                   AND status IN ('reserved', 'attempting')
+                 LIMIT 1
+                """
+            ).fetchone():
+                return None
+            state = self._campaign_state(db, token)
+            for folded, display in names.items():
+                key = NEW_BASE_PENDING_META_PREFIX + token + ":" + folded
+                raw = self._meta_get(db, key)
+                if raw is None:
+                    continue
+                try:
+                    marker = json.loads(raw)
+                    cell_x = int(marker["cell_x"])
+                    cell_z = int(marker["cell_z"])
+                    deadline = int(marker["deadline"])
+                except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+                    db.execute("DELETE FROM director_meta WHERE key = ?", (key,))
+                    continue
+                if timestamp > deadline:
+                    db.execute("DELETE FROM director_meta WHERE key = ?", (key,))
+                    continue
+                if not state.allows_profile(NEW_BASE_PROFILE):
+                    continue
+                db.execute("DELETE FROM director_meta WHERE key = ?", (key,))
+                hint = (
+                    cell_x * STALK_CELL_SIZE + STALK_CELL_SIZE // 2,
+                    cell_z * STALK_CELL_SIZE + STALK_CELL_SIZE // 2,
+                )
+                ttl_ticks = scene_ttl_ticks(NEW_BASE_PROFILE, state.phase)
+                event_id = str(uuid.uuid4())
+                payload = {
+                    "profile": NEW_BASE_PROFILE,
+                    "target": folded,
+                    "planner": "afterlife",
+                    "reason": "new_base",
+                    "world_token": token,
+                    "runtime_event_id": event_id,
+                    "hint_x": hint[0],
+                    "hint_z": hint[1],
+                }
+                db.execute(
+                    """
+                    INSERT INTO events
+                        (event_id, kind, category, subject, rehearsal,
+                         payload_json, status, created_at)
+                    VALUES (?, 'director_scene', 'directed', ?, 0, ?, 'reserved', ?)
+                    """,
+                    (event_id, folded, compact_json(payload), timestamp),
+                )
+                plan = ScenePlan(
+                    event_id=event_id,
+                    profile=NEW_BASE_PROFILE,
+                    subject=display,
+                    ttl_ticks=ttl_ticks,
+                    hint=hint,
+                    reason="new_base",
+                )
+                break
+        if plan is not None:
+            self.backup_snapshot()
+        return plan
 
     def record_servant_aftermath(
         self,
@@ -1663,9 +2182,7 @@ class DirectorStore:
                 "SELECT high_water FROM source_offsets WHERE source = ?", (source,)
             ).fetchone()
             previous = int(row[0]) if row else 0
-            if sequence - previous > DEATH_MAX_INGEST_JUMP:
-                result = DeathIngestResult(previous, previous, (), quarantined=True)
-            elif sequence <= previous:
+            if sequence <= previous:
                 if row is None:
                     db.execute(
                         "INSERT INTO source_offsets (source, high_water, updated_at) VALUES (?, 0, ?)",
@@ -1676,7 +2193,16 @@ class DirectorStore:
                     previous, previous, (), regression=sequence < previous
                 )
             else:
-                for ordinal in range(previous + 1, sequence + 1):
+                # Clamped catch-up (H2): a delta above the per-poll maximum —
+                # container downtime or a death loop — advances the high water
+                # to the observed score while emitting only the newest
+                # DEATH_MAX_INGEST_JUMP site-less ordinals. A jump must never
+                # quarantine the ledger permanently.
+                caught_up = sequence - previous > DEATH_MAX_INGEST_JUMP
+                start = (
+                    sequence - DEATH_MAX_INGEST_JUMP + 1 if caught_up else previous + 1
+                )
+                for ordinal in range(start, sequence + 1):
                     death_id = (
                         f"mc:heraldor-death:v1:world:{token}:{folded}:{ordinal}"
                     )
@@ -1706,7 +2232,9 @@ class DirectorStore:
                     (source, sequence, timestamp),
                 )
                 changed = True
-                result = DeathIngestResult(previous, sequence, tuple(deaths))
+                result = DeathIngestResult(
+                    previous, sequence, tuple(deaths), caught_up=caught_up
+                )
 
         if changed:
             self.backup_snapshot()
@@ -1719,6 +2247,7 @@ class DirectorStore:
         *,
         now: int | None = None,
         rng: random.Random | None = None,
+        post_campaign: bool = False,
     ) -> ScenePlan | None:
         """Plan and atomically reserve one scheduler-driven live scene.
 
@@ -1728,6 +2257,11 @@ class DirectorStore:
         silence must pass before a new one opens. Story quiet windows and
         per-subject gaps still apply, and a scene already in flight anywhere
         suppresses planning entirely.
+
+        With post_campaign=True (the afterlife, HD-7b) the same planner runs
+        retuned cold: 7–12 day jittered silence, a 2-scene cluster budget, a
+        rarer opening roll and a profile draw weighted toward the deniable
+        end (peripheral / footsteps / whisper_steps / light_fault).
         """
 
         token = normalize_world_token(world_token)
@@ -1767,9 +2301,22 @@ class DirectorStore:
                     """
                 )
             ]
+            if post_campaign and scene_times:
+                required_silence = jittered_silence_seconds(
+                    POST_CAMPAIGN_SILENCE_MIN_SECONDS,
+                    POST_CAMPAIGN_SILENCE_MAX_SECONDS,
+                    seed=f"{token}:{scene_times[-1]}",
+                )
+            else:
+                required_silence = policy.cluster_silence_seconds
+            scene_budget = (
+                POST_CAMPAIGN_SCENE_BUDGET
+                if post_campaign
+                else policy.cluster_scene_budget
+            )
             opening = (
                 not scene_times
-                or timestamp - scene_times[-1] >= policy.cluster_silence_seconds
+                or timestamp - scene_times[-1] >= required_silence
             )
             if not opening:
                 if timestamp - scene_times[-1] > policy.cluster_open_seconds:
@@ -1784,7 +2331,7 @@ class DirectorStore:
                         cluster_count += 1
                     else:
                         break
-                if cluster_count >= policy.cluster_scene_budget:
+                if cluster_count >= scene_budget:
                     return None
 
             if db.execute(
@@ -1797,10 +2344,13 @@ class DirectorStore:
             ).fetchone():
                 return None
 
+            open_probability = (
+                POST_CAMPAIGN_OPEN_PROBABILITY
+                if post_campaign
+                else policy.scheduler_open_probability
+            )
             chance = (
-                policy.scheduler_open_probability
-                if opening
-                else policy.scheduler_beat_probability
+                open_probability if opening else policy.scheduler_beat_probability
             )
             if roll.random() >= chance:
                 return None
@@ -1812,6 +2362,9 @@ class DirectorStore:
             )
             eligible = []
             for folded in names:
+                # M1: autonomous targeting requires recorded tenure.
+                if not self.subject_is_tenured(token, folded, now=timestamp):
+                    continue
                 if db.execute(
                     """
                     SELECT 1 FROM events
@@ -1884,16 +2437,36 @@ class DirectorStore:
                     break
 
             if profile is None:
-                allowed = [
-                    name
-                    for name, spec in SCENE_PROFILES.items()
-                    if spec[5]
-                    and state.allows_profile(name)
-                    and name not in OPERATOR_ONLY_PROFILES
-                ]
-                if not allowed:
-                    return None
-                profile = roll.choice(allowed)
+                if post_campaign:
+                    # HD-7b: weight the afterlife draw toward the deniable
+                    # end; overlays becoming routine is the failure mode.
+                    allowed = []
+                    weights = []
+                    for name, spec in SCENE_PROFILES.items():
+                        if name in OPERATOR_ONLY_PROFILES:
+                            continue
+                        if not state.allows_profile(name):
+                            continue
+                        if name in POST_CAMPAIGN_DENIABLE_PROFILES:
+                            allowed.append(name)
+                            weights.append(POST_CAMPAIGN_DENIABLE_WEIGHT)
+                        elif spec[5]:
+                            allowed.append(name)
+                            weights.append(1)
+                    if not allowed:
+                        return None
+                    profile = roll.choices(allowed, weights=weights, k=1)[0]
+                else:
+                    allowed = [
+                        name
+                        for name, spec in SCENE_PROFILES.items()
+                        if spec[5]
+                        and state.allows_profile(name)
+                        and name not in OPERATOR_ONLY_PROFILES
+                    ]
+                    if not allowed:
+                        return None
+                    profile = roll.choice(allowed)
 
             if hint is None and profile in STALK_HINT_PROFILES:
                 hint = self._stalk_hint(db, token, subject, roll)

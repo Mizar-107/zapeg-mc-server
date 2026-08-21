@@ -36,7 +36,12 @@ from pathlib import Path
 
 from mcrcon import MCRcon
 
-from heraldor_campaign import CampaignEngine, CampaignError, load_campaign
+from heraldor_campaign import (
+    CampaignEngine,
+    CampaignError,
+    GLOBAL_STYLE_BY_TIER,
+    load_campaign,
+)
 from heraldor_director import (
     COLOSSUS_PROFILE,
     CONTROL_SCENE_PROFILE_PHASES,
@@ -48,6 +53,7 @@ from heraldor_director import (
     DirectorStateLock,
     DirectorStore,
     Reservation,
+    ScenePlan,
     effective_scene_phase,
     resolve_scene_dispatch,
     extract_control_request_token,
@@ -147,6 +153,34 @@ DISCORDS = [
 ]
 
 OBFUS = "kelimeler kayboluyor"  # §k ile bozulan kısım
+
+# Attribution ladder (HD-2a): unsigned globals render like whispers-to-all,
+# the glitch tier signs with an unreadable obfuscated fragment, only the
+# manifestation tier shows the dark-red name (and plays the mood sound).
+GLOBAL_STYLES = ("unsigned", "glitch", "named")
+GLITCH_PREFIX = "████████"  # obfuscated:true → every screenshot scrambles differently
+
+# Per-dossier whisper accompaniment (HD-5b): one themed vanilla sound per
+# personalized nick — (sound id, position, volume, pitch). Pitch law: 0.4–0.6
+# reads as a larger body; the generic pool covers everyone else.
+WHISPER_SOUNDS_BY_NICK = {
+    "salihkarahan": ("minecraft:block.fire.extinguish", "~ ~ ~", "0.5", "0.55"),
+    "kralxlarge": ("minecraft:block.deepslate.break", "^ ^ ^-2", "0.4", "0.45"),
+    "mertonal": ("minecraft:block.iron_door.open", "~ ~ ~", "0.45", "0.4"),
+    "eminomi12": ("minecraft:entity.wolf.growl", "~ ~ ~", "0.35", "0.5"),
+    "thekingim": ("minecraft:item.elytra.flying", "~ ~ ~", "0.4", "0.5"),
+}
+GENERIC_WHISPER_SOUNDS = [
+    "minecraft:ambient.cave",
+    "minecraft:entity.enderman.stare",
+    "minecraft:block.sculk_sensor.clicking",
+]
+
+# Afterlife (HD-7c): the one return-from-absence line, and the presence poll
+# interval shared with the death poll. The threshold lives in the Director.
+ABSENCE_WHISPER_LINE = "gelmedin. saydım."
+# M6: periodic reserved-row recovery cadence (startup recovery also runs).
+RESERVED_RECOVERY_INTERVAL = 10 * 60
 
 
 def rcon_password() -> str:
@@ -375,6 +409,16 @@ def process_control_request(
     payload: dict[str, object] = {}
     command = "zapegscene cancel-all"
     if request.action in {"scene_rehearse", "scene_trigger"}:
+        if request.action == "scene_trigger" and request.target and not (
+            director.subject_is_tenured(
+                request.world_token, request.target, now=timestamp
+            )
+        ):
+            # M1: the manual OP surface bypasses the tenure gate, audibly.
+            print(
+                f"[heraldor] tenure gate bypassed by operator "
+                f"{request.operator}: {request.argument} -> {request.target}"
+            )
         command, payload = build_scene_command(
             director,
             action=request.action,
@@ -472,8 +516,10 @@ def build_scene_command(
             command += f" {dispatch_stage}"
         return command, payload
 
+    # L1: the alias's own authored TTL is the base — light_fault_01 is a
+    # brief fault (140), not a full rift (200) — scaled by the phase floor.
     ttl_ticks = ttl_override or scene_ttl_ticks(
-        runtime_profile, effective_scene_phase(phase, profile_argument)
+        profile_argument, effective_scene_phase(phase, profile_argument)
     )
     payload["runtime_event_id"] = event_id
     scene_hint: tuple[int, int] | None = None
@@ -584,8 +630,8 @@ class RconCampaignExecutor:
         whisper(target, line)
         return True
 
-    def global_line(self, line: str) -> bool:
-        global_msg(line)
+    def global_line(self, line: str, style: str = "named") -> bool:
+        global_msg(line, style)
         return True
 
     def discord(self, line: str) -> tuple[bool | None, str]:
@@ -803,6 +849,22 @@ def poll_control_request(director: DirectorStore) -> ControlOutcome | None:
     return outcome
 
 
+def whisper_sound_command(player: str) -> str:
+    """The whisper's accompaniment: themed per dossier nick (HD-5b), the
+    shared unsettling pool for everyone else."""
+
+    paired = WHISPER_SOUNDS_BY_NICK.get(player.casefold())
+    if paired is not None:
+        sound, anchor, volume, pitch = paired
+    else:
+        sound = random.choice(GENERIC_WHISPER_SOUNDS)
+        anchor, volume, pitch = "~ ~ ~", "0.7", "0.5"
+    return (
+        f"execute at {player} run playsound {sound} hostile {player} "
+        f"{anchor} {volume} {pitch}"
+    )
+
+
 def whisper(player: str, line: str | None = None) -> None:
     line = line or random.choice(WHISPERS)
     payload = json.dumps(
@@ -814,29 +876,46 @@ def whisper(player: str, line: str | None = None) -> None:
         ensure_ascii=False,
     )
     rcon(f"tellraw {player} {payload}")
-    snd = random.choice(
-        ["minecraft:ambient.cave", "minecraft:entity.enderman.stare", "minecraft:block.sculk_sensor.clicking"]
-    )
-    rcon(f"execute at {player} run playsound {snd} hostile {player} ~ ~ ~ 0.7 0.5")
+    rcon(whisper_sound_command(player))
     print(f"[heraldor] whisper -> {player}: {line}")
 
 
-def global_msg(line: str | None = None) -> None:
-    line = line or random.choice(GLOBALS_)
-    payload = json.dumps(
-        [
+def global_payload(line: str, style: str) -> str:
+    """The tellraw JSON for one global broadcast, per attribution tier."""
+
+    if style == "unsigned":
+        # Renders exactly like a whisper, but in everyone's chat at once —
+        # the simultaneity is the signature; no name, no sound.
+        parts = ["", {"text": line, "color": "dark_gray", "italic": True}]
+    elif style == "glitch":
+        # Signed by something unreadable: every player's screenshot of the
+        # same message scrambles differently.
+        parts = [
+            "",
+            {"text": GLITCH_PREFIX, "color": "dark_red", "obfuscated": True},
+            {"text": " " + line, "color": "gray", "italic": True},
+        ]
+    else:
+        parts = [
             "",
             {"text": "Heraldor", "color": "dark_red", "bold": True},
             {"text": " " + line, "color": "gray", "italic": True},
-        ],
-        ensure_ascii=False,
-    )
-    rcon(f"tellraw @a {payload}")
-    rcon(
-        "execute as @a at @s run playsound "
-        "minecraft:ambient.basalt_deltas.mood hostile @s ~ ~ ~ 0.5 0.6"
-    )
-    print(f"[heraldor] global: {line}")
+        ]
+    return json.dumps(parts, ensure_ascii=False)
+
+
+def global_msg(line: str | None = None, style: str = "named") -> None:
+    line = line or random.choice(GLOBALS_)
+    if style not in GLOBAL_STYLES:
+        style = "named"
+    rcon(f"tellraw @a {global_payload(line, style)}")
+    if style == "named":
+        # HD-2a: the mood sound belongs only to the named tier.
+        rcon(
+            "execute as @a at @s run playsound "
+            "minecraft:ambient.basalt_deltas.mood hostile @s ~ ~ ~ 0.5 0.6"
+        )
+    print(f"[heraldor] global ({style}): {line}")
 
 
 def discord_post_line(line: str) -> None:
@@ -876,7 +955,12 @@ def shadows(player: str) -> None:
     print(f"[heraldor] shadows -> {player}")
 
 
-def dispatch_ambient(director: DirectorStore, reservation: Reservation) -> None:
+def dispatch_ambient(
+    director: DirectorStore,
+    reservation: Reservation,
+    *,
+    global_style: str = "named",
+) -> None:
     """Attempt an irreversible side effect once; crashes become ambiguous."""
 
     if not director.mark_attempting(reservation.event_id):
@@ -885,7 +969,7 @@ def dispatch_ambient(director: DirectorStore, reservation: Reservation) -> None:
         if reservation.kind == "whisper" and reservation.subject:
             whisper(reservation.subject)
         elif reservation.kind == "global":
-            global_msg()
+            global_msg(style=global_style)
         elif reservation.kind == "discord":
             discord_msg()
         elif reservation.kind == "shadows" and reservation.subject:
@@ -931,7 +1015,13 @@ def ambient_cycle(
         kind, subject=subject, world_token=world_token
     )
     if reservation:
-        dispatch_ambient(director, reservation)
+        # Ambient globals follow the same attribution ladder as campaign
+        # globals: the current tier decides how much signature they carry.
+        dispatch_ambient(
+            director,
+            reservation,
+            global_style=GLOBAL_STYLE_BY_TIER.get(campaign.phase, "named"),
+        )
 
 
 def poll_servant_score(director: DirectorStore):
@@ -1016,6 +1106,9 @@ def poll_stalk_samples(
         director.record_stalk_visit(world_token, name, position[0], position[2])
 
 
+_death_anomaly_logged: dict[str, tuple[int, int]] = {}
+
+
 def poll_death_log(director: DirectorStore, world_token: int | None) -> None:
     """Ingest the per-player death counter and the last death site."""
 
@@ -1030,6 +1123,7 @@ def poll_death_log(director: DirectorStore, world_token: int | None) -> None:
             if score is None:
                 continue
             if score <= director.death_high_water(world_token, name):
+                _death_anomaly_logged.pop(name, None)
                 continue
             site_output = str(
                 rcon(f"data get storage {CONTROL_STORAGE} death_{name}")
@@ -1040,36 +1134,95 @@ def poll_death_log(director: DirectorStore, world_token: int | None) -> None:
             print(f"[heraldor] ölüm kaydı okunamadı ({name}): {exc}")
             continue
         if result.death_event_ids:
-            print(
-                f"[heraldor] ölüm kuyruğu işlendi: {name} "
-                f"{result.previous_high_water} -> {result.high_water}"
-            )
-        if result.regression or result.quarantined:
-            print(
-                f"[heraldor] ölüm skoru şüpheli ({name}); güvenli kapandı: "
-                f"kayıt={result.high_water}, görülen={score}"
-            )
+            if result.caught_up:
+                # H2: one line for the whole clamped catch-up — the ledger
+                # advanced to the observed score, only the newest N ordinals
+                # were emitted, nothing was quarantined.
+                print(
+                    f"[heraldor] ölüm sayacı sıçradı ({name}); en yeni "
+                    f"{len(result.death_event_ids)} ölüm işlendi, sayaç "
+                    f"{result.previous_high_water} -> {result.high_water}"
+                )
+            else:
+                print(
+                    f"[heraldor] ölüm kuyruğu işlendi: {name} "
+                    f"{result.previous_high_water} -> {result.high_water}"
+                )
+        if result.regression:
+            anomaly = (result.high_water, score)
+            if _death_anomaly_logged.get(name) != anomaly:
+                _death_anomaly_logged[name] = anomaly
+                print(
+                    f"[heraldor] ölüm skoru geriledi ({name}); güvenli kapandı: "
+                    f"kayıt={result.high_water}, görülen={score}"
+                )
 
 
-def scene_scheduler_cycle(
-    director: DirectorStore, world_token: int | None
-) -> None:
-    """The autonomous night-of-activity planner; disabled unless enabled."""
+def campaign_is_finished(
+    director: DirectorStore, world_token: int | str | None
+) -> bool:
+    """True once the loaded campaign's finale has fully played for this world."""
 
-    if not SCHEDULER_ENABLED or world_token is None:
+    if world_token is None:
+        return False
+    runtime = campaign_runtime()
+    if runtime.engine is None:
+        return False
+    engine = runtime.engine
+    return engine.finished(engine.progress(director, world_token))
+
+
+def poll_presence(director: DirectorStore, world_token: int | None) -> None:
+    """Record first-seen/last-seen for every online player (M1), and answer a
+    return from a long absence with the one afterlife whisper (HD-7c)."""
+
+    if world_token is None:
         return
     players = online_players()
     if not players:
         return
-    plan = director.plan_and_reserve_scene(world_token, players)
-    if plan is None:
-        return
-    command = (
-        f"zapegscene trigger {plan.subject} {plan.event_id} "
-        f"{plan.profile} {plan.ttl_ticks}"
-    )
-    if plan.hint is not None:
-        command += f" {plan.hint[0]} {plan.hint[1]}"
+    finished = campaign_is_finished(director, world_token)
+    for name in players:
+        try:
+            previous_last_seen = director.observe_presence(world_token, name)
+        except ValueError:
+            continue
+        if previous_last_seen is None or not finished:
+            continue
+        reservation = director.reserve_absence_whisper(
+            world_token, name, previous_last_seen
+        )
+        if reservation is None or not director.mark_attempting(reservation.event_id):
+            continue
+        try:
+            whisper(name, ABSENCE_WHISPER_LINE)
+        except Exception as exc:
+            director.finish_attempt(
+                reservation.event_id, delivered=None, error=str(exc)
+            )
+            print(f"[heraldor] dönüş fısıltısı belirsiz kaldı ({name}): {exc}")
+        else:
+            director.finish_attempt(reservation.event_id, delivered=True)
+            print(f"[heraldor] dönüş fısıltısı gönderildi: {name}")
+
+
+def dispatch_planned_scene(director: DirectorStore, plan: ScenePlan) -> None:
+    """Send one reserved planner scene, resolving alias profiles onto their
+    runtime family + stage exactly like campaign/OP dispatch does."""
+
+    runtime_profile, alias_stage = resolve_scene_dispatch(plan.profile)
+    if plan.profile in SCENE_RUNTIME_DISPATCH:
+        command = (
+            f"zapegscene trigger {plan.subject} {plan.event_id} "
+            f"{runtime_profile} stage {alias_stage} {plan.ttl_ticks}"
+        )
+    else:
+        command = (
+            f"zapegscene trigger {plan.subject} {plan.event_id} "
+            f"{plan.profile} {plan.ttl_ticks}"
+        )
+        if plan.hint is not None:
+            command += f" {plan.hint[0]} {plan.hint[1]}"
     if not director.mark_attempting(plan.event_id):
         return
     try:
@@ -1092,6 +1245,51 @@ def scene_scheduler_cycle(
         f"[heraldor] planlanan sahne ({plan.reason}): {plan.profile} -> "
         f"{plan.subject}; durum={'gönderildi' if success else 'reddedildi'}"
     )
+
+
+def scene_scheduler_cycle(
+    director: DirectorStore, world_token: int | None
+) -> None:
+    """The autonomous night-of-activity planner.
+
+    Enabled by HERALDOR_SCENE_SCHEDULER during the campaign; once the finale
+    has played it runs by itself as the afterlife ember, retuned cold
+    (HD-7b): 7–12 day jittered silence, budget 2, deniable-weighted draws.
+    """
+
+    if world_token is None:
+        return
+    post_campaign = campaign_is_finished(director, world_token)
+    if not SCHEDULER_ENABLED and not post_campaign:
+        return
+    players = online_players()
+    if not players:
+        return
+    plan = director.plan_and_reserve_scene(
+        world_token, players, post_campaign=post_campaign
+    )
+    if plan is None:
+        return
+    dispatch_planned_scene(director, plan)
+
+
+def afterlife_cycle(director: DirectorStore, world_token: int | None) -> None:
+    """Post-campaign reactive lane (HD-7c): new-base detection and its one
+    deniable answer. Runs only after the campaign has finished."""
+
+    if world_token is None or not campaign_is_finished(director, world_token):
+        return
+    players = online_players()
+    if not players:
+        return
+    flagged = director.note_new_base_candidates(world_token, players)
+    for name in flagged:
+        print(f"[heraldor] yeni üs tespit edildi: {name}; sahne 2 gün içinde")
+    if not is_night():
+        return
+    plan = director.plan_new_base_scene(world_token, players)
+    if plan is not None:
+        dispatch_planned_scene(director, plan)
 
 
 def _world_token_from_servant_poll(polled) -> int | None:
@@ -1127,6 +1325,7 @@ def run_daemon() -> None:
         next_stalk_sample = time.monotonic() + STALK_SAMPLE_INTERVAL
         next_death_poll = time.monotonic() + DEATH_POLL_INTERVAL
         next_scheduler = time.monotonic() + SCHEDULER_INTERVAL
+        next_reserved_recovery = time.monotonic() + RESERVED_RECOVERY_INTERVAL
         active_world_token: int | None = None
         last_score_anomaly: tuple[str, int, int] | None = None
 
@@ -1176,6 +1375,10 @@ def run_daemon() -> None:
             if now >= next_death_poll:
                 next_death_poll = now + DEATH_POLL_INTERVAL
                 try:
+                    poll_presence(director, active_world_token)
+                except Exception as exc:
+                    print(f"[heraldor] mevcudiyet döngüsü hata: {exc}")
+                try:
                     poll_death_log(director, active_world_token)
                 except Exception as exc:
                     print(f"[heraldor] ölüm kuyruğu döngüsü hata: {exc}")
@@ -1193,6 +1396,25 @@ def run_daemon() -> None:
                     scene_scheduler_cycle(director, active_world_token)
                 except Exception as exc:
                     print(f"[heraldor] sahne planlayıcısı hata: {exc}")
+                try:
+                    afterlife_cycle(director, active_world_token)
+                except Exception as exc:
+                    print(f"[heraldor] kampanya-sonrası döngü hata: {exc}")
+
+            now = time.monotonic()
+            if now >= next_reserved_recovery:
+                next_reserved_recovery = now + RESERVED_RECOVERY_INTERVAL
+                # M6: heal reserved rows that crashed before their attempt,
+                # so the scheduler's in-flight check can never wedge.
+                try:
+                    healed = director.recover_stale_reserved()
+                    if healed:
+                        print(
+                            f"[heraldor] {healed} bayat rezervasyon kapatıldı "
+                            "(deneme yapılmadan yaşlandı)"
+                        )
+                except Exception as exc:
+                    print(f"[heraldor] rezervasyon temizliği hata: {exc}")
 
             now = time.monotonic()
             if now >= next_ambient:
@@ -1210,6 +1432,7 @@ def run_daemon() -> None:
                     next_stalk_sample,
                     next_death_poll,
                     next_scheduler,
+                    next_reserved_recovery,
                 )
                 - time.monotonic()
             )

@@ -65,30 +65,48 @@ class VoiceOutboxTest(unittest.TestCase):
             **kwargs,
         )
 
-    def test_live_audio_is_pending_only_when_sink_was_enabled_at_creation(self) -> None:
+    def test_live_audio_without_sink_is_held_and_released_on_enable(self) -> None:
+        # M4: with the voice sink off, victory #3 must NOT consume the
+        # once-ever clip request — it is held, invisible to claim_next_audio.
         with self.open_store() as store:
             activate_campaign(store, 111111)
-            store.ingest_servant_score(3, world_token=111111)
+            result = store.ingest_servant_score(3, world_token=111111)
+            self.assertEqual(result.story_output_status, "held_no_sink")
             status = store.connection.execute(
                 "SELECT status FROM outbox"
             ).fetchone()[0]
-            self.assertEqual(status, "suppressed_no_sink")
+            self.assertEqual(status, "held_no_sink")
+            self.assertIsNone(store.claim_next_audio())
 
-        # Enabling the sink later must never revive the historical row.
+        # Days later the sink comes on: opening the Director with it enabled
+        # releases the held row as pending with a fresh live window.
+        self.clock.value += 3 * 24 * 3600
+        with self.open_store(audio_sink_enabled=True) as store:
+            row = store.connection.execute(
+                "SELECT status, payload_json FROM outbox"
+            ).fetchone()
+            self.assertEqual(row["status"], "pending")
+            payload = json.loads(str(row["payload_json"]))
+            self.assertGreater(payload["expires_at"], self.clock.value)
+            delivery = store.claim_next_audio(now=self.clock.value + 1)
+            self.assertIsNotNone(delivery)
+            self.assertEqual(delivery.payload["clip_id"], SERVANT_AUDIO_CLIP_ID)
+            store.finish_audio(delivery.event_id, status="delivered")
+
+    def test_dormant_threshold_stays_terminal_even_with_sink_enabled_later(self) -> None:
+        # A dormant-world threshold is a deliberate suppression, not a hold.
+        with self.open_store() as store:
+            store.ingest_servant_score(3, world_token=333333)
+            self.assertEqual(
+                store.connection.execute("SELECT status FROM outbox").fetchone()[0],
+                "suppressed_campaign_dormant",
+            )
         with self.open_store(audio_sink_enabled=True) as store:
             self.assertEqual(
-                store.connection.execute(
-                    "SELECT status FROM outbox WHERE event_id LIKE ?",
-                    ("%111111",),
-                ).fetchone()[0],
-                "suppressed_no_sink",
+                store.connection.execute("SELECT status FROM outbox").fetchone()[0],
+                "suppressed_campaign_dormant",
             )
-            activate_campaign(store, 222222)
-            store.ingest_servant_score(3, world_token=222222)
-            rows = store.connection.execute(
-                "SELECT status FROM outbox ORDER BY created_at, event_id"
-            ).fetchall()
-            self.assertEqual(sorted(row[0] for row in rows), ["pending", "suppressed_no_sink"])
+            self.assertIsNone(store.claim_next_audio(now=self.clock.value + 1))
 
     def test_rehearsal_claim_is_atomic_and_snapshot_precedes_playback(self) -> None:
         with self.open_store() as first:

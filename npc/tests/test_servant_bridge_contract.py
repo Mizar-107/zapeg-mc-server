@@ -212,6 +212,34 @@ class DirectorBridgeContractTest(unittest.TestCase):
         self.assertIn("zhDirectorSourceAllowed(source)", queue)
         self.assertIn("if (!rawSource) return true", self.source)
 
+    def test_story_goto_uses_rhino_safe_chapter_literals(self) -> None:
+        # M7: Arguments.INTEGER is the one wrapper never compile-checked on
+        # the live kubejs-forge-2001.6.5/Rhino build; if it is absent the
+        # whole `/zapeg-lore` tree fails to register. goto is therefore five
+        # plain literals — the campaign has exactly 5 chapters and the
+        # Python Director re-validates the value anyway.
+        self.assertNotIn("Arguments.INTEGER", self.source)
+        goto = re.search(
+            r"const storyGoto = Commands\.literal\('goto'\)(.*?)"
+            r"story\.then\(storyGoto\)",
+            self.source,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(goto)
+        self.assertIn(
+            "const storyChapters = ['1', '2', '3', '4', '5']", goto.group(1)
+        )
+        self.assertIn(
+            "zhQueueStoryRequest(ctx.source, 'goto', chapter)", goto.group(1)
+        )
+        # The single queue path still bound-checks the chapter shape.
+        self.assertIn(
+            "The story chapter must be a number from 1 to 99.", self.source
+        )
+        # PLAYER stays the only argument-type wrapper the tree relies on.
+        self.assertIn("Arguments.PLAYER.create(event)", self.source)
+        self.assertIn("Arguments.PLAYER.getResult(ctx, 'target')", self.source)
+
     def test_story_subcommands_match_director_allowlist(self) -> None:
         from heraldor_director import STORY_ARGUMENTS
 

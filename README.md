@@ -1,6 +1,6 @@
 # ZapeG — ATM9+ server
 
-Self-hosted server for the custom pack: **ATM9 1.1.1 base + 27 additions** (23 client+server, 4 server-only). The server resolves the external pins and installs the reviewed ZapeG Citizens and Runtime builds; players receive one generated ZapeG patch instead of downloading jars individually. This README is the full reference; start with [HOSTING.md](HOSTING.md) if you're the operator. Decisions: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md) · change playbook: [UPDATING.md](UPDATING.md) · player install: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.md) · private-scene runbook: [docs/ZAPEG-RUNTIME-RUNBOOK.md](docs/ZAPEG-RUNTIME-RUNBOOK.md) · reversible Muhtar guide: [docs/MUHTAR-QUEST-GUIDE-TR.md](docs/MUHTAR-QUEST-GUIDE-TR.md).
+Self-hosted server for the custom pack: **ATM9 1.1.1 base + 28 additions** (24 client+server, 4 server-only). The server resolves the external pins and installs the reviewed ZapeG Citizens and Runtime builds; players receive one generated ZapeG patch instead of downloading jars individually. This README is the full reference; start with [HOSTING.md](HOSTING.md) if you're the operator. Decisions: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md) · change playbook: [UPDATING.md](UPDATING.md) · player install: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.md) · private-scene runbook: [docs/ZAPEG-RUNTIME-RUNBOOK.md](docs/ZAPEG-RUNTIME-RUNBOOK.md) · reversible Muhtar guide: [docs/MUHTAR-QUEST-GUIDE-TR.md](docs/MUHTAR-QUEST-GUIDE-TR.md).
 
 ## Version pins (verified 2026-08-17)
 
@@ -18,6 +18,7 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + 27 additions** (23 c
 | Alex's Caves | 2.0.2 (2024-10) | CF file `5848216` | Client+server; shares Citadel dep |
 | Mowzie's Mobs | 1.8.2 (2026-03) | CF file `7815705` | Client+server; GeckoLib already in ATM9 |
 | Easy NPC | 7.7.7 (2026-08) | CF file `8644040` | Client+server; retained for lore and quest NPCs |
+| Effortless Building | 3.11 (2026-04) | CF file `7944965` | Client+server; mirror/radial/array build helper (locks/patch regen required) |
 | Aquamirae | 7.1.10 (2026-08) | CF file `8558369` | Client+server; ocean horror + Cornelia boss |
 | Born in Chaos | 1.7.5 (2026-04) | CF file `7917933` | Client+server; night horror mobs ("Heraldor'un orduları") |
 | When Dungeons Arise | 2.1.58 | ATM9 manifest, CF file `4983862` | **Already in ATM9**; mega-dungeons, never add a second jar |
@@ -87,7 +88,7 @@ published. Only the optional metrics profile needs an explicit shared password.
 
 ## Clients (Phase 5)
 
-Every player runs **ATM9 1.1.1 on Forge 47.4.10 + the same 23 client additions**. Chunky, BlueMap, Incendium and Discord Integration are server-only.
+Every player runs **ATM9 1.1.1 on Forge 47.4.10 + the same 24 client additions**. Chunky, BlueMap, Incendium and Discord Integration are server-only.
 
 Do not ask players to download jars individually. The **pack maintainer**, once,
 creates the builder source profile: install ATM9 1.1.1 in CurseForge, select Forge
@@ -139,7 +140,7 @@ installer. Player-facing steps: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.m
    must use the full paired rollout in
    [the Citizens host guide](docs/CITIZENS-HOST-SETUP.md#build-and-start).
 4. Watch boot log; on failure: restore snapshot, revert pin
-5. Ship matching client update **before** players reconnect — clients need the same 23 client+server additions; the four server-only additions never go in a client
+5. Ship matching client update **before** players reconnect — clients need the same 24 client+server additions; the four server-only additions never go in a client
 
 ## Troubleshooting
 
