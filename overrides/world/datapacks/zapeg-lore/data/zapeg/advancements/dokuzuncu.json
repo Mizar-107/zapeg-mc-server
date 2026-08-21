@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:soul_lantern"
+    },
+    "title": {
+      "text": "???"
+    },
+    "description": {
+      "text": "❞"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": true
+  },
+  "criteria": {
+    "imkansiz": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "parent": "zapeg:root"
+}

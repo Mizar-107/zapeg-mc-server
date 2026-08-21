@@ -1,0 +1,57 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:dragon_head"
+    },
+    "title": {
+      "text": "İlk Temas"
+    },
+    "description": {
+      "text": "Bir ejderha seni fark etti. Bu iyi bir şey değil."
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "ates": {
+      "trigger": "minecraft:entity_hurt_player",
+      "conditions": {
+        "damage": {
+          "source_entity": {
+            "type": "iceandfire:fire_dragon"
+          }
+        }
+      }
+    },
+    "buz": {
+      "trigger": "minecraft:entity_hurt_player",
+      "conditions": {
+        "damage": {
+          "source_entity": {
+            "type": "iceandfire:ice_dragon"
+          }
+        }
+      }
+    },
+    "yildirim": {
+      "trigger": "minecraft:entity_hurt_player",
+      "conditions": {
+        "damage": {
+          "source_entity": {
+            "type": "iceandfire:lightning_dragon"
+          }
+        }
+      }
+    }
+  },
+  "parent": "zapeg:root",
+  "requirements": [
+    [
+      "ates",
+      "buz",
+      "yildirim"
+    ]
+  ]
+}

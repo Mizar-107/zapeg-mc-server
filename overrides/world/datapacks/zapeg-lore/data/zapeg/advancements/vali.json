@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:emerald_block"
+    },
+    "title": {
+      "text": "Vali"
+    },
+    "description": {
+      "text": "Şehri o kurdu, çeşmeyi o yaptı, hayvanat bahçesi ruhsatlı."
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "imkansiz": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "parent": "zapeg:root"
+}

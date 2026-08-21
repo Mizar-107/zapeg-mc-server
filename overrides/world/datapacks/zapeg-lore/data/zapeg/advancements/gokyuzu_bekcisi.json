@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:feather"
+    },
+    "title": {
+      "text": "Gökyüzü Bekçisi"
+    },
+    "description": {
+      "text": "Jetpack özlemi bitti. Artık yukarıdan bakıyor."
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "imkansiz": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "parent": "zapeg:root"
+}

@@ -1,0 +1,32 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:flint_and_steel"
+    },
+    "title": {
+      "text": "Eski Alışkanlıklar"
+    },
+    "description": {
+      "text": "Envanterinde bir çakmaktaşı belirdi. Sigorta şirketleri uyarıldı."
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "cakmak": {
+      "trigger": "minecraft:inventory_changed",
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "minecraft:flint_and_steel"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "parent": "zapeg:root"
+}

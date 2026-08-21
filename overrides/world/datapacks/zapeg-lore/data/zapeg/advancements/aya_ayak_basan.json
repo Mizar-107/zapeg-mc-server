@@ -1,0 +1,26 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:coal_block"
+    },
+    "title": {
+      "text": "Önce Yakıt, Sonra Yörünge"
+    },
+    "description": {
+      "text": "Ay yüzeyine ayak bastın. Dönüş bileti dahil değildir."
+    },
+    "frame": "goal",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "ay": {
+      "trigger": "minecraft:changed_dimension",
+      "conditions": {
+        "to": "ad_astra:moon"
+      }
+    }
+  },
+  "parent": "zapeg:root"
+}

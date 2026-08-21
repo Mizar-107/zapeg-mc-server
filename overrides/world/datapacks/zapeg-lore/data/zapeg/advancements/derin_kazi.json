@@ -1,0 +1,32 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:deepslate"
+    },
+    "title": {
+      "text": "Sesleri Duydun mu?"
+    },
+    "description": {
+      "text": "Y=-32 altına indin. Aşağıda yalnız olmayabilirsin."
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "derin": {
+      "trigger": "minecraft:location",
+      "conditions": {
+        "location": {
+          "position": {
+            "y": {
+              "max": -32
+            }
+          }
+        }
+      }
+    }
+  },
+  "parent": "zapeg:root"
+}

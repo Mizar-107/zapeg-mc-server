@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:minecart"
+    },
+    "title": {
+      "text": "Garaj Kralı"
+    },
+    "description": {
+      "text": "Garajında ne olduğunu tam bilmiyoruz ama motor sesi geliyor."
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "imkansiz": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "parent": "zapeg:root"
+}

@@ -1,0 +1,23 @@
+{
+  "display": {
+    "icon": {
+      "item": "minecraft:golden_apple"
+    },
+    "title": {
+      "text": "Kral Unvanı"
+    },
+    "description": {
+      "text": "Her şeyde birinci. Yine. Tören ile tescillendi."
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "imkansiz": {
+      "trigger": "minecraft:impossible"
+    }
+  },
+  "parent": "zapeg:root"
+}
