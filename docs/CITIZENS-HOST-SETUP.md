@@ -92,10 +92,20 @@ SQLite growth. Port 8787 is not published to the host or internet.
 
 ## Build and start
 
-The build is pinned to the public `zapeg-citizens` tag `v0.4.0`, specifically its
-`brain/` directory. Citizens 0.4.0 uses brain document protocol 3: deploy the
-0.4.0 JAR and brain together. A mixed protocol-1/2/3 rollout is unsupported and
-deliberately fails instead of silently corrupting a turn or durable job.
+The build is pinned by commit in `docker-compose.yml` (`build.context` ref on
+the public `zapeg-citizens` repo, `brain/` directory). Citizens 0.4.0 uses brain
+document protocol 3: deploy the 0.4.0 JAR and brain together. A mixed
+protocol-1/2/3 rollout is unsupported and deliberately fails instead of silently
+corrupting a turn or durable job.
+
+**Brain 0.4.1 (2026-08-21, brain-only — the 0.4.0 JAR is unchanged):** adds
+Muhtar's village memory cards. Compose now mounts `npc/village-memory-tr.md`
+read-only and sets `CITIZENS_VILLAGE_MEMORY_FILE`; the brain refuses to start
+(fail-closed) if the file is missing, empty, or over 40 cards / 4000 chars, so
+a bad edit surfaces as a visible boot error, not a silent lore loss. Rebuild
+the image (`docker compose --profile citizens build --pull citizen-brain`) and
+recreate the brain container to pick it up; no world/JAR step is needed. Only
+SERVER-owned citizens receive the cards.
 
 Take a maintenance window with no players. The retiring 0.3.0 release does not yet
 have `citizen jobs` or durable-job status. Use its existing `citizen list` and

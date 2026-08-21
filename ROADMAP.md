@@ -2,7 +2,32 @@
 
 Not everything in v1 — each phase ships through the UPDATING.md ritual. World-risk notes per item.
 
-## 🛠️ v0.9.0 (working tree) — ZapeG Citizens + official vehicle stack
+## 🛠️ v0.10.0 (working tree, 2026-08-21) — owner-request wave
+
+Shipped in this iteration (details: CHANGELOG v0.10.0 + UPDATING admission
+record): UNU+Trin IV packs, Prefab, CasinoCraft + Slots Machine, WorldEdit,
+Skin Restorer (offline-skin fix), `/zapeg-kitap` lore books + `zapeg:harabe_1`
+ruin, auto ceremony tab-titles, `/zapeg-cark`, Muhtar memory cards.
+
+## 🔭 Near-future (owner intent, stated 2026-08-21)
+
+- **Player-specific lores** — Ertu will supply per-player lore texts. The
+  delivery rails already exist: per-nick whisper pools (campaign-heraldor.yml),
+  `/zapeg-kitap` book slots, village-memory cards, and per-player advancements
+  in the zapeg-lore datapack. When the texts arrive this is data-entry, not
+  engineering.
+- **New NPCs + RPG-style additions** — more server-owned citizens with distinct
+  personas/jobs (Numen bodies + per-citizen memory cards), Easy NPC quest
+  givers, FTB Quests RPG chapters, and economy loops on the new casino/çark
+  diamond sink. Design pass needed before pins.
+- **Heraldor full quest line** — grow the campaign engine from 5 chapters into
+  a phased quest line with objectives, item clues (books/maps), servant boss
+  encounters and per-phase endings. The substrate is ready: data-driven
+  campaign YAML + beat types + `/zapeg-lore story` controls; new beat types
+  (item drop, structure reveal, boss wave) are director/KubeJS work, and the
+  "Kayıp Sayfa"/dokuzuncu threads are the designed entry point.
+
+## 🛠️ v0.9.0 (shipped) — ZapeG Citizens + official vehicle stack
 
 - **Real workers, not a named mascot**: an OP can run `/citizen spawn <name> <onlinePlayer>` to create multiple chat-commanded citizens, each logically assigned to a player.
 - Numen AI 0.1.1 supplies the player-like body and 32 server-executable world tools. ZapeG Citizens 0.4.0 adds assignment/authorization, protocol-3 durable planning, persisted checkpoints and action evidence, restart-safe cancellation/recovery, operator controls, and a closed workflow loader for storage, building, mining and combat.
@@ -73,7 +98,7 @@ Boot → seed audition → real world → gamerules → pregen → build the lic
 
 ## v0.5.x — the lore era (first weeks)
 
-- **Lore datapack**: hand-built structures seeded in unexplored territory — "ZapeG Araştırma Tesisi" ruins, Turkish lore books referencing group history. New-chunks-only = world-safe. **Blocked on: in-jokes/lore input from the group.**
+- **Lore datapack**: FIRST SLICE SHIPPED (v0.10.0) — zapeg-lore advancement tab, `zapeg:harabe_1` ruin template + three `/zapeg-kitap` books. Next: more structures ("ZapeG Araştırma Tesisi"), player-specific books. **Still wants: per-player lore input from Ertu.**
 - **Real login lines**: nine pools are live; Yusuf, Ali and the other Mert still need exact Minecraft usernames.
 - **Milestone gift items v2**: awarded live at the moment (KubeJS advancement hooks) instead of via quest claim.
 - Playtest-driven trims (remove what nobody touches; Apotheosis/dragon/Mowzie's spawn tuning if needed).

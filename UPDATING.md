@@ -133,9 +133,68 @@ under Entity Culling's `entityWhitelist`.
 
 The three CurseForge projects are all-rights-reserved. Keep generated client
 artifacts private, never commit their jars, and verify author permission before
-public redistribution. Do not add community packs until this baseline passes;
-removing any chosen pack after its content enters the world is a destructive
-content removal, not a routine rollback.
+public redistribution. Removing any chosen pack after its content enters the
+world is a destructive content removal, not a routine rollback.
+
+**Community packs (status change 2026-08-21):** the owner explicitly requested
+"a few more IV content packs", superseding the earlier wait-for-baseline hold.
+UNU (parts `7064153` + civilian `7064154`) and Trin (parts `7890589` + civil
+`7890609`) are now active pins. Both brands are all-rights-reserved → same
+private-artifact discipline as OCP. The UNU jars name IV core 22.18.0; the IV
+core project statement "1.20 packs work on 1.16.5–1.21" covers our 24.0.0, but
+the first multiplayer session with each brand is still the acceptance test:
+spawn one vehicle per brand, drive, unload/reload the chunk, reconnect, verify
+persistence and TPS before announcing the packs to the group. UNU's train
+content stays inert (no Immersive Railroading — deliberate). Trin's project
+slug renamed to `immersive-vehicles-trin-civil-pack`; the old `-v3-v4` slug
+404s on the resolver API — never revert it.
+
+## 2026-08-21 owner-request wave (v0.10.0 admission record)
+
+Owner asked for: easier building, more IV content packs, gambling content, and
+the offline-skin fix. Nine additions passed admission the same day (evidence:
+CFWidget/Modrinth API file records quoted in `extras/cf-mods.txt` comments and
+the README pin table). Per-category notes:
+
+- **Prefab 1.10.0.1** (`6065398`, client+server, no deps): the "craft → preview
+  → click, whole house" niche; no overlap with Building Gadgets (placement),
+  Construction Wand (extension), MineColonies (NPC builds), or schematicannon
+  (blueprint artillery). (Effortless Building was reverted the same day —
+  see the warning below.) Economy: houses cost their material
+  list via the crafted block — survival-fair. Rejected alternatives: Axiom (no
+  Forge build exists, Fabric-only), ISM (dead since 1.12.2), BuildPaste (author
+  marks loader builds singleplayer; multiplayer unverified — deferred).
+- **WorldEdit 7.2.15** (`4586218`, server-only): OP terraforming; permission-
+  gated so casual players never see `//`. Final 1.20.1 build ever.
+- **CasinoCraft v25** (`5942243`) + **Slots Machine 1.2.1** (`8187162`), both
+  client+server, no deps: coexistence boundary — CasinoCraft owns table games
+  (roulette/poker/blackjack/arcade) with its own token items; Slots Machine owns
+  the town-square one-armed bandit configured to eat a real economy item.
+  Configure Slots Machine's coin to `minecraft:diamond` on first boot so both
+  systems and `/zapeg-cark` share one currency. World risk: blocks only where
+  players place them; zero worldgen. Lucky Block was rejected (world-litter).
+- **Skin Restorer 2.10.0+1.20-forge** (Modrinth, server-only): fixes offline-
+  mode Steve/Alex by resolving skins by USERNAME on join. Client side is
+  unsupported by the mod — it must never enter the patch/locks. Players without
+  a Mojang skin run `/skin set <isim>` or `/skin url <png>`.
+- **UNU + Trin IV packs**: see the Immersive Vehicles rollout section above.
+
+Promotion state: pins + docs + counts synced in this commit. Outstanding before
+group announcement: host recreates `mc` (new jars resolve), one multiplayer
+smoke session per category (IV brands spawn/drive/persist; one CasinoCraft
+table opens; slots pays; a Prefab house spawns; skins visible after join), and
+the client patch/locks regen (`tools/Build-ClientZip.ps1 -WriteInventoryLock`,
+review, commit) — one rebuild on top of the artifacts already regenerated for
+Runtime 0.4.0 and the new menu logo.
+
+**Load-order crash warning (learned from the Effortless revert, b33ca6e):**
+adding ANY client mod can reshuffle registry timing and make the latent
+Fragmentum/Aquamirae race (menu-load `NoSuchElementException` in
+`ForgeRegistrar`, reached from Aquamirae's menu-music injection) reproduce
+deterministically. Before distributing the 30-jar patch, boot ONE client with
+the full new set; if the menu crash appears, bisect against the seven new jars
+first, and try disabling Aquamirae's main-menu music/panorama in its client
+config as the least-invasive dodge before dropping content.
 
 ## Aleki's Nifty Ships experimental inclusion (owner waiver)
 

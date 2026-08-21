@@ -55,7 +55,11 @@ services:
       # (5.3 = last Java-17 build), incendium (nether overhaul, Stardust).
       # Client+server (players install too): better-combat. Its exact
       # playerAnimator dependency already ships in the ATM9 1.1.1 manifest.
-      MODRINTH_PROJECTS: "chunky:1.3.146,bluemap:5.3-forge-1.20,incendium:5.3.1,better-combat:1.9.0+1.20.1-forge"
+      # skinrestorer is SERVER-ONLY (client side unsupported by the mod): it
+      # resolves each joining player's skin by USERNAME from Mojang/Ely.by in
+      # offline mode — closes the ONLINE_MODE=false Steve/Alex problem with
+      # zero client burden. Do NOT add it to the client patch.
+      MODRINTH_PROJECTS: "chunky:1.3.146,bluemap:5.3-forge-1.20,incendium:5.3.1,better-combat:1.9.0+1.20.1-forge,skinrestorer:2.10.0+1.20-forge"
       # Repo-tracked replacement/custom jars (CC:Tweaked + owned ZapeG jars).
       # itzg records this MODS source separately from the base/resolver lists.
       MODS: /citizens-mods
@@ -139,9 +143,11 @@ services:
   # docker compose --profile citizens up -d --build citizen-brain mc backup
   # No host port, Minecraft data, logs, RCON, or Docker socket are exposed.
   citizen-brain:
-    image: zapeg/citizen-brain:0.4.0
+    # 0.4.1 = brain-only bump (village memory cards); the Citizens 0.4.0 JAR
+    # and protocol 3 are unchanged — no world/mod step, just image rebuild.
+    image: zapeg/citizen-brain:0.4.1
     build:
-      context: https://github.com/Mizar-107/zapeg-citizens.git#7f31f057c3abbc18fb142b3356318ffec151953b:brain
+      context: https://github.com/Mizar-107/zapeg-citizens.git#a96c05c10b74cbacbcaffe47d76efd61654ace8e:brain
     container_name: atm9-citizen-brain
     profiles: ["citizens"]
     restart: unless-stopped
@@ -169,10 +175,16 @@ services:
       CITIZENS_MAX_JOB_CHECKPOINT_CHARS: "${CITIZENS_MAX_JOB_CHECKPOINT_CHARS:-16384}"
       CITIZENS_MAX_JOB_RECENT_EVENTS: "${CITIZENS_MAX_JOB_RECENT_EVENTS:-8}"
       CITIZENS_MAX_JOB_INTERNAL_STEPS: "${CITIZENS_MAX_JOB_INTERNAL_STEPS:-8}"
+      # Muhtar'ın hafıza kartları: SERVER-sahipli vatandaşların sistem istemine
+      # eklenen ortak köy tarihi (npc/village-memory-tr.md). Dosya bozuk/boş/
+      # limit üstüyse brain bilerek AÇILMAZ (fail-closed) — sessiz karakter
+      # kaybı yerine görünür hata. Kartlar oyuncu-sahipli işçilere gitmez.
+      CITIZENS_VILLAGE_MEMORY_FILE: /config/village-memory.md
     secrets:
       - citizens_ollama_api_key
     volumes:
       - citizen-brain-data:/data
+      - ./npc/village-memory-tr.md:/config/village-memory.md:ro
 
   # Metrics stack — OPT-IN: docker compose --profile metrics up -d
   # Grafana is localhost-only by default. Use an SSH tunnel/VPN or authenticated

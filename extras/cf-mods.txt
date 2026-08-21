@@ -9,12 +9,14 @@
 #   easy-npc bundle + core + config-ui, aquamirae + fragmentum, born-in-chaos,
 #   simply-swords, valkyrien-skies, eureka-ships, numen-ai,
 #   immersive-vehicles + official-content-pack + official-automobile-pack,
-#   aleki's Nifty Ships
+#   unu-parts + unu-civilian, trin-parts + trin-civil, prefab, casinocraft,
+#   slots-machine, aleki's Nifty Ships
 #   (+ better-combat and the CC:Tweaked 1.116.1 re-pin via Modrinth — client+server)
 #   (+ ZapeG Citizens and ZapeG Runtime from owned overrides/mods jars — not CurseForge)
 # ATM9 1.1.1 already supplies When Dungeons Arise 2.1.58 and the exact
 # playerAnimator build required by Better Combat; do not declare either twice.
-# SERVER-ONLY (players skip): dcintegration (+ chunky, bluemap, incendium via MODRINTH_PROJECTS)
+# SERVER-ONLY (players skip): dcintegration, worldedit
+#   (+ chunky, bluemap, incendium, skinrestorer via MODRINTH_PROJECTS)
 
 # --- content: client + server ------------------------------------------------
 
@@ -90,7 +92,54 @@ eureka-ships:7979379
 # and are deliberately not represented as CurseForge entries here.
 numen-ai:8551640
 
+# TOMBSTONE — Effortless Building 3.11 (7944965) was pinned and REVERTED the
+# same day (2026-08-21, commit b33ca6e): with it installed, every client hit a
+# repeatable menu-load crash — java.util.NoSuchElementException in Fragmentum's
+# ForgeRegistrar via Aquamirae's menu-music injection (a latent registry-timing
+# race that the extra mod made deterministic). Aquamirae 7.1.13 and mods.toml
+# ordering edits did not help. Do NOT re-pin without actually fixing that race.
+
+# --- v0.10.0 owner-request wave (2026-08-21): vehicles + building + casino ----
+# All client+server. Pins verified via CFWidget/Modrinth API 2026-08-21.
+# Owner explicitly requested "a few more IV content packs" — supersedes the
+# ADDITIONS-ROUND3 one-brand-at-a-time caution; multiplayer smoke test still
+# gates the announcement (UPDATING.md).
+
+# UNU Parts Pack 6.7.3 (2025-10-04) — REQUIRED by UNU Civilian; parts only.
+unu-parts-pack:7064153
+
+# UNU Civilian Vehicles 6.7.1 (2025-10-04) — 20 civilian cars/vans/buses/trucks.
+# Built against IV core 22.18.0; IV core page: "1.20 packs work on 1.16.5-1.21".
+# Its train content stays inert (Immersive Railroading is deliberately absent).
+unu-civilian-pack-for-mts:7064154
+
+# Trin Parts Pack 2.28.0 (2026-04-07) — REQUIRED by Trin Civil ("vehicles will
+# not spawn" without it).
+trin-part-pack:7890589
+
+# Trin Civil Pack 4.5.0 (2026-04-07) — 34+ vehicles, actively updated.
+# NOTE: project slug renamed from immersive-vehicles-trin-civil-pack-v3-v4;
+# the old slug 404s on the API — keep the new one below.
+immersive-vehicles-trin-civil-pack:7890609
+
+# Prefab 1.10.0.1 (2025-01-08) — craft a block, preview, click: whole furnished
+# house spawns. The "even easier building" pick for casual players; no deps.
+prefab:6065398
+
+# CasinoCraft v25 for 1.20.1 (2024-11-27) — roulette/slots/poker/blackjack +
+# arcade tables with own token system. The only real casino for Forge 1.20.1.
+casinocraft:5942243
+
+# Slots Machine 1.2.1 (2026-06-02) — configurable one-armed bandit (set the
+# coin item + odds in config; pairs with the diamond economy). FTB Chunks aware.
+slots-machine:8187162
+
 # --- server-only ---------------------------------------------------------------
+
+# WorldEdit 7.2.15 (2023-06-14) — OP terraforming (//set, //copy, //schem).
+# Server-side only: players need no client jar. 7.2.15 is the FINAL 1.20.1
+# build (7.3+ is 1.20.4+/NeoForge) — pin and forget. OP-gated by permissions.
+worldedit:4586218
 
 # Discord Integration 3.0.7.1 (2024-05-10) — chat/join/death bridge to Discord.
 # Configure bot token in data/config/Discord-Integration.toml AFTER first boot

@@ -2,6 +2,22 @@
 
 Format per entry: what changed · world risk · what players must do.
 
+## Unreleased — target v0.10.0 (2026-08-21 owner-request wave)
+
+Lore tools + easier building + casino + offline-skin fix + IV community packs.
+World risk: low — new content is blocks-where-placed, one OP-placed structure
+template, KubeJS commands and server-side services; no worldgen changes.
+Players: install the regenerated ZapeG patch (built on top of the Runtime
+0.4.0 + fixed-menu-logo artifacts).
+
+- Effortless Building was pinned and reverted the same day: with it installed every client crashed on menu load (latent Fragmentum/Aquamirae registry race made deterministic; Aquamirae 7.1.13 and ordering edits did not help). Tombstone note in `extras/cf-mods.txt`; do not re-pin.
+- Added 7 client+server pins: UNU Parts `7064153` + UNU Civilian `7064154` and Trin Parts `7890589` + Trin Civil `7890609` (Immersive Vehicles community packs, owner-requested; ~54 new vehicles), Prefab `6065398` (craft-a-block instant houses), CasinoCraft `5942243` (roulette/slots/poker/blackjack tables) and Slots Machine `8187162` (config-driven bandit — set its coin to diamond).
+- Added 2 server-only pins: WorldEdit 7.2.15 `4586218` (OP terraforming; final 1.20.1 build) and Skin Restorer `2.10.0+1.20-forge` via Modrinth — resolves skins by username on join, fixing offline-mode Steve/Alex with zero client burden (`/skin set <isim>` for players without a Mojang skin).
+- Added the first in-world lore slice: `/zapeg-kitap` gives three Turkish written books (Zape Kayıtları I Kuruluş, II Kanunlar, and the deniable "Kayıp Sayfa"), and the zapeg-lore datapack gains `zapeg:harabe_1` — a 9×5×9 vanilla ruin (lectern, 8+1 unlit candles) placed by OP via `/place template`, generated deterministically by `tools/gen-harabe-structure.py`.
+- Added automatic ceremony titles: granting a `zapeg:` ceremony advancement now auto-creates a colored scoreboard team, prefixes the player's tab/chat name ([Kral], [Vali], [Garaj Kralı], [Gökyüzü Bekçisi], [İtfaiye Şefi]), and fires a server-wide title + sound. Manual fallback `/zapeg-unvan`; the hidden `dokuzuncu` advancement deliberately never takes a prefix.
+- Added `/zapeg-cark` (everyone): bet the diamonds in your main hand (max 16) on a weighted wheel — x2/x3/x5/x10 with a disclosed 1.5% house edge; x5+ wins broadcast server-wide. Bets and payouts tracked on scoreboards `zc_bet_total`/`zc_won_total`.
+- Added Muhtar's memory cards: the citizen brain now accepts `CITIZENS_VILLAGE_MEMORY_FILE` (compose mounts `npc/village-memory-tr.md`) and injects server-authored village history into SERVER-owned citizens' prompts only — fail-closed on a bad file, player-owned workers unaffected. Requires the paired zapeg-citizens brain image bump.
+
 ## Unreleased — target v0.9.0
 
 Player- and server-owned LLM citizens plus the official Immersive Vehicles stack

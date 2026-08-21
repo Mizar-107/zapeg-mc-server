@@ -1,6 +1,6 @@
 # ZapeG — ATM9+ server
 
-Self-hosted server for the custom pack: **ATM9 1.1.1 base + 28 additions** (24 client+server, 4 server-only). The server resolves the external pins and installs the reviewed ZapeG Citizens and Runtime builds; players receive one generated ZapeG patch instead of downloading jars individually. This README is the full reference; start with [HOSTING.md](HOSTING.md) if you're the operator. Decisions: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md) · change playbook: [UPDATING.md](UPDATING.md) · player install: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.md) · private-scene runbook: [docs/ZAPEG-RUNTIME-RUNBOOK.md](docs/ZAPEG-RUNTIME-RUNBOOK.md) · reversible Muhtar guide: [docs/MUHTAR-QUEST-GUIDE-TR.md](docs/MUHTAR-QUEST-GUIDE-TR.md).
+Self-hosted server for the custom pack: **ATM9 1.1.1 base + 36 additions** (30 client+server, 6 server-only). The server resolves the external pins and installs the reviewed ZapeG Citizens and Runtime builds; players receive one generated ZapeG patch instead of downloading jars individually. This README is the full reference; start with [HOSTING.md](HOSTING.md) if you're the operator. Decisions: [docs/atm9-modpack-project-brief.md](docs/atm9-modpack-project-brief.md) · change playbook: [UPDATING.md](UPDATING.md) · player install: [docs/PLAYER-SETUP-TR.md](docs/PLAYER-SETUP-TR.md) · private-scene runbook: [docs/ZAPEG-RUNTIME-RUNBOOK.md](docs/ZAPEG-RUNTIME-RUNBOOK.md) · reversible Muhtar guide: [docs/MUHTAR-QUEST-GUIDE-TR.md](docs/MUHTAR-QUEST-GUIDE-TR.md).
 
 ## Version pins (verified 2026-08-17)
 
@@ -13,12 +13,18 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + 28 additions** (24 c
 | Immersive Vehicles | 24.0.0 (2026-04) | CF file `7926604` | Client+server core; this release fixes the Ad Astra startup crash. Requires Forge ≥47.1.47; ZapeG's 47.4.10 satisfies it |
 | MTS Official Pack | V29 (2026-04) | CF file `7933733` | Client+server official cars, trucks, planes, helicopters and tanks; requires Immersive Vehicles |
 | MTS Official Automobile Pack | V3 (2026-04) | CF file `7933540` | Client+server official car-focused addon; requires both Immersive Vehicles and MTS Official Pack V29 |
+| UNU Parts Pack | 6.7.3 (2025-10) | CF file `7064153` | Client+server; required by UNU Civilian. IV core page: "1.20 packs work on 1.16.5–1.21" |
+| UNU Civilian Vehicles | 6.7.1 (2025-10) | CF file `7064154` | Client+server; 20 civilian cars/vans/buses/trucks. Train content inert (no Immersive Railroading) |
+| Trin Parts Pack | 2.28.0 (2026-04) | CF file `7890589` | Client+server; required by Trin Civil ("vehicles will not spawn" without it) |
+| Trin Civil Pack | 4.5.0 (2026-04) | CF file `7890609` | Client+server; 34+ vehicles. Slug renamed to `immersive-vehicles-trin-civil-pack` — old `-v3-v4` slug is dead on the API |
+| Prefab | 1.10.0.1 (2025-01) | CF file `6065398` | Client+server; craft-a-block → preview → full furnished house. The zero-effort building option; no deps |
+| CasinoCraft | v25 (2024-11) | CF file `5942243` | Client+server; roulette/slots/poker/blackjack tables with own token system. The only real casino on Forge 1.20.1 |
+| Slots Machine | 1.2.1 (2026-06) | CF file `8187162` | Client+server; config-driven one-armed bandit (coin item + odds tunable; FTB Chunks aware) |
 | Aleki's Nifty Ships | 1.0.14 (2024-12) | CF file `5963449` | Client+server MIT core, owner-approved as experimental age-of-sail content. Known unload/mooring/render defects remain a promotion gate; the incompatible official BOP addon is deliberately excluded |
 | Chunky | 1.3.146 | Modrinth (`MODRINTH_PROJECTS`) | No 1.20.1 Forge build exists on CurseForge |
 | Alex's Caves | 2.0.2 (2024-10) | CF file `5848216` | Client+server; shares Citadel dep |
 | Mowzie's Mobs | 1.8.2 (2026-03) | CF file `7815705` | Client+server; GeckoLib already in ATM9 |
 | Easy NPC | 7.7.7 (2026-08) | CF file `8644040` | Client+server; retained for lore and quest NPCs |
-| Effortless Building | 3.11 (2026-04) | CF file `7944965` | Client+server; mirror/radial/array build helper (locks/patch regen required) |
 | Aquamirae | 7.1.10 (2026-08) | CF file `8558369` | Client+server; ocean horror + Cornelia boss |
 | Born in Chaos | 1.7.5 (2026-04) | CF file `7917933` | Client+server; night horror mobs ("Heraldor'un orduları") |
 | When Dungeons Arise | 2.1.58 | ATM9 manifest, CF file `4983862` | **Already in ATM9**; mega-dungeons, never add a second jar |
@@ -33,16 +39,18 @@ Self-hosted server for the custom pack: **ATM9 1.1.1 base + 28 additions** (24 c
 | ZapeG Runtime | 0.3.0 | owned jar + reviewed SHA-256 lock | Mandatory client+server renderer for target-private, camera-aware apparitions, motion echoes, bounded reality faults and the render-only horizon colossus; installed from `overrides/mods`, not represented as CurseForge content |
 | Incendium | 5.3.1 | Modrinth pin | **Server-only**; nether overhaul (Stardust, pairs with pack's Terralith) |
 | BlueMap | 5.3-forge-1.20 | Modrinth (`MODRINTH_PROJECTS`) | Server-only web map on `:8100`. Pinned to 5.3 — 5.12+ needs Java 21, we're on 17 |
+| WorldEdit | 7.2.15 (2023-06) | CF file `4586218` | **Server-only**; OP terraforming (`//set`, `//copy`, `//schem`). Final 1.20.1 build ever — pin and forget |
+| Skin Restorer | 2.10.0+1.20-forge | Modrinth (`MODRINTH_PROJECTS`) | **Server-only** (client side unsupported); resolves skins by username from Mojang/Ely.by in offline mode — fixes Steve/Alex under `ONLINE_MODE=false`. Players without a paid skin: `/skin set <name>` |
 | Discord Integration | 3.0.7.1 (2024-05) | CF file `5332465` | Server-only; token wired post-boot (HOSTING) |
 
-Confirmed **already in ATM9 1.1.1** (435-mod manifest): When Dungeons Arise 2.1.58, playerAnimator 1.0.2-rc1+1.20, Twilight Forest 4.3.2508, Spark, FerriteCore, ModernFix, Embeddium/Oculus and Kotlin for Forge. The first two were removed from ZapeG's manual declarations after a real boot exposed the duplicate WDA mod ID. The 25 external ZapeG additions are pinned by exact CurseForge file IDs, `MODRINTH_PROJECTS`, or the reviewed CC:Tweaked override and SHA-256 inventory locks; ZapeG Citizens and ZapeG Runtime are the twenty-sixth and twenty-seventh owned additions, likewise verified by exact filename plus SHA-256 locks.
+Confirmed **already in ATM9 1.1.1** (435-mod manifest): When Dungeons Arise 2.1.58, playerAnimator 1.0.2-rc1+1.20, Twilight Forest 4.3.2508, Spark, FerriteCore, ModernFix, Embeddium/Oculus and Kotlin for Forge. The first two were removed from ZapeG's manual declarations after a real boot exposed the duplicate WDA mod ID. The 34 external ZapeG additions are pinned by exact CurseForge file IDs, `MODRINTH_PROJECTS`, or the reviewed CC:Tweaked override and SHA-256 inventory locks; ZapeG Citizens and ZapeG Runtime are the two owned additions, likewise verified by exact filename plus SHA-256 locks.
 
 ## Quickstart
 
 ```bash
 cp .env.example .env        # optional settings; default mc + backup has no required env value
 docker compose up -d        # starts the default stack: mc + backup
-docker compose logs -f mc   # first boot: pack + 27 additions + Forge install — expect 5–15+ min
+docker compose logs -f mc   # first boot: pack + 36 additions + Forge install — expect 5–15+ min
 ```
 
 Healthy = `[Server thread/INFO]: Done (…)! For help, type "help"`. The backup sidecar starts once `mc` reports healthy.
