@@ -55,6 +55,7 @@ $extraMods = @(
     [pscustomobject]@{ Name = 'Trin Parts Pack';     Prefix = 'Trin Parts Pack-';      FileName = 'Trin Parts Pack-1.20.1-2.28.0.jar';                 FileId = '7890589'; Pin = 'CurseForge file 7890589' },
     [pscustomobject]@{ Name = 'Trin Civil Pack';     Prefix = 'Trin Civil Pack-';      FileName = 'Trin Civil Pack-1.20.1-4.5.0.jar';                  FileId = '7890609'; Pin = 'CurseForge file 7890609' },
     [pscustomobject]@{ Name = 'Prefab';              Prefix = 'prefab-';               FileName = 'prefab-1.10.0.1.jar';                               FileId = '6065398'; Pin = 'CurseForge file 6065398' },
+    [pscustomobject]@{ Name = 'Lucky77';             Prefix = 'Lucky77_';              FileName = 'Lucky77_1.20.1_v04.jar';                            FileId = '5140501'; Pin = 'CurseForge file 5140501 — required by CasinoCraft' },
     [pscustomobject]@{ Name = 'CasinoCraft';         Prefix = 'CasinoCraft_';          FileName = 'CasinoCraft_1.20.1_v25.jar';                        FileId = '5942243'; Pin = 'CurseForge file 5942243' },
     [pscustomobject]@{ Name = 'Slots Machine';       Prefix = 'slotmachinemod-';       FileName = 'slotmachinemod-1.2.1-1.20.1.jar';                   FileId = '8187162'; Pin = 'CurseForge file 8187162' },
     [pscustomobject]@{ Name = "Aleki's Nifty Ships"; Prefix = 'alekiNiftyShips-FORGE-1.20.1-'; FileName = 'alekiNiftyShips-FORGE-1.20.1-1.0.14.jar';      FileId = '5963449'; Pin = 'CurseForge file 5963449' },

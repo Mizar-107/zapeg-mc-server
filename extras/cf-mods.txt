@@ -9,7 +9,7 @@
 #   easy-npc bundle + core + config-ui, aquamirae + fragmentum, born-in-chaos,
 #   simply-swords, valkyrien-skies, eureka-ships, numen-ai,
 #   immersive-vehicles + official-content-pack + official-automobile-pack,
-#   unu-parts + unu-civilian, trin-parts + trin-civil, prefab, casinocraft,
+#   unu-parts + unu-civilian, trin-parts + trin-civil, prefab, lucky77 + casinocraft,
 #   slots-machine, aleki's Nifty Ships
 #   (+ better-combat and the CC:Tweaked 1.116.1 re-pin via Modrinth — client+server)
 #   (+ ZapeG Citizens and ZapeG Runtime from owned overrides/mods jars — not CurseForge)
@@ -125,6 +125,11 @@ immersive-vehicles-trin-civil-pack:7890609
 # Prefab 1.10.0.1 (2025-01-08) — craft a block, preview, click: whole furnished
 # house spawns. The "even easier building" pick for casual players; no deps.
 prefab:6065398
+
+# Lucky77 v04 (2024-02-27) — REQUIRED by CasinoCraft v25 ("requires lucky77
+# 4.0 or above"); upstream cf-mods.txt omitted this and CasinoCraft hard-
+# crashes both client and server at mod-load without it (discovered 2026-08-22).
+lucky77:5140501
 
 # CasinoCraft v25 for 1.20.1 (2024-11-27) — roulette/slots/poker/blackjack +
 # arcade tables with own token system. The only real casino for Forge 1.20.1.
