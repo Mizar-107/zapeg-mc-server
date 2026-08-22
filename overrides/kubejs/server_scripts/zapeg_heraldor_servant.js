@@ -60,44 +60,25 @@ function zhDimensionId(level) {
 }
 
 function zhDirectorSourceAllowed(source) {
-  // v2 (2026-08-21): the previous gate reflected on CommandSourceStack's
-  // private `source` field and called getUUID()/getClass() on the raw object.
-  // On the production server (SRG member names, remap quirks) those calls
-  // threw, every branch fell through, and EVERY in-game OP and RCON command
-  // died with "Heraldor does not accept this command source." — while the
-  // director/pytest suites never execute Rhino, so tests stayed green.
-  //
-  // The new gate uses only surfaces this build demonstrably exposes
-  // (hasPermission, .player, .textName — same bean family as .scoreboardName
-  // above). Boundary change, accepted deliberately: a command block/function
-  // impersonating an OP via `execute as` is no longer distinguished. On this
-  // server only the admin can program command blocks, and every director
-  // action is validated + idempotency-checked Python-side anyway.
-  if (!source.hasPermission(2)) return false
-  try {
-    const player = source.player
-    if (player && zhSafePlayerName(player)) return true
-  } catch (_) {
-    // Console-like sources do not expose a player.
-  }
-  try {
-    // getTextName(): players -> their nick, console -> "Server",
-    // RCON -> "Rcon", command blocks -> "@" or their custom name.
-    const label = String(source.textName)
-    if (label === 'Server' || label === 'Rcon') return true
-    if (/^[A-Za-z0-9_]{1,16}$/.test(label) && label !== '@') return true
-  } catch (_) {
-    // Fall through to the diagnostic rejection below.
-  }
+  // v3 (2026-08-22): hasPermission(2) ONLY. The root literal's .requires
+  // already enforces the same check (a non-OP cannot even see the tree), so
+  // the inner gate is redundant defense-in-depth — and its v1 reflection and
+  // v2 bean probing each cost a full deploy round by rejecting real OPs for
+  // reasons invisible from the outside. The Python Director validates,
+  // allowlists and idempotency-checks every request anyway; a friends server
+  // where only the admin can author command blocks does not need source-type
+  // forensics on top of that. The identity surfaces are still LOGGED
+  // (best-effort) purely as telemetry for the postmortem.
+  const allowed = source.hasPermission(2)
   try {
     console.log(
-      '[zapeg-lore] source rejected: perm2=' + source.hasPermission(2) +
+      '[zapeg-lore] source check: allowed=' + allowed +
       ' textName=' + String(source.textName)
     )
   } catch (_) {
-    console.log('[zapeg-lore] source rejected: no readable identity surface')
+    console.log('[zapeg-lore] source check: allowed=' + allowed + ' (textName unreadable)')
   }
-  return false
+  return allowed
 }
 
 function zhDirectorOperatorName(source) {
@@ -808,4 +789,4 @@ EntityEvents.death('minecraft:wither_skeleton', event => {
   )
 })
 
-console.log('[zapeg] zapeg_heraldor_servant.js loaded (GATE V2 — textName-based; eski "raw source" kapısı değil)')
+console.log('[zapeg] zapeg_heraldor_servant.js loaded (GATE V3 — hasPermission-only; v1 reflection ve v2 bean probing tarih oldu)')

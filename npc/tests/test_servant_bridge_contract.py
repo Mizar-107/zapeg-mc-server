@@ -210,10 +210,10 @@ class DirectorBridgeContractTest(unittest.TestCase):
         ]
         self.assertIn("function zhWriteControlToken", queue)
         self.assertIn("zhDirectorSourceAllowed(source)", queue)
-        # Gate v2: no private-field reflection, no raw-object mapped-name
-        # calls — production SRG names made the old gate reject everything.
+        # Gate v3: permission-only, telemetry-logged; no reflection and no
+        # bean forensics — both variants rejected real OPs on production.
         self.assertNotIn("rawSource", self.source)
-        self.assertIn("label === 'Server' || label === 'Rcon'", self.source)
+        self.assertIn("const allowed = source.hasPermission(2)", self.source)
 
     def test_story_goto_uses_rhino_safe_chapter_literals(self) -> None:
         # M7: Arguments.INTEGER is the one wrapper never compile-checked on
