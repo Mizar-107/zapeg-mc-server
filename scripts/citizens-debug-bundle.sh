@@ -7,8 +7,11 @@
 # durdurmaz, sadece o bölüm "yok" düşer. Hiçbir secret dosyaya yazılmaz
 # (token/anahtar değerleri değil, yalnız var/yok durumu raporlanır).
 
+# WINDOWS HOST NOTU: canlı sunucu Windows + WSL docker ise BUNU DEĞİL,
+# scripts/citizens-debug-bundle.ps1 kullan (PowerShell'den, WSL gerekmez).
 set -u
 OUT="citizens-debug-$(date +%Y%m%d-%H%M%S).txt"
+echo "yazılıyor: $OUT" >&2
 exec >"$OUT" 2>&1
 
 section() { printf '\n============ %s ============\n' "$1"; }
@@ -71,13 +74,12 @@ section "heraldor konteyneri + son 120 log"
 docker compose --profile heraldor ps heraldor 2>/dev/null || true
 docker compose --profile heraldor logs --no-color --tail 120 heraldor 2>/dev/null || echo "(heraldor konteyneri yok/kapalı)"
 
-section "kubejs log — [zapeg-lore] süzgeci + son 60 satır"
-grep -a "\[zapeg-lore\]" data/logs/kubejs/server.log 2>/dev/null | tail -40 || echo "(zapeg-lore kaydı yok)"
+section "kubejs log — [zapeg] canary + kayıtları (hangi script yüklendi)"
+grep -a "\[zapeg" data/logs/kubejs/server.log 2>/dev/null | tail -80 || echo "(zapeg kaydı yok)"
 tail -60 data/logs/kubejs/server.log 2>/dev/null || echo "(kubejs logu yok)"
 
 section "BİTTİ"
 echo "Bu dosyayı olduğu gibi gönder: $OUT"
 
-# stdout'u geri ver ki kullanıcı dosya adını görsün
-exec >/dev/tty 2>&1 || true
-echo "Debug paketi hazır: $OUT"
+# not: /dev/tty bazı WSL/CI kabuklarında yok — stdout'u geri almayı DENEME.
+# Dosya adı en başta stderr'e basılıyor; ayrıca dosyanın son satırında yazıyor.

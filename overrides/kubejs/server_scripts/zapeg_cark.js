@@ -148,3 +148,5 @@ ServerEvents.commandRegistry(event => {
   root.then(Commands.literal('oyna').executes(ctx => zcPlay(ctx.source)))
   event.register(root)
 })
+
+console.log('[zapeg] zapeg_cark.js loaded')

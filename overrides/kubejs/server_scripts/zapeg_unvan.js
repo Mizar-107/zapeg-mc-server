@@ -94,32 +94,39 @@ function zuRemove(server, name) {
 
 // --- otomatik: tören advancement'ı verilince unvanı tak --------------------
 
-PlayerEvents.advancement(event => {
-  let id = null
-  try {
-    id = String(event.advancement.id)
-  } catch (_) {
-    return
-  }
-  if (!id || id.indexOf('zapeg:') !== 0) return
-  const key = id.substring('zapeg:'.length)
-  if (!ZU_TITLES[key]) return
-  const player = event.player
-  if (!player) return
-  const name = String(player.scoreboardName)
-  if (!/^[A-Za-z0-9_]{1,16}$/.test(name)) return
-  zuApply(player.server, name, key, true)
-})
+// Savunmacı kayıt: bu binding canlı KubeJS yapısında yoksa TÜM dosya
+// ölmesin — komut yine kayıt olsun, otomasyon kapansın ve log söylesin.
+if (typeof PlayerEvents.advancement === 'function') {
+  PlayerEvents.advancement(event => {
+    let id = null
+    try {
+      id = String(event.advancement.id)
+    } catch (_) {
+      return
+    }
+    if (!id || id.indexOf('zapeg:') !== 0) return
+    const key = id.substring('zapeg:'.length)
+    if (!ZU_TITLES[key]) return
+    const player = event.player
+    if (!player) return
+    const name = String(player.scoreboardName)
+    if (!/^[A-Za-z0-9_]{1,16}$/.test(name)) return
+    zuApply(player.server, name, key, true)
+  })
+} else {
+  console.log('[zapeg] zapeg_unvan: PlayerEvents.advancement bu yapıda yok — otomatik unvan KAPALI; törenle birlikte /zapeg-unvan ver <unvan> <oyuncu> çalıştır')
+}
 
 // --- manuel OP komutu -------------------------------------------------------
 
 ServerEvents.commandRegistry(event => {
   const { commands: Commands, arguments: Arguments } = event
 
+  console.log('[zapeg] /zapeg-unvan registering')
   const root = Commands.literal('zapeg-unvan')
     .requires(source => source.hasPermission(2))
     .executes(ctx => {
-      zuReply(ctx.source, Text.of('/zapeg-unvan ver <oyuncu> <unvan> — sessiz takar (tören için /advancement grant kullan)').yellow(), false)
+      zuReply(ctx.source, Text.of('/zapeg-unvan ver <unvan> <oyuncu> — sessiz takar (tören için /advancement grant kullan)').yellow(), false)
       zuReply(ctx.source, Text.of('/zapeg-unvan kaldir <oyuncu>').yellow(), false)
       zuReply(ctx.source, Text.of('/zapeg-unvan liste').yellow(), false)
       return 1
@@ -135,23 +142,25 @@ ServerEvents.commandRegistry(event => {
     return 1
   })
 
+  // Kanıtlanmış desen: önce unvan literal'i, sonra oyuncu argümanı
+  // (bkz. zapeg_lore_kitap.js'teki 2026-08-22 kayıt notu).
   const ver = Commands.literal('ver')
-  const verTarget = Commands.argument('target', Arguments.PLAYER.create(event))
   const ids = zuTitleIds()
   for (let i = 0; i < ids.length; i++) {
     const id = ids[i]
-    verTarget.then(Commands.literal(id)
-      .executes(ctx => {
-        const target = Arguments.PLAYER.getResult(ctx, 'target')
-        const name = String(target.scoreboardName)
-        const done = zuApply(target.server, name, id, false)
-        if (done) zuReply(ctx.source, Text.of('Unvan takıldı: ' + name + ' → ' + ZU_TITLES[id].prefix.trim()).gray(), false)
-        else zuReply(ctx.source, Text.of('Unvan takılamadı.').red(), true)
-        return done
-      })
+    ver.then(Commands.literal(id)
+      .then(Commands.argument('target', Arguments.PLAYER.create(event))
+        .executes(ctx => {
+          const target = Arguments.PLAYER.getResult(ctx, 'target')
+          const name = String(target.scoreboardName)
+          const done = zuApply(target.server, name, id, false)
+          if (done) zuReply(ctx.source, Text.of('Unvan takıldı: ' + name + ' → ' + ZU_TITLES[id].prefix.trim()).gray(), false)
+          else zuReply(ctx.source, Text.of('Unvan takılamadı.').red(), true)
+          return done
+        })
+      )
     )
   }
-  ver.then(verTarget)
 
   const kaldir = Commands.literal('kaldir')
     .then(Commands.argument('target', Arguments.PLAYER.create(event))
@@ -169,3 +178,5 @@ ServerEvents.commandRegistry(event => {
   root.then(kaldir)
   event.register(root)
 })
+
+console.log('[zapeg] zapeg_unvan.js loaded (r2: literal-first registration, defensive advancement hook)')

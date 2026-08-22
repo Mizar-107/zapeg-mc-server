@@ -108,7 +108,7 @@ function zkGiveAll(source, target) {
 
 function zkUsage(source) {
   zkReply(source, Text.of('/zapeg-kitap liste').yellow(), false)
-  zkReply(source, Text.of('/zapeg-kitap ver <oyuncu> kurulus|kanunlar|tutanaklar|kayip_sayfa').yellow(), false)
+  zkReply(source, Text.of('/zapeg-kitap ver kurulus|kanunlar|tutanaklar|kayip_sayfa <oyuncu>').yellow(), false)
   zkReply(source, Text.of('/zapeg-kitap hepsi <oyuncu>').yellow(), false)
   zkReply(source, Text.of('Harabe için: /place template zapeg:harabe_1 — sonra "kayip_sayfa" kitabını kürsüye sağ tıkla.').gray(), false)
 }
@@ -126,6 +126,7 @@ function zkList(source) {
 ServerEvents.commandRegistry(event => {
   const { commands: Commands, arguments: Arguments } = event
 
+  console.log('[zapeg] /zapeg-kitap registering')
   const root = Commands.literal('zapeg-kitap')
     .requires(source => source.hasPermission(2))
     .executes(ctx => {
@@ -135,23 +136,26 @@ ServerEvents.commandRegistry(event => {
 
   const liste = Commands.literal('liste').executes(ctx => zkList(ctx.source))
 
+  // Kayıt deseni 2026-08-22'de değişti: canlı sunucuda /zapeg-kitap ve
+  // /zapeg-unvan HİÇ kayıt olmadı; aynı dalgada eklenen /zapeg-cark oldu.
+  // İkisinin ortak noktası literal'i ARGUMENT düğümünün ALTINA asmaktı
+  // (ver <oyuncu> <kitap>). Kanıtlanmış desen tersi: önce literal, sonra
+  // argüman — zapeg_heraldor_servant.js'in profil ağacı canlıda böyle
+  // çalışıyor. Şekil artık: /zapeg-kitap ver <kitap> <oyuncu>.
   const ver = Commands.literal('ver')
   const bookIds = zkBookIds()
-  // Sayısal/serbest argüman yerine kitap başına literal alt komut: bu Rhino
-  // yapısında Arguments.STRING/INTEGER sarmalayıcıları güvenilmez (bkz.
-  // zapeg_heraldor_servant.js "goto" notu) — literaller sekme tamamlama da verir.
-  const verTarget = Commands.argument('target', Arguments.PLAYER.create(event))
   for (let i = 0; i < bookIds.length; i++) {
     const id = bookIds[i]
-    verTarget.then(Commands.literal(id)
-      .executes(ctx => zkGive(
-        ctx.source,
-        Arguments.PLAYER.getResult(ctx, 'target'),
-        id
-      ))
+    ver.then(Commands.literal(id)
+      .then(Commands.argument('target', Arguments.PLAYER.create(event))
+        .executes(ctx => zkGive(
+          ctx.source,
+          Arguments.PLAYER.getResult(ctx, 'target'),
+          id
+        ))
+      )
     )
   }
-  ver.then(verTarget)
 
   const hepsi = Commands.literal('hepsi')
     .then(Commands.argument('target', Arguments.PLAYER.create(event))
@@ -166,3 +170,5 @@ ServerEvents.commandRegistry(event => {
   root.then(hepsi)
   event.register(root)
 })
+
+console.log('[zapeg] zapeg_lore_kitap.js loaded (r2: literal-first registration)')

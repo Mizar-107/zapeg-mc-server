@@ -807,3 +807,5 @@ EntityEvents.death('minecraft:wither_skeleton', event => {
     'run time query gametime'
   )
 })
+
+console.log('[zapeg] zapeg_heraldor_servant.js loaded (GATE V2 — textName-based; eski "raw source" kapısı değil)')
