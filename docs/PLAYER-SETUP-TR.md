@@ -136,6 +136,12 @@ uygulama gerekmez.
 - Render distance değerini 8'e indir.
 - Devam ederse `crash-reports` klasöründeki en yeni dosyayı gruba gönder.
 
+### Girişte "sunucu kaynak paketi" sorusu çıkıyor
+
+- Normal ve beklenen: ZapeG varsayılan HD doku paketini (Faithful 32x, [faithfulpack.net](https://faithfulpack.net)) sunucu kendisi gönderir. **Evet/Kabul** de; ~11 MB bir kere iner, sonraki girişlerde sorulmaz. Her şey vanilla halinden tanınır, sadece daha net görünür.
+- İstemezsen Hayır diyebilirsin, oyuna yine girersin. Sonradan fikir değiştirirsen: Seçenekler → Kaynak Paketleri → "Sunucu kaynakları"nı aç/kapat, ya da çıkıp tekrar gir.
+- Mod dokuları (makineler, araçlar, yaratıklar) 16x kalır; HD olan vanilla bloklar/eşyalardır. Bu bilinçli bir tercih, kurulum hatası değil.
+
 ### Ana menüde ejderhalı Ice and Fire menüsü açılıyor (ZapeG logosu yok)
 
 - Ice and Fire kendi özel ana menüsünü açıp ZapeG menüsünü (PackMenu) tamamen eziyor. Güncel yamada `config\iceandfire-client.toml` içinde `"Custom main menu" = false` gelir; ejderhalı menüyü hâlâ görüyorsan yama bu dosyayı yazmamış demektir — yamayı yeniden uygula ve oyunu yeniden başlat (ayar sadece açılışta okunur).

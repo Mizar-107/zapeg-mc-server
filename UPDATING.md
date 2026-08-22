@@ -179,6 +179,14 @@ the README pin table). Per-category notes:
   a Mojang skin run `/skin set <isim>` or `/skin url <png>`.
 - **UNU + Trin IV packs**: see the Immersive Vehicles rollout section above.
 
+- **Faithful 32x (server-pushed resource pack, 2026-08-22):** delivered via
+  `resource-pack` + sha1 pointing at the official Modrinth CDN (version
+  `VgTWEXF2`, 11 MB, well under the 250 MB client cap) — deliberately NOT a
+  patch/lock item: zero client-artifact impact, world risk none, removal =
+  unset four compose lines. License explicitly permits server-resource-pack
+  use with visible credit (join prompt + README + player guide carry it).
+  Only vanilla textures go HD; the 16x mod-texture contrast is accepted.
+
 Promotion state: pins + docs + counts synced in this commit. Outstanding before
 group announcement: host recreates `mc` (new jars resolve), one multiplayer
 smoke session per category (IV brands spawn/drive/persist; one CasinoCraft
