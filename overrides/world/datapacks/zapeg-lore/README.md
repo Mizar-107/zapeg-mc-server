@@ -24,8 +24,9 @@ HARABE (ilk lore yapısı, OP yerleştirir):
 
 LORE KİTAPLARI (kubejs/zapeg_lore_kitap.js, OP):
   /zapeg-kitap liste
-  /zapeg-kitap ver <oyuncu> kurulus|kanunlar|kayip_sayfa
+  /zapeg-kitap ver <oyuncu> kurulus|kanunlar|tutanaklar|kayip_sayfa
   /zapeg-kitap hepsi <oyuncu>
-  kurulus + kanunlar köy kütüphanesine/lectern'e; kayip_sayfa harabeye.
+  kurulus + kanunlar + tutanaklar köy kütüphanesine/lectern'e; kayip_sayfa harabeye.
+  tutanaklar: nick beklemeyen oyuncu lore'u (Enes Ö., Yusuf S. dahil, herkes görür).
 
 Not: ilk_temas üç ejderha türünü açık id ile dinler (tag varsayımı yok).

@@ -29,6 +29,24 @@ const ZK_BOOKS = {
       '9. Dokuzuncu kanun yoktur.\n\nDokuzuncu kanunu sormayın.'
     ]
   },
+  tutanaklar: {
+    // Nick beklemeyen oyuncu lore'u (owner 2026-08-21: "add lores without
+    // waiting for their nicks, other players can still see"): meclis mizahı.
+    title: 'Zape Kayıtları III — Meclis Tutanakları',
+    author: 'Muhtar',
+    pages: [
+      'Meclis Tutanağı, Celse 1.\n\nGündem: Salih\'in osuruk şakaları.\n\nKarar: yasaklandı.\n\nEk karar: yasak işlemedi. Dosya kapandı.',
+      'Celse 2: "Comolokko" nedir?\n\nSalih\'e soruldu. Cevap anlaşılamadı.\n\nKarar: sormamaya devam edilecek.',
+      'Celse 3: Enes Öztürk\'ün android olduğu iddiası.\n\nKanıt: fazla düzgün yürüyor.\n\nSavunma: reddetmedi.\n\nKarar: gözlem sürecek.',
+      'Celse 4: Mangal yetkisi.\n\nKarar: Yusuf Subaşı her mangalın doğal reisidir.\n\nKöz, ona sorulmadan dürtülemez.',
+      'Celse 5: Emin\'in maaş talebi.\n\nDüzeltme: talep yok.\n\nKarar: bedava çalışmaya teşekkür edildi. Zam istemediği için plaket verilecek (bedava).',
+      'Celse 6: Mert\'in demir-kömür dilekçesi.\n\n"Tek inşaat yapan benim, madem öyle demir gelsin."\n\nKarar: haklı. Kimse kazmadı.',
+      'Celse 7: Sandık dokunulmazlığı ihlalleri.\n\nŞüpheli: bilinen biri (Enes K.).\n\nKarar: Kanun 2 okundu. Şüpheli "yamayı nasıl kuruyordum" diye sorarak oturumu dağıttı.',
+      'Celse 8: Yunus\'a özel muamele iddiası.\n\nEmir: "evet, yapıyorum, ne olacak?"\n\nKarar: Trabzon\'a selam gönderildi. Oturum sevgi gösterileriyle kapandı.',
+      'Celse 9: Emir\'in zartinium ruhsatı.\n\n"Zurtinium da olabilir" dedi.\n\nKarar: kazmasına izin verildi. Ne bulduğu sorulmayacak.',
+      'Tutanakları tutan: Muhtar.\n\nOkuyan: siz.\n\nİtiraz süresi: geçti.'
+    ]
+  },
   kayip_sayfa: {
     title: 'Kayıp Sayfa',
     author: '…',
@@ -90,7 +108,7 @@ function zkGiveAll(source, target) {
 
 function zkUsage(source) {
   zkReply(source, Text.of('/zapeg-kitap liste').yellow(), false)
-  zkReply(source, Text.of('/zapeg-kitap ver <oyuncu> <kitap>').yellow(), false)
+  zkReply(source, Text.of('/zapeg-kitap ver <oyuncu> kurulus|kanunlar|tutanaklar|kayip_sayfa').yellow(), false)
   zkReply(source, Text.of('/zapeg-kitap hepsi <oyuncu>').yellow(), false)
   zkReply(source, Text.of('Harabe için: /place template zapeg:harabe_1 — sonra "kayip_sayfa" kitabını kürsüye sağ tıkla.').gray(), false)
 }

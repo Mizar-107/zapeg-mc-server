@@ -143,11 +143,12 @@ services:
   # docker compose --profile citizens up -d --build citizen-brain mc backup
   # No host port, Minecraft data, logs, RCON, or Docker socket are exposed.
   citizen-brain:
-    # 0.4.1 = brain-only bump (village memory cards); the Citizens 0.4.0 JAR
-    # and protocol 3 are unchanged — no world/mod step, just image rebuild.
-    image: zapeg/citizen-brain:0.4.1
+    # 0.4.2 = brain-only bump (village memory cards + sugar-cane/hoe field
+    # fixes + harvest_cane template); the Citizens 0.4.0 JAR and protocol 3
+    # are unchanged — no world/mod step, just image rebuild + recreate.
+    image: zapeg/citizen-brain:0.4.2
     build:
-      context: https://github.com/Mizar-107/zapeg-citizens.git#a96c05c10b74cbacbcaffe47d76efd61654ace8e:brain
+      context: https://github.com/Mizar-107/zapeg-citizens.git#0eed2210d50e8448cad174784a89b98f64dd13fc:brain
     container_name: atm9-citizen-brain
     profiles: ["citizens"]
     restart: unless-stopped
