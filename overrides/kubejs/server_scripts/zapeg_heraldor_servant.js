@@ -31,6 +31,17 @@ function zhHasTag(entity, tag) {
 // no username getter exists at all. A missing getter reads back as undefined
 // and String(undefined) === 'undefined' passes the name regex, so names and
 // UUIDs must come from these exact accessors.
+//
+// RHINO KURALI (2026-08-22, yerel test sunucusunda kanıtlandı): for döngüsü
+// GÖVDESİNDE const/let TANIMLAMA — bu Rhino gövdeyi blok-scope'lamaz, ikinci
+// iterasyonda "TypeError: redeclaration of var" fırlatır; kayıt sırasında
+// patlarsa komut hiç kayıt olmaz VE alfabetik sırada SONRAKİ scriptlerin
+// commandRegistry handler'ları da iptal olur (canlıdaki unvan/kitap kaybının
+// gerçek nedeni buydu). Döngü gövdesinde her zaman `var` kullan; for-of/for-in
+// BAŞLIĞINDAKİ const güvenli; callback içleri (executes, forEach) ayrı
+// aktivasyon olduğu için güvenli. `var` döngü değişkenini bir callback'e
+// KAPATMA — tek paylaşılan binding'dir; değeri fonksiyon parametresiyle yakala
+// (zhAttachDirectorProfiles / zkAttachBook / zuAttachTitle deseni).
 function zhEntityUuid(entity) {
   return String(entity.getUUID())
 }
@@ -373,15 +384,15 @@ function zhSafeSpawn(level, target) {
   const start = Math.floor(Math.random() * ring.length)
 
   for (let index = 0; index < ring.length; index++) {
-    const offset = ring[(start + index) % ring.length]
+    var offset = ring[(start + index) % ring.length]
     for (const dy of vertical) {
-      const x = baseX + offset[0]
-      const y = baseY + dy
-      const z = baseZ + offset[1]
-      const floor = level.getBlock(x, y - 1, z)
-      const feet = level.getBlock(x, y, z)
-      const head = level.getBlock(x, y + 1, z)
-      const top = level.getBlock(x, y + 2, z)
+      var x = baseX + offset[0]
+      var y = baseY + dy
+      var z = baseZ + offset[1]
+      var floor = level.getBlock(x, y - 1, z)
+      var feet = level.getBlock(x, y, z)
+      var head = level.getBlock(x, y + 1, z)
+      var top = level.getBlock(x, y + 2, z)
 
       if (!floor.blockState.isCollisionShapeFullBlock(level, floor.pos)) continue
       if (floor.hasTag('minecraft:leaves')) continue

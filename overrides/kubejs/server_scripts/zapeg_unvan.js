@@ -135,20 +135,17 @@ ServerEvents.commandRegistry(event => {
   const liste = Commands.literal('liste').executes(ctx => {
     const ids = zuTitleIds()
     for (let i = 0; i < ids.length; i++) {
-      const t = ZU_TITLES[ids[i]]
+      var t = ZU_TITLES[ids[i]]
       zuReply(ctx.source, Text.of('• ' + ids[i]).aqua()
         .append(Text.of(' — ' + t.prefix.trim() + ' (advancement: zapeg:' + ids[i] + ')').gray()), false)
     }
     return 1
   })
 
-  // Kanıtlanmış desen: önce unvan literal'i, sonra oyuncu argümanı
-  // (bkz. zapeg_lore_kitap.js'teki 2026-08-22 kayıt notu).
-  const ver = Commands.literal('ver')
-  const ids = zuTitleIds()
-  for (let i = 0; i < ids.length; i++) {
-    const id = ids[i]
-    ver.then(Commands.literal(id)
+  // Kanıtlanmış desen: önce unvan literal'i, sonra oyuncu argümanı; döngü
+  // değişkeni callback'e kapatılmaz — parametre yakalar (bkz. kitap notu).
+  function zuAttachTitle(parent, id) {
+    parent.then(Commands.literal(id)
       .then(Commands.argument('target', Arguments.PLAYER.create(event))
         .executes(ctx => {
           const target = Arguments.PLAYER.getResult(ctx, 'target')
@@ -160,6 +157,11 @@ ServerEvents.commandRegistry(event => {
         })
       )
     )
+  }
+  const ver = Commands.literal('ver')
+  const ids = zuTitleIds()
+  for (let i = 0; i < ids.length; i++) {
+    zuAttachTitle(ver, ids[i])
   }
 
   const kaldir = Commands.literal('kaldir')
@@ -179,4 +181,4 @@ ServerEvents.commandRegistry(event => {
   event.register(root)
 })
 
-console.log('[zapeg] zapeg_unvan.js loaded (r2: literal-first registration, defensive advancement hook)')
+console.log('[zapeg] zapeg_unvan.js loaded (r3: const-in-loop fix + attach-helper — yerel Rhino testinde REG/RUN doğrulandı)')

@@ -159,15 +159,15 @@ function zapegGivePersonalRewards(player, forceCriterionCheck) {
   const name = String(player.username)
 
   for (const criterion in ZAPEG_PERSONAL_REWARDS) {
-    const reward = ZAPEG_PERSONAL_REWARDS[criterion]
+    var reward = ZAPEG_PERSONAL_REWARDS[criterion]
     if (name !== reward.owner) continue
 
-    const stage = `zapeg_reward_${criterion}`
-    const marker = `zapegReward_${criterion}_v1`
+    var stage = `zapeg_reward_${criterion}`
+    var marker = `zapegReward_${criterion}_v1`
     if (Boolean(player.persistentData[marker]) || player.stages.has(stage)) continue
 
-    const cached = zapegIsVerifiedCached(player, criterion)
-    const recheckDue = Number(player.age) % ZAPEG_REWARD_RECHECK_TICKS === 0
+    var cached = zapegIsVerifiedCached(player, criterion)
+    var recheckDue = Number(player.age) % ZAPEG_REWARD_RECHECK_TICKS === 0
     if (!cached && !forceCriterionCheck && !recheckDue) continue
     if (!zapegHasVerified(player, criterion)) continue
 
@@ -179,7 +179,7 @@ function zapegGivePersonalRewards(player, forceCriterionCheck) {
       continue
     }
 
-    const item = Item.of(reward.item, {
+    var item = Item.of(reward.item, {
       zapeg: {
         personal: true,
         owner: reward.owner,
@@ -194,7 +194,7 @@ function zapegGivePersonalRewards(player, forceCriterionCheck) {
       ])
 
     if (!player.inventory.insertItem(item, true).isEmpty()) {
-      const notice = `${name}:${criterion}`
+      var notice = `${name}:${criterion}`
       if (!ZAPEG_REWARD_FULL_NOTICE[notice]) {
         player.tell(Text.of(`Kişisel hatıran bekliyor (${reward.name}); envanterinde bir yer aç.`).gold())
         ZAPEG_REWARD_FULL_NOTICE[notice] = true
@@ -202,7 +202,7 @@ function zapegGivePersonalRewards(player, forceCriterionCheck) {
       continue
     }
 
-    const remaining = player.inventory.insertItem(item, false)
+    var remaining = player.inventory.insertItem(item, false)
     if (!remaining.isEmpty()) {
       console.error(`[ZapeG] ${reward.name} ${name} envanterine eklenemedi; teslimat yeniden denenecek.`)
       continue

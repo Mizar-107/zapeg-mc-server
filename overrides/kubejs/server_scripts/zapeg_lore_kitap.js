@@ -116,7 +116,7 @@ function zkUsage(source) {
 function zkList(source) {
   const ids = zkBookIds()
   for (let i = 0; i < ids.length; i++) {
-    const book = ZK_BOOKS[ids[i]]
+    var book = ZK_BOOKS[ids[i]]
     zkReply(source, Text.of('• ' + ids[i]).aqua()
       .append(Text.of(' — ' + book.title + ' (' + book.pages.length + ' sayfa)').gray()), false)
   }
@@ -136,17 +136,18 @@ ServerEvents.commandRegistry(event => {
 
   const liste = Commands.literal('liste').executes(ctx => zkList(ctx.source))
 
-  // Kayıt deseni 2026-08-22'de değişti: canlı sunucuda /zapeg-kitap ve
-  // /zapeg-unvan HİÇ kayıt olmadı; aynı dalgada eklenen /zapeg-cark oldu.
-  // İkisinin ortak noktası literal'i ARGUMENT düğümünün ALTINA asmaktı
-  // (ver <oyuncu> <kitap>). Kanıtlanmış desen tersi: önce literal, sonra
-  // argüman — zapeg_heraldor_servant.js'in profil ağacı canlıda böyle
-  // çalışıyor. Şekil artık: /zapeg-kitap ver <kitap> <oyuncu>.
-  const ver = Commands.literal('ver')
-  const bookIds = zkBookIds()
-  for (let i = 0; i < bookIds.length; i++) {
-    const id = bookIds[i]
-    ver.then(Commands.literal(id)
+  // GERÇEK kök neden (yerel test sunucusunda kanıtlandı, 2026-08-22):
+  // döngü GÖVDESİNDEKİ `const id` — bu Rhino ikinci iterasyonda
+  // "redeclaration of var" fırlatıyor, handler ölüyor, komut kayıt olmuyor
+  // VE alfabetik sırada sonraki scriptlerin kayıtları da iptal oluyor
+  // (canlıda unvan bu yüzden yoktu). Ağaç şekli suçsuzdu; yine de
+  // literal-önce şekli kaldı (ver <kitap> <oyuncu>). Değer callback'e
+  // parametreyle bağlanır (var kapatılırsa hepsi son kitabı verir).
+  // Döngü değişkenini callback'e KAPATMA (var = tek paylaşılan binding, hepsi
+  // son kitabı verir); değer bir fonksiyon PARAMETRESİ ile yakalanır — her
+  // çağrı ayrı aktivasyon. zhAttachDirectorProfiles ile aynı desen.
+  function zkAttachBook(parent, id) {
+    parent.then(Commands.literal(id)
       .then(Commands.argument('target', Arguments.PLAYER.create(event))
         .executes(ctx => zkGive(
           ctx.source,
@@ -155,6 +156,11 @@ ServerEvents.commandRegistry(event => {
         ))
       )
     )
+  }
+  const ver = Commands.literal('ver')
+  const bookIds = zkBookIds()
+  for (let i = 0; i < bookIds.length; i++) {
+    zkAttachBook(ver, bookIds[i])
   }
 
   const hepsi = Commands.literal('hepsi')
@@ -171,4 +177,4 @@ ServerEvents.commandRegistry(event => {
   event.register(root)
 })
 
-console.log('[zapeg] zapeg_lore_kitap.js loaded (r2: literal-first registration)')
+console.log('[zapeg] zapeg_lore_kitap.js loaded (r3: const-in-loop fix + attach-helper — yerel Rhino testinde REG/RUN doğrulandı)')
